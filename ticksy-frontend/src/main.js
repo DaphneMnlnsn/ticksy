@@ -1,7 +1,9 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import CreateAccount from './Pages/CreateAccount.vue'
+import router from './router'
 
 //createApp(App).mount('#app')
-createApp(CreateAccount).mount('#app')
+createApp(App)
+    .use(router)
+    .mount('#app')
