@@ -13,9 +13,9 @@
       <!-- Form container -->
       <div class="signup-container">
         <form @submit.prevent="handleSubmit">
-            <input type="email" v-model="email" placeholder="Enter your email" required />
-            <input type="password" v-model="password" placeholder="Create your password" required />
-            <input type="password" v-model="confirmPassword" placeholder="Confirm your password" required />
+          <input type="email" v-model="email" placeholder="Enter your email" required />
+          <input type="password" v-model="password" placeholder="Create your password" required />
+          <input type="password" v-model="confirmPassword" placeholder="Confirm your password" required />
 
           <button type="submit">Create Account</button>
 
@@ -30,28 +30,31 @@
 </template>
 
 <script setup>
-import { ref } from "vue"
-import logo from "../assets/ticksy_logo.png"
-import bgImage from "../assets/login_background.jpg"
+  import { ref } from "vue"
+  import logo from "../assets/ticksy_logo.png"
+  import bgImage from "../assets/login_background.jpg"
+  import { useRouter } from 'vue-router'
 
-const email = ref("")
-const password = ref("")
-const confirmPassword = ref("")
+  const router = useRouter()
+  const email = ref("")
+  const password = ref("")
+  const confirmPassword = ref("")
 
-function handleSubmit() {
-  if (password.value !== confirmPassword.value) {
-    alert("Passwords do not match")
-    return
+  function handleSubmit() {
+    if (password.value !== confirmPassword.value) {
+      alert("Passwords do not match")
+      return
+    }
+
+    const userData = {
+      email: email.value,
+      password: password.value
+    }
+
+    console.log("User Data:", userData)
+    alert("Account created! Check console for details.")
+    router.push('/dashboard')
   }
-
-  const userData = {
-    email: email.value,
-    password: password.value
-  }
-
-  console.log("User Data:", userData)
-  alert("Account created! Check console for details.")
-}
 </script>
 
 <style scoped>
@@ -133,6 +136,7 @@ function handleSubmit() {
   font-size: 1rem;
   color: black;
 }
+
 button {
   width: 250px;
   display: block;
@@ -148,7 +152,7 @@ button {
 }
 
 button:hover {
-  background: rgb(44, 57, 172);
+  background: #092845;
 }
 
 /* Login link */

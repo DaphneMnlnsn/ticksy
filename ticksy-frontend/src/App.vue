@@ -1,13 +1,6 @@
 <template>
-  <CreateAccount />
+  <router-view />
 </template>
 
-<script>
-import CreateAccount from './Pages/CreateAccount.vue'
-
-export default {
-  components: {
-    CreateAccount
-  }
-}
+<script setup>
 </script>
