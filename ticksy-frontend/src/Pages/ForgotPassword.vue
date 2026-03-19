@@ -3,16 +3,16 @@
     <div class="page-bg"></div>
 
     <div class="root">
-  
+      
       <div class="header-section">
         <img :src="logo" alt="Logo" class="logo" />
-        <h1>Welcome Back!</h1>
-        <h5>Log in to track time with ease.</h5>
+        <h1>Forgot Password</h1>
+        <h5>Enter your email to reset your password.</h5>
       </div>
 
       <div class="login-container">
-        <form @submit.prevent="handleLogin">
-          
+        <form @submit.prevent="handleReset">
+
           <div class="input-group">
             <Mail class="icon" />
             <input
@@ -23,27 +23,12 @@
             />
           </div>
 
-          <div class="input-group">
-            <Lock class="icon" />
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              v-model="password"
-              placeholder="Enter your password"
-              required
-            />
-            <component
-              :is="showPassword ? EyeOff : Eye"
-              class="eye"
-              @click="togglePassword"
-            />
-          </div>
+          <button type="submit">Send Reset Link</button>
 
           <div class="links">
-            <router-link to="/create-account">Create Account</router-link>
-            <router-link to="/forgot-password">Forgot Password</router-link>
+            <router-link to="/login">Back to Login</router-link>
           </div>
 
-          <button type="submit">Log In</button>
         </form>
       </div>
     </div>
@@ -52,29 +37,18 @@
 
 <script setup>
     import { ref } from "vue"
-    import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
+    import { Mail } from "lucide-vue-next"
+    import { useRouter } from "vue-router"
     import logo from "../assets/ticksy_logo.png"
-    import { useRouter } from 'vue-router'
 
     const router = useRouter()
-
     const email = ref("")
-    const password = ref("")
-    const showPassword = ref(false)
 
-    function togglePassword() {
-    showPassword.value = !showPassword.value
-    }
-
-    function handleLogin() {
-    console.log("Login:", {
-        email: email.value,
-        password: password.value,
-    })
-
-    alert("Welcome User!")
-    router.push('/dashboard')
-    }
+function handleReset() {
+  console.log("Reset link sent to:", email.value)
+  alert("Reset link sent to your email!")
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -123,21 +97,20 @@
   margin: 0 auto 30px auto;
   width: 200px;
   height: auto;
-  margin-right: 25px;
- 
+  margin-right: 55px;
 }
 
 .header-section h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  margin-left: 20px;
+  margin-left: 30px;
 }
 
 .header-section h5 {
   font-size: 1rem;
   margin: 2px 0;
   font-weight: lighter;
-  margin-left: 25px;
+  margin-left: 30px;
 }
 
 .input-group {
@@ -167,25 +140,15 @@
   color: #1f2937;
 }
 
-.eye {
-  width: 18px;
-  height: 20px;
-  color: #1f2937;
-}
-
 .links {
-  display: flex;
-  justify-content: space-between;
-  width: 105%;
-  margin: 5px ;
-  font-size: 0.9rem;
-  color: #fff;
+  margin-top: 10px;
 }
 
 .links a {
   color: #fff;
-  font-weight: 400;
+  font-size: 0.9rem;
   text-decoration: underline;
+  margin-left: 55px;
 }
 
 button {
