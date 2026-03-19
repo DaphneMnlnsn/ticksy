@@ -1,0 +1,27 @@
+namespace ticksy_api.Models
+{
+    public class WorkSchedule {
+        public int Id { get; set; }
+        public required string ScheduleName { get; set; }
+
+        public enum WorkArrangementType {
+            Fixed,
+            Flexible,
+            Shifting
+        }
+        public WorkArrangementType WorkArrangement { get; set; } =  WorkArrangementType.Fixed;
+
+        public TimeOnly StartTime { get; set; }
+        public TimeOnly EndTime { get; set; }
+        public TimeSpan BreakDuration { get; set; }
+
+        public int CreatedBy { get; set; }
+        public User CreatedByUser { get; set; } = null!;
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
+
+        public List<UserWorkSchedule> UserWorkSchedules { get; set; } = [];
+    }
+}
