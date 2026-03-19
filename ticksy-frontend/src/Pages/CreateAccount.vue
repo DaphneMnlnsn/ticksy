@@ -179,7 +179,10 @@ function togglePassword() {
   font-size: 1rem;
   margin-left: 10px; 
   color:black;
-  
+}
+
+.input{
+  color:black;
 }
 
 .icon {
@@ -229,4 +232,10 @@ button:hover {
   color: #fff;
   text-decoration: underline;
 }
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-password-toggle-button {
+  display: none;
+}
+
 </style>

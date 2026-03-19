@@ -36,13 +36,13 @@
 </template>
 
 <script setup>
-    import { ref } from "vue"
-    import { Mail } from "lucide-vue-next"
-    import { useRouter } from "vue-router"
-    import logo from "../assets/ticksy_logo.png"
+  import { ref } from "vue"
+  import { Mail } from "lucide-vue-next"
+  import { useRouter } from "vue-router"
+  import logo from "../assets/ticksy_logo.png"
 
-    const router = useRouter()
-    const email = ref("")
+  const router = useRouter()
+  const email = ref("")
 
 function handleReset() {
   console.log("Reset link sent to:", email.value)
@@ -135,6 +135,9 @@ function handleReset() {
   color: black;
 }
 
+.input{
+  color:black;
+}
 .icon {
   width: 18px;
   color: #1f2937;
