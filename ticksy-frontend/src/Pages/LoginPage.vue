@@ -51,30 +51,29 @@
 </template>
 
 <script setup>
-    import { ref } from "vue"
-    import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
-    import logo from "../assets/ticksy_logo.png"
-    import { useRouter } from 'vue-router'
+  import { ref } from "vue"
+  import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
+  import logo from "../assets/ticksy_logo.png"
+  import { useRouter } from 'vue-router'
 
-    const router = useRouter()
+  const router = useRouter()
+  const email = ref("")
+  const password = ref("")
+  const showPassword = ref(false)
 
-    const email = ref("")
-    const password = ref("")
-    const showPassword = ref(false)
-
-    function togglePassword() {
+  function togglePassword() {
     showPassword.value = !showPassword.value
-    }
+  }
 
-    function handleLogin() {
+  function handleLogin() {
     console.log("Login:", {
-        email: email.value,
-        password: password.value,
+      email: email.value,
+      password: password.value,
     })
 
     alert("Welcome User!")
     router.push('/dashboard')
-    }
+  }
 </script>
 
 <style scoped>
@@ -159,7 +158,11 @@
   font-size: 1rem;
   margin-left: 10px;
   margin-right: 100px;
-  color: black;
+  color:black;
+}
+
+.input{
+  color:black;
 }
 
 .icon {
@@ -207,4 +210,10 @@ button {
 button:hover {
   background: rgb(55, 146, 237);
 }
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-password-toggle-button {
+  display: none;
+}
+
 </style>
