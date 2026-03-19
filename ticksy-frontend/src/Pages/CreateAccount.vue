@@ -10,12 +10,48 @@
         <h5>By IDA</h5>
       </div>
 
-      <!-- Form container -->
       <div class="signup-container">
         <form @submit.prevent="handleSubmit">
-          <input type="email" v-model="email" placeholder="Enter your email" required />
-          <input type="password" v-model="password" placeholder="Create your password" required />
-          <input type="password" v-model="confirmPassword" placeholder="Confirm your password" required />
+
+          <div class="input-group">
+            <Mail class="icon" />
+            <input
+              type="email"
+              v-model="email"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <Lock class="icon" />
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="password"
+              placeholder="Create your password"
+              required
+            />
+            <component
+              :is="showPassword ? EyeOff : Eye"
+              class="eye"
+              @click="togglePassword"
+            />
+          </div>
+
+          <div class="input-group">
+            <Lock class="icon" />
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="confirmPassword"
+              placeholder="Confirm your password"
+              required
+            />
+            <component
+              :is="showPassword ? EyeOff : Eye"
+              class="eye"
+              @click="togglePassword"
+            />
+          </div>
 
           <button type="submit">Create Account</button>
 
@@ -31,34 +67,34 @@
 
 <script setup>
   import { ref } from "vue"
+  import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
+  import { useRouter } from "vue-router"
   import logo from "../assets/ticksy_logo.png"
-  import bgImage from "../assets/login_background.jpg"
-  import { useRouter } from 'vue-router'
 
   const router = useRouter()
   const email = ref("")
   const password = ref("")
   const confirmPassword = ref("")
+  const showPassword = ref(false)
 
-  function handleSubmit() {
-    if (password.value !== confirmPassword.value) {
-      alert("Passwords do not match")
-      return
-    }
-
-    const userData = {
-      email: email.value,
-      password: password.value
-    }
-
-    console.log("User Data:", userData)
-    alert("Account created! Check console for details.")
-    router.push('/dashboard')
+function handleSubmit() {
+  if (password.value !== confirmPassword.value) {
+    alert("Passwords do not match")
+    return
   }
+
+  const userData = { email: email.value, password: password.value }
+  console.log("User Data:", userData)
+  alert("Account created! Check console for details.")
+  router.push('/dashboard')
+}
+
+function togglePassword() {
+  showPassword.value = !showPassword.value
+}
 </script>
 
 <style scoped>
-
 .page-wrapper {
   width: 100vw;
   min-width: 500px;
@@ -92,6 +128,7 @@
   padding: 40px;       
   background-color: transparent; 
   border-radius: 15px; 
+  
 }
 
 .header-section {
@@ -105,65 +142,91 @@
   margin: 0 auto 30px auto;
   width: 200px;
   height: auto;
+  margin-right: 55px;
 }
 
 .header-section h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
+  margin-left: 20px;
 }
 
 .header-section h5 {
   font-size: 1rem;
   margin: 2px 0;
   font-weight: lighter;
+  margin-left: 25px; 
 }
 
-.form-group {
+.input-group {
   width: 100%;
   display: flex;
-  margin-bottom: 20px;
-  max-width: 90%;
-}
-
-.root input {
-  width: 90%;
-  margin: 10px;
-  padding: 15px;
-  border: none;
+  align-items: center;
   background-color: #C3CCD5;
   border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 15px;
+  position: relative; 
+  margin-right: 100px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.input-group input {
+  flex: 1;
+  border: none;
   outline: none;
+  background: transparent;
   font-size: 1rem;
-  color: black;
+  margin-left: 10px; 
+  color:black;
+  
+}
+
+.icon {
+  width: 18px;
+  height: 20px;
+  color: #1f2937;
+}
+
+.eye {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  color: #1f2937;
 }
 
 button {
-  width: 250px;
+  width: 300px;
   display: block;
   margin: 25px auto 0 auto;
+  margin-left: 40px;
   padding: 12px;
   background: #0C365C;
   border: none;
   border-radius: 12px;
-  color: white;
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
 }
 
 button:hover {
-  background: #092845;
+  background: rgb(55, 146, 237);
 }
 
-/* Login link */
 .login-link {
   margin-top: 15px;
   text-align: center;
   font-size: 0.9rem;
+  color: #fff;
+  margin-left: 40px;
 }
 
 .login-link a {
-  color: #ffeb3b;
+  color: #fff;
   text-decoration: underline;
 }
 </style>
