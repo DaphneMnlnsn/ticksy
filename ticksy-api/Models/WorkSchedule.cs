@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ticksy_api.Models
 {
     public class WorkSchedule {
@@ -16,6 +18,8 @@ namespace ticksy_api.Models
         public TimeSpan BreakDuration { get; set; }
 
         public int CreatedBy { get; set; }
+        
+        [ForeignKey("CreatedBy")]
         public User CreatedByUser { get; set; } = null!;
 
         public DateTime CreatedAt { get; set; }

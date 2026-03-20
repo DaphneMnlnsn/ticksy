@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ticksy_api.Data;
@@ -11,9 +12,11 @@ using ticksy_api.Data;
 namespace ticksy_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260320020859_AddTeamInvites")]
+    partial class AddTeamInvites
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,6 +42,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("created_by");
 
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_user_id");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
@@ -56,11 +63,9 @@ namespace ticksy_api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("token");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("ExpiresAt");
 
@@ -68,8 +73,6 @@ namespace ticksy_api.Migrations
 
                     b.HasIndex("Token")
                         .IsUnique();
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("team_invites");
                 });
@@ -148,6 +151,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("created_by");
 
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_user_id");
+
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
@@ -181,7 +188,7 @@ namespace ticksy_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasIndex("CreatedByUserId");
 
                     b.ToTable("holidays");
                 });
@@ -317,6 +324,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("generated_by");
 
+                    b.Property<int>("GeneratedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("generated_by_user_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -329,7 +340,7 @@ namespace ticksy_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GeneratedBy");
+                    b.HasIndex("GeneratedByUserId");
 
                     b.ToTable("reports");
                 });
@@ -351,6 +362,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("created_by");
 
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_user_id");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
@@ -370,7 +385,7 @@ namespace ticksy_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("TeamId");
 
@@ -631,6 +646,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("created_by");
 
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_user_id");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
@@ -659,16 +678,28 @@ namespace ticksy_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasIndex("CreatedByUserId");
 
                     b.ToTable("work_schedules");
                 });
 
             modelBuilder.Entity("TeamInvite", b =>
                 {
-                    b.HasOne("ticksy_api.Models.User", null)
+                    b.HasOne("ticksy_api.Models.User", "CreatedByUser")
                         .WithMany("CreatedInvites")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ticksy_api.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("ticksy_api.Models.Attendance", b =>
@@ -686,7 +717,7 @@ namespace ticksy_api.Migrations
                 {
                     b.HasOne("ticksy_api.Models.User", "CreatedByUser")
                         .WithMany("CreatedHolidays")
-                        .HasForeignKey("CreatedBy")
+                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -734,7 +765,7 @@ namespace ticksy_api.Migrations
                 {
                     b.HasOne("ticksy_api.Models.User", "GeneratedByUser")
                         .WithMany("GeneratedReports")
-                        .HasForeignKey("GeneratedBy")
+                        .HasForeignKey("GeneratedByUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -745,7 +776,7 @@ namespace ticksy_api.Migrations
                 {
                     b.HasOne("ticksy_api.Models.User", "CreatedByUser")
                         .WithMany("CreatedTeams")
-                        .HasForeignKey("CreatedBy")
+                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -798,7 +829,7 @@ namespace ticksy_api.Migrations
                 {
                     b.HasOne("ticksy_api.Models.User", "CreatedByUser")
                         .WithMany("CreatedSchedules")
-                        .HasForeignKey("CreatedBy")
+                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

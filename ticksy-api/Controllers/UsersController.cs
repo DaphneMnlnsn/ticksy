@@ -28,7 +28,7 @@ public class UsersController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] UserRegisterDto dto)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+        if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.DeletedAt == null))
             return BadRequest("Email is already in use.");
         
         var user = new User

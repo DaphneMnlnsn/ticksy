@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ticksy_api.Models
 {
     public class Report {
@@ -6,6 +8,8 @@ namespace ticksy_api.Models
         public required string Type { get; set; }
 
         public int GeneratedBy { get; set; }
+        
+        [ForeignKey("GeneratedBy")]
         public User GeneratedByUser { get; set; } = null!;
 
         public required string Format { get; set; }
