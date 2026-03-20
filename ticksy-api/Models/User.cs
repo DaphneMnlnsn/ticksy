@@ -33,6 +33,7 @@ namespace ticksy_api.Models
         public List<UserWorkSchedule> UserWorkSchedules { get; set; } = [];
         public List<TeamMember> TeamMemberships { get; set; } = [];
         public List<Team> CreatedTeams { get; set; } = [];
+        public List<TeamInvite> CreatedInvites { get; set; } = [];
         public List<Report> GeneratedReports { get; set; } = [];
         public List<LeaveRequest> LeaveRequests { get; set; } = [];
         public List<LeaveRequest> ApprovedRequests { get; set; } = [];

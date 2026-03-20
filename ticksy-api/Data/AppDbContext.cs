@@ -14,6 +14,7 @@ namespace ticksy_api.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamMember> TeamMembers { get; set; }
+        public DbSet<TeamInvite> TeamInvites { get; set; }
         public DbSet<WorkSchedule> WorkSchedules { get; set; }
         public DbSet<UserWorkSchedule> UserWorkSchedules { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
@@ -42,8 +43,10 @@ namespace ticksy_api.Data
 
             //Indexes and unique
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
-            modelBuilder.Entity<Team>().HasIndex(t => t.JoinCode).IsUnique();
             modelBuilder.Entity<TeamMember>().HasIndex(tm => new { tm.TeamId, tm.UserId }).IsUnique();
+            modelBuilder.Entity<TeamInvite>().HasIndex(i => i.Token).IsUnique();
+            modelBuilder.Entity<TeamInvite>().HasIndex(i => i.TeamId);
+            modelBuilder.Entity<TeamInvite>().HasIndex(i => i.ExpiresAt);
             modelBuilder.Entity<Attendance>().HasIndex(a => new { a.UserId, a.Date });
 
             //Enum conversions

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ticksy_api.Models
 {
     public class LeaveRequest {
@@ -20,6 +22,8 @@ namespace ticksy_api.Models
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
         public int? ApprovedBy { get; set; }
+        
+        [ForeignKey("ApprovedBy")]
         public User? ApprovedByUser { get; set; }
 
         public DateTime? ApprovedAt { get; set; }
