@@ -1,7 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Righteous&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: inter;
   line-height: 1.5;
   font-weight: 400;
+
+  --sidebar-width: 250px;
+  --sidebar-collapsed-width: 130px;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
