@@ -21,7 +21,6 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> CreateTeam([FromBody] TeamCreateDto dto)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var user = await _context.Users.FindAsync(userId);
 
         if (await _context.Teams.AnyAsync(t => t.TeamName.ToLower() == dto.TeamName.ToLower() && t.DeletedAt == null))
             return BadRequest("A team with this name already exists.");
@@ -35,29 +34,30 @@ public class TeamsController : ControllerBase
         };
 
         _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
 
         var membersToAdd = new List<TeamMember>
         {
             new TeamMember
             {
-                TeamId = team.Id,
+                Team = team,
                 UserId = userId,
                 TeamRole = TeamMember.TeamRoleEnum.Leader,
                 JoinedAt = DateTime.UtcNow
             }
         };
 
-        foreach (var memberId in dto.MemberIds.Distinct())
+        var validUserIds = await _context.Users
+            .Where(u => dto.MemberIds.Contains(u.Id))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        foreach (var memberId in validUserIds.Distinct())
         {
             if (memberId == userId) continue;
 
-            var userExists = await _context.Users.AnyAsync(u => u.Id == memberId);
-            if (!userExists) continue;
-
             membersToAdd.Add(new TeamMember
             {
-                TeamId = team.Id,
+                Team = team,
                 UserId = memberId,
                 TeamRole = TeamMember.TeamRoleEnum.Member,
                 JoinedAt = DateTime.UtcNow

@@ -16,6 +16,8 @@ namespace ticksy_api.Data
         public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<TeamInvite> TeamInvites { get; set; }
         public DbSet<WorkSchedule> WorkSchedules { get; set; }
+        public DbSet<WorkScheduleDay> WorkScheduleDays { get; set; }
+        public DbSet<WorkScheduleBreak> WorkScheduleBreaks { get; set; }
         public DbSet<UserWorkSchedule> UserWorkSchedules { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Holiday> Holidays { get; set; }

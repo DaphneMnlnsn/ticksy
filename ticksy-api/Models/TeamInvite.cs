@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using ticksy_api.Models;
 
 public class TeamInvite
@@ -9,6 +10,9 @@ public class TeamInvite
     public string Token { get; set; } = null!;
 
     public int CreatedBy { get; set; }
+
+    [ForeignKey("CreatedBy")]
+    public User CreatedByUser { get; set; } = null!;
 
     public DateTime ExpiresAt { get; set; }
 

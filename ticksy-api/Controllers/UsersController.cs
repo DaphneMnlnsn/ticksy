@@ -256,6 +256,7 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Password reset successful." });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {

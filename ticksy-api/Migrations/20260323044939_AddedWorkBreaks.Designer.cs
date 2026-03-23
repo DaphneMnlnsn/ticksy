@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ticksy_api.Data;
@@ -11,9 +12,11 @@ using ticksy_api.Data;
 namespace ticksy_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260323044939_AddedWorkBreaks")]
+    partial class AddedWorkBreaks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,9 +59,11 @@ namespace ticksy_api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("token");
 
-                    b.HasKey("Id");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasKey("Id");
 
                     b.HasIndex("ExpiresAt");
 
@@ -66,6 +71,8 @@ namespace ticksy_api.Migrations
 
                     b.HasIndex("Token")
                         .IsUnique();
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("team_invites");
                 });
@@ -84,7 +91,6 @@ namespace ticksy_api.Migrations
                         .HasColumnName("break_duration");
 
                     b.Property<string>("BreakName")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("break_name");
 
@@ -630,6 +636,10 @@ namespace ticksy_api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("assigned_at");
 
+                    b.Property<int>("ScheduleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_id");
+
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("user_id");
@@ -691,13 +701,9 @@ namespace ticksy_api.Migrations
 
             modelBuilder.Entity("TeamInvite", b =>
                 {
-                    b.HasOne("ticksy_api.Models.User", "CreatedByUser")
+                    b.HasOne("ticksy_api.Models.User", null)
                         .WithMany("CreatedInvites")
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("WorkScheduleBreak", b =>
