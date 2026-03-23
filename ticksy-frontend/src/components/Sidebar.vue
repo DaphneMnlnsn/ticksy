@@ -35,7 +35,7 @@
                         :class="['submenu', { open: isDropdownOpen(item) }]"
                     >
                         <li v-for="child in item.children" :key="child.name">
-                            <router-link :to="child.path" class="submenu-link">
+                            <router-link :to="child.path" class="submenu-link" :class="{ active: isActive(child.path) }">
                                 <component :is="child.icon" class="icon submenu-icon" />
                                 <span>{{ child.name }}</span>
                             </router-link>
@@ -46,6 +46,7 @@
                         v-else-if="!item.children" 
                         :to="item.path" 
                         class="menu-link"
+                        :class="{ active: isActive(item.path) }"
                     >
                         <component :is="item.icon" class="icon" />
                         <span :class="{ 'text-hidden': !props.isOpen }">
@@ -73,6 +74,15 @@
             </div>
         </div>
 
+        <ProfilePanel
+            :isOpen="isProfileOpen"
+            @close="isProfileOpen = false"
+            name="IDA Admin"
+            email="admin@email.com"
+            role="Administrator"
+            :avatar="sampleIMG"
+            :isSidebarCollapsed="!props.isOpen"
+        />
     </div>
 </template>
 
@@ -85,9 +95,11 @@
         ChevronRight, ArrowRightFromLine, ArrowLeftFromLine 
     } from 'lucide-vue-next';
     import { useRoute } from 'vue-router'
+    import ProfilePanel from './ProfilePanel.vue'
 
     const route = useRoute()
     const manuallyClosed = ref([])
+    const isProfileOpen = ref(false)
 
     const props = defineProps({
         menuItems: {
@@ -121,15 +133,15 @@
     }
 
     function isDropdownOpen(item) {
-        if (manuallyClosed.value.includes(item.name)) {
-            return false
-        }
-
-        return item.children?.some(child => child.path === route.path)
+        return !manuallyClosed.value.includes(item.name)
     }
 
     function openProfileModal() {
-        console.log('Open profile modal')
+        isProfileOpen.value = !isProfileOpen.value
+    }
+
+    function isActive(path) {
+        return route.path === path
     }
 
 </script>
@@ -147,6 +159,7 @@
         padding: 16px;
         height: 100dvh;
         min-height: 100dvh;
+
         position: fixed;
         top: 0;
         left: 0;
@@ -315,7 +328,6 @@
     .submenu {
         list-style: none;
         padding-left: 40px;
-        margin: 15px 0;
 
         max-height: 0;
         opacity: 0;
@@ -335,6 +347,12 @@
 
     .submenu li {
         margin: 20px 0;
+    }
+
+    .submenu-link span {
+        white-space: normal;  
+        overflow: visible;   
+        word-break: break-word;   
     }
 
     .submenu-link {
@@ -385,5 +403,13 @@
 
     .hidden {
         display: none;
+    }
+    
+    .menu-link.active,
+    .submenu-link.active {
+        background-color: #083A73;
+        border-radius: 15px;
+        padding: 10px 7px;
+        margin: 0;
     }
 </style>
