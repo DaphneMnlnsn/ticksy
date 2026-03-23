@@ -1,4 +1,4 @@
 public class TeamUpdateDto
 {
-    public string TeamName { get; set; } = null!;
+    public required string TeamName { get; set; }
 }

@@ -9,13 +9,9 @@ namespace ticksy_api.Models
         public enum WorkArrangementType {
             Fixed,
             Flexible,
-            Shifting
+            Weekly
         }
         public WorkArrangementType WorkArrangement { get; set; } =  WorkArrangementType.Fixed;
-
-        public TimeOnly StartTime { get; set; }
-        public TimeOnly EndTime { get; set; }
-        public TimeSpan BreakDuration { get; set; }
 
         public int CreatedBy { get; set; }
         
@@ -26,6 +22,7 @@ namespace ticksy_api.Models
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
 
+        public List<WorkScheduleDay> ScheduleDays { get; set; } = [];
         public List<UserWorkSchedule> UserWorkSchedules { get; set; } = [];
     }
 }

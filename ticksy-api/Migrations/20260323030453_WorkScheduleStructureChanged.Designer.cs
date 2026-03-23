@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ticksy_api.Data;
@@ -11,9 +12,11 @@ using ticksy_api.Data;
 namespace ticksy_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260323030453_WorkScheduleStructureChanged")]
+    partial class WorkScheduleStructureChanged
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,9 +59,11 @@ namespace ticksy_api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("token");
 
-                    b.HasKey("Id");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasKey("Id");
 
                     b.HasIndex("ExpiresAt");
 
@@ -67,10 +72,12 @@ namespace ticksy_api.Migrations
                     b.HasIndex("Token")
                         .IsUnique();
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("team_invites");
                 });
 
-            modelBuilder.Entity("WorkScheduleBreak", b =>
+            modelBuilder.Entity("WorkScheduleDay", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -82,31 +89,6 @@ namespace ticksy_api.Migrations
                     b.Property<TimeSpan?>("BreakDuration")
                         .HasColumnType("interval")
                         .HasColumnName("break_duration");
-
-                    b.Property<string>("BreakName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("break_name");
-
-                    b.Property<int>("WorkScheduleDayId")
-                        .HasColumnType("integer")
-                        .HasColumnName("work_schedule_day_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkScheduleDayId");
-
-                    b.ToTable("work_schedule_breaks");
-                });
-
-            modelBuilder.Entity("WorkScheduleDay", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Day")
                         .HasColumnType("integer")
@@ -626,9 +608,33 @@ namespace ticksy_api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("ActiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("active_from");
+
+                    b.Property<DateTime?>("ActiveTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("active_to");
+
                     b.Property<DateTime>("AssignedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("assigned_at");
+
+                    b.Property<TimeSpan?>("CustomBreakDuration")
+                        .HasColumnType("interval")
+                        .HasColumnName("custom_break_duration");
+
+                    b.Property<TimeOnly?>("CustomEndTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("custom_end_time");
+
+                    b.Property<TimeOnly?>("CustomStartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("custom_start_time");
+
+                    b.Property<int>("ScheduleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_id");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
@@ -691,24 +697,9 @@ namespace ticksy_api.Migrations
 
             modelBuilder.Entity("TeamInvite", b =>
                 {
-                    b.HasOne("ticksy_api.Models.User", "CreatedByUser")
+                    b.HasOne("ticksy_api.Models.User", null)
                         .WithMany("CreatedInvites")
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("WorkScheduleBreak", b =>
-                {
-                    b.HasOne("WorkScheduleDay", "WorkScheduleDay")
-                        .WithMany("Breaks")
-                        .HasForeignKey("WorkScheduleDayId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("WorkScheduleDay");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("WorkScheduleDay", b =>
@@ -854,11 +845,6 @@ namespace ticksy_api.Migrations
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("WorkScheduleDay", b =>
-                {
-                    b.Navigation("Breaks");
                 });
 
             modelBuilder.Entity("ticksy_api.Models.Team", b =>
