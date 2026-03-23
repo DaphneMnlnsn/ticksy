@@ -7,5 +7,5 @@ public class WorkScheduleBreak {
     public WorkScheduleDay WorkScheduleDay { get; set; } = null!;
 
     public required string BreakName { get; set; }
-    public TimeSpan? BreakDuration { get; set; }
+    public TimeSpan BreakDuration { get; set; }
 }

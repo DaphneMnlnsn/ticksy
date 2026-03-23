@@ -130,36 +130,35 @@ public class SchedulesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSchedule(int id)
     {
-        var schedule = await _context.WorkSchedules
-            .Include(s => s.ScheduleDays)
-                .ThenInclude(sd => sd.Breaks)
-            .Include(s => s.UserWorkSchedules)
-                .ThenInclude(us => us.User)
-            .FirstOrDefaultAsync(s => s.Id == id);
-
-        if (schedule == null) return NotFound();
-
-        if (schedule.DeletedAt != null)
-            return NotFound("This schedule has been deleted.");
-
-        var result = new ScheduleDetailsDto
-        {
-            Id = schedule.Id,
-            ScheduleName = schedule.ScheduleName,
-            CreatedBy = schedule.CreatedBy,
-            Days = schedule.ScheduleDays.Select(sd => new ScheduleDayDto
+        var result = await _context.WorkSchedules
+            .Where(s => s.Id == id && s.DeletedAt == null)
+            .Select(schedule => new ScheduleDetailsDto
             {
-                Day = sd.Day,
-                StartTime = sd.StartTime,
-                EndTime = sd.EndTime,
-                IsRestDay = sd.IsRestDay
-            }).ToList(),
-            UserWorkSchedules = schedule.UserWorkSchedules.Select(us => new UserWorkScheduleDto
-            {
-                UserId = us.UserId,
-                FullName = us.User.FirstName + " " + us.User.MiddleName + " " + us.User.LastName,
-            }).ToList()
-        };
+                Id = schedule.Id,
+                ScheduleName = schedule.ScheduleName,
+                CreatedBy = schedule.CreatedBy,
+
+                Days = schedule.ScheduleDays.Select(sd => new ScheduleDayDto
+                {
+                    Day = sd.Day,
+                    StartTime = sd.StartTime,
+                    EndTime = sd.EndTime,
+                    IsRestDay = sd.IsRestDay,
+
+                    Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
+                    {
+                        BreakName = sb.BreakName,
+                        BreakDuration = sb.BreakDuration
+                    }).ToList()
+                }).ToList(),
+
+                UserWorkSchedules = schedule.UserWorkSchedules.Select(us => new UserWorkScheduleDto
+                {
+                    UserId = us.UserId,
+                    FullName = us.User.FirstName + " " + us.User.MiddleName + " " + us.User.LastName
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
 
         return Ok(result);
     }
