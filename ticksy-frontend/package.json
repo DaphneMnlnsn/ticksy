@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vuepic/vue-datepicker": "^12.1.0",
+    "dayjs": "^1.11.20",
     "lucide-vue-next": "^0.577.0",
     "vue": "^3.5.25",
     "vue-router": "^5.0.3"

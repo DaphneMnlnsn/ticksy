@@ -150,6 +150,8 @@
         z-index: 999;
         box-shadow: 4px 0 15px rgba(0,0,0,0.1);
         transition: left 0.4s ease-in-out;
+
+        z-index: 99999;
     }
 
     :host(.collapsed) .profile-panel {
