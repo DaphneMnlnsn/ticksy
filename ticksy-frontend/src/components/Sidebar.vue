@@ -74,15 +74,17 @@
             </div>
         </div>
 
-        <ProfilePanel
-            :isOpen="isProfileOpen"
-            @close="isProfileOpen = false"
-            name="IDA Admin"
-            email="admin@email.com"
-            role="Administrator"
-            :avatar="sampleIMG"
-            :isSidebarCollapsed="!props.isOpen"
-        />
+        <Teleport to="body">
+            <ProfilePanel
+                :isOpen="isProfileOpen"
+                @close="isProfileOpen = false"
+                name="IDA Admin"
+                email="admin@email.com"
+                role="Administrator"
+                :avatar="sampleIMG"
+                :isSidebarCollapsed="!props.isOpen"
+            />
+        </Teleport>
     </div>
 </template>
 
