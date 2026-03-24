@@ -1,11 +1,3 @@
-<script setup>
-import { Calendar } from 'lucide-vue-next';
-const props = defineProps({
-    holidays: Array,
-    welcomeImg: String
-})
-</script>
-
 <template>
     <div class="holiday-card">
         <div class="holiday-header">
@@ -31,6 +23,14 @@ const props = defineProps({
     </div>
 </template>
 
+<script setup>
+    import { Calendar } from 'lucide-vue-next';
+    const props = defineProps({
+        holidays: Array,
+        welcomeImg: String
+    })
+</script>
+
 <style scoped>
 .holiday-card {
     height: 250px;
@@ -51,6 +51,17 @@ const props = defineProps({
 
 .holiday-header h3 {
     margin: 3px 0 3px 10px;
+}
+
+.calendar-icon {
+    opacity: 0.8;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.calendar-icon:hover {
+    transform: scale(1.1);
+    opacity: 1;
 }
 
 .holiday-item {
