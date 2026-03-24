@@ -64,6 +64,11 @@ public class UsersController : ControllerBase
         if (result != PasswordVerificationResult.Success)
             return Unauthorized("Invalid email and password");
 
+        if (user.AutoClockIn)
+        {
+            await AutoClockIn(user.Id);
+        }
+        
         var token = GenerateJwtToken(user);
 
         return Ok(new { token, userId = user.Id, role = user.Role.ToString() });
@@ -271,5 +276,52 @@ public class UsersController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "User deleted successfully."});
+    }
+
+    private async Task AutoClockIn(int userId)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var user = await _context.Users
+            .Include(u => u.UserWorkSchedules)
+                .ThenInclude(s => s.WorkSchedule)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        var existing = await _context.Attendances
+            .FirstOrDefaultAsync(a => a.UserId == userId && a.Date == today);
+
+        if (existing != null)
+            return;
+
+        var now = DateTime.UtcNow;
+        var nowLocal = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, user.TimeZone);
+
+        var attendance = new Attendance
+        {
+            UserId = userId,
+            Date = DateOnly.FromDateTime(now),
+            TimeIn = TimeOnly.FromDateTime(now),
+            ClockInSource = Attendance.ClockInSourceEnum.AutoLogin,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        var todayDayOfWeek = DateTime.UtcNow.DayOfWeek;
+
+        var scheduleDay = user.UserWorkSchedules
+            .SelectMany(us => us.WorkSchedule.ScheduleDays)
+            .FirstOrDefault(sd => sd.Day == todayDayOfWeek);
+
+        if (scheduleDay?.StartTime != null)
+        {
+            if (attendance.TimeIn > scheduleDay.StartTime.Value)
+            {
+                attendance.LateMinutes =
+                    (int)(attendance.TimeIn - scheduleDay.StartTime.Value).TotalMinutes;
+            }
+        }
+
+        _context.Attendances.Add(attendance);
+        await _context.SaveChangesAsync();
     }
 }
