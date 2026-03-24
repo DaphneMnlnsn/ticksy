@@ -1,24 +1,3 @@
-<script setup>
-    import Header from '../components/Header.vue';
-    import { ref } from 'vue'
-    import welcomeImg from "/welcome-img.png";
-    import WelcomeCard from '../components/WelcomeCard.vue';
-    import HolidayCard from '../components/HolidayCard.vue';
-    import TrackedHours from '../components/TrackedHours.vue';
-    import Sidebar from '../components/Sidebar.vue';
-
-    const activeTab = ref ('Day')
-    const holidays = [
-    { month: 'MAY', day: '25', name: 'Memorial Day' },
-    { month: 'JUN', day: '19', name: 'Juneteenth' },
-    { month: 'JUL', day: '03', name: 'Memorial Independence Day (substitute)' }
-    ]
-    const isOpen = ref(true)
-    function toggleSidebar() {
-        isOpen.value = !isOpen.value
-    }
-</script>
-
 <template>
     <div class="dashboard">
         <div class="main-bg"></div>
@@ -26,6 +5,16 @@
             <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
             <div class="main-content">
+                <div v-if="!isSetupComplete" class="setup-banner">
+                    <div class="banner-message">
+                        <FilePen :size="19" color="white" stroke-width="2" opacity="0.9" class="filepen-icon" />
+                        You have not created a work schedule or invited members. Complete your setup now. 
+                    </div>
+                    <a href="#" class="setup-link" @click.prevent="openSchedule">
+                        Create work schedule
+                        <ChevronRight :size="19" color="white" stroke-width="2" opacity="0.9" class="chevronright-icon" />
+                    </a>
+                </div>
                 <Header 
                     title="Dashboard"
                     :showTimer="true"
@@ -69,171 +58,245 @@
             </div>
         </div>
     </div>
+
+    <SchedulePanel
+        :isOpen="isScheduleOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="closeSchedule"
+    />
 </template>   
+
+<script setup>
+    import Header from '../components/Header.vue';
+    import { ref } from 'vue'
+    import welcomeImg from "/welcome-img.png";
+    import WelcomeCard from '../components/WelcomeCard.vue';
+    import HolidayCard from '../components/HolidayCard.vue';
+    import TrackedHours from '../components/TrackedHours.vue';
+    import Sidebar from '../components/Sidebar.vue';
+    import SchedulePanel from '../components/SchedulePanel.vue';
+    import { ChevronRight, FilePen } from 'lucide-vue-next';
+
+    const activeTab = ref ('Day')
+    const holidays = [
+    { month: 'MAY', day: '25', name: 'Memorial Day' },
+    { month: 'JUN', day: '19', name: 'Juneteenth' },
+    { month: 'JUL', day: '03', name: 'Memorial Independence Day (substitute)' }
+    ]
+    const isOpen = ref(true)
+    function toggleSidebar() {
+        isOpen.value = !isOpen.value
+    }
+    const isSetupComplete = ref(false)
+    
+    const isScheduleOpen = ref(false)
+    function openSchedule() {
+        isScheduleOpen.value = true;
+    }
+    function closeSchedule() {
+        isScheduleOpen.value = false;
+    }
+</script>
 
 <style scoped>
 
-:global(html), 
-:global(body), 
-:global(#app) {
-    width: 100% !important;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-}
+    :global(html), 
+    :global(body), 
+    :global(#app) {
+        width: 100% !important;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
 
-.main-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("../assets/main_bg.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
+    .main-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("../assets/main_bg.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
 
-.dashboard {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100vh;
-}
+    .dashboard {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100vh;
+    }
 
-.app {
-    display: flex;
-    width: 100%;
-    flex: 1;
-    min-height: 100vh;
-    overflow: hidden;
-}
+    .app {
+        display: flex;
+        width: 100%;
+        flex: 1;
+        min-height: 100vh;
+        overflow: hidden;
+    }
 
-.main-content {
-    margin-left: var(--sidebar-width); 
-    flex: 1;
-    padding: 20px 20px 60px 20px;
-    transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-x: hidden;
-    min-width: 0;
-    z-index: 1;
-}
+    .setup-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px 20px;
+        margin: -20px -20px 20px -20px;
+        color: #ffffff;
+        font-size: 12px;
+    }
 
-.main-content::-webkit-scrollbar {
-    width: 8px;
-}
+    .banner-message {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-.main-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1); 
-    border-radius: 10px; 
-    border: 2px solid transparent; 
-    background-clip: content-box; 
-}
+    .setup-link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #4FB4FF;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.2s;
+    }
 
-.main-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25); 
-}
+    .setup-link:hover {
+        opacity: 0.8;
+    }
+
+    .setup-link span {
+        margin-left: 5px;
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width); 
+        flex: 1;
+        padding: 20px 20px 60px 20px;
+        transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-x: hidden;
+        min-width: 0;
+        z-index: 1;
+    }
+
+    .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
 
 
-.main-content::-webkit-scrollbar-track {
-    background: transparent; 
-}
+    .main-content::-webkit-scrollbar-track {
+        background: transparent; 
+    }
 
-.app.collapsed .main-content {
-    margin-left: var(--sidebar-collapsed-width);
-}
+    .app.collapsed .main-content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
 
-.tabs{
-    display: flex;
-    gap: 10px;
-    padding: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
+    .tabs{
+        display: flex;
+        gap: 10px;
+        padding: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-.tabs button{
-    background: none;
-    border: none;
-    outline: none;
-    color: #ffff;
-    position: relative;
-    font-size: 16px;
-    margin-top: 15px;
-    margin-left: 12px;
-}
+    .tabs button{
+        background: none;
+        border: none;
+        outline: none;
+        color: #ffff;
+        position: relative;
+        font-size: 16px;
+        margin-top: 15px;
+        margin-left: 12px;
+    }
 
-.tabs button::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 0;
-    height: 3.1px;
-    border-radius: 3px;
-    background: rgb(117, 136, 154, 50%);
-    transition: width 0.3s ease-in-out;
-}
+    .tabs button::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 0;
+        height: 3.1px;
+        border-radius: 3px;
+        background: rgb(117, 136, 154, 50%);
+        transition: width 0.3s ease-in-out;
+    }
 
-.tabs button.active {
-    color: #88b6ff;
-    font-weight: 600;
-    transition: color 0.3s ease;
-}
+    .tabs button.active {
+        color: #88b6ff;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
 
-.tabs button.active::after {
-    width: 100%; 
-    background: #88b6ff; 
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
-}
+    .tabs button.active::after {
+        width: 100%; 
+        background: #88b6ff; 
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
 
-.tabs button:hover:not(.active) {
-    color: rgba(255, 255, 255, 0.8);
-    cursor: pointer;
-}
+    .tabs button:hover:not(.active) {
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+    }
 
-.cards {
-    background-color: rgba(0, 19, 36, 0.2);
-    border-radius: 5px;
-    width: 100%;
-    min-height: 85vh; 
-    padding: 5px 20px 45px 20px; 
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    margin-bottom: 30px;
-}
+    .cards {
+        background-color: rgba(0, 19, 36, 0.2);
+        border-radius: 5px;
+        width: 100%;
+        min-height: 85vh; 
+        padding: 5px 20px 45px 20px; 
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        margin-bottom: 30px;
+    }
 
-.two-cards {
-    display: flex;
-    gap: 20px;
-    padding: 25px 0;
-    width: 100%;
-    box-sizing: border-box;
-}
+    .two-cards {
+        display: flex;
+        gap: 20px;
+        padding: 25px 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-.welcome-card,
-.holiday-card {
-    flex: 1 1 0; 
-    min-width: 0; 
-    height: 247px;
-    border-radius: 5px;
-}
+    .welcome-card,
+    .holiday-card {
+        flex: 1 1 0; 
+        min-width: 0; 
+        height: 247px;
+        border-radius: 5px;
+    }
 
-h3{
-    font-size: 18px;
-    font-weight: 600;
-    margin-top: 5px;
-    margin-left: 10px;
-}
+    h3{
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 5px;
+        margin-left: 10px;
+    }
 
-.tab-content {
-    animation: fadeIn 0.4s ease-in-out;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
+    .tab-content {
+        animation: fadeIn 0.4s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
