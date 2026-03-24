@@ -1,16 +1,17 @@
-<script setup>
-</script>
-
 <template>
     <div class="tracked-hours">
-        <h3>TRACKED HOURS</h3>
+        <div class="title-group">
+            <h3 class="main-title">TRACKED HOURS</h3>
+            <p class="subtitle">({{ displayTitle }})</p>
+        </div>
+
         <div class="tracked-content">
             <div class="legend">
                 <div class="legend-item">
                     <span class="dot green"></span>
                     <div>
                     <p class="label">WORK HOURS</p>
-                    <p class="value">---</p>
+                    <p class="value">{{ Hours }}</p>
                     </div>
                 </div>
 
@@ -36,19 +37,42 @@
                     <div class="line" v-for="n in 6" :key="n"></div>
                     
                     <div class="y-axis">
-                        <span>8h 20m</span>
-                        <span>6h 25m</span>
-                        <span>4h 1m</span>
-                        <span>2h 25m</span>
-                        <span>1h 23m</span>
-                        <span>0s</span>
+                        <span v-for="label in yAxisLabels" :key="label">{{ label }}</span>
                     </div>          
                 </div>
-                <div class="bar"></div>
+                <div class="bar" :style="barStyle"></div>
             </div>
         </div>
     </div>
 </template>
+
+<script setup>
+    import {computed} from 'vue'
+
+    const props = defineProps({
+        viewMode: String
+    })
+    const displayTitle = computed(() => {
+        if (props.viewMode === 'Day') return "Today's Activity"
+        if (props.viewMode === 'Week') return "Weekly Progress"
+        return "Monthly Summary"
+    })
+    const Hours = computed(() => {
+        if (props.viewMode === 'Day') return "8.5 hrs"
+        if (props.viewMode === 'Week') return "42.0 hrs"
+        return "168.5 hrs"
+    })
+    const barStyle = computed(() => {
+    if (props.viewMode === 'Day') return { height: '40%', background: '#00DC28' }
+    if (props.viewMode === 'Week') return { height: '75%', background: '#00DC28' }
+    return { height: '90%', background: '#00DC28' }
+    })
+    const yAxisLabels = computed(() => {
+    if (props.viewMode === 'Day') return ['10h', '8h', '6h', '4h', '2h', '0s']
+    if (props.viewMode === 'Week') return ['50h', '40h', '30h', '20h', '10h', '0s']
+    return ['200h', '160h', '120h', '80h', '40h', '0s']
+    })
+</script>
 
 <style scoped>
 .tracked-hours {
@@ -58,6 +82,20 @@
     border-radius: 5px;
     box-sizing: border-box;
     color: #E6EDF3;
+}
+
+.title-group {
+    display: flex;
+    align-items: baseline; 
+    gap: 12px;             
+    margin-bottom: 10px;   
+}
+
+.subtitle {
+    margin: 0;             
+    font-size: 14px;
+    opacity: 0.6;          
+    font-weight: 400;
 }
 
 .tracked-content {
@@ -126,6 +164,7 @@
     height: 75%;
     background: #00d12f;
     border-radius: 4px;
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
 }
 
 .y-axis {

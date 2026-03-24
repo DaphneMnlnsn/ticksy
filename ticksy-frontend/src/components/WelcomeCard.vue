@@ -1,21 +1,28 @@
-<script setup>
-const props = defineProps({
-    holidays: Array,
-    welcomeImg: String
-})
-</script>
-
 <template>
     <div class="welcome-card">
         <div class="text">
-            <h2>Hello IDA Admin</h2>
-            <p>Here's your dashboard for today.</p>
+            <h2>Hello, IDA Admin!</h2>
+            <p>{{welcomeText}}</p>
         </div>
         <div class="welcome-img">
             <img :src="welcomeImg" alt="Welcome Image" />
         </div>
     </div>
 </template>
+
+<script setup>
+    import { computed } from 'vue';
+
+    const props = defineProps({
+        welcomeImg: String,
+        viewMode: String
+    })
+    const welcomeText = computed(() => {
+        if (props.viewMode === 'Week') return "Here is your dashboard for the week."
+        if (props.viewMode === 'Month') return "Here is your dashboard for the month."
+        return "Here is your dashboard for today."
+    })
+</script>
 
 <style scoped>
 .welcome-card {

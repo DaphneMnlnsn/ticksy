@@ -26,7 +26,11 @@
             <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
             <div class="main-content">
-                <Header />
+                <Header 
+                    title="Dashboard"
+                    :showTimer="true"
+                    lastOut="Last out an hour ago"
+                />
 
                 <div class="cards">
                     <div class="tabs">
@@ -38,12 +42,29 @@
                         </button>
                     </div>
 
-                    <div class="two-cards">
-                        <WelcomeCard :welcomeImg="welcomeImg" />
-                        <HolidayCard :holidays="holidays" />
+                    <div v-if="activeTab === 'Day'" class="tab-content">
+                        <div class="two-cards">
+                            <WelcomeCard :viewMode="activeTab" :welcomeImg="welcomeImg"/>
+                            <HolidayCard :holidays="holidays" />
+                        </div>
+                        <TrackedHours :viewMode="activeTab" />
                     </div>
 
-                    <TrackedHours/>
+                    <div v-else-if="activeTab === 'Week'" class="tab-content">
+                        <div class="two-cards">
+                            <WelcomeCard :viewMode="activeTab" :welcomeImg="welcomeImg"/>
+                            <HolidayCard :holidays="holidays"/>
+                        </div>
+                        <TrackedHours :viewMode="activeTab" />
+                    </div>
+
+                    <div v-else-if="activeTab === 'Month'" class="tab-content">
+                        <div class="two-cards">
+                            <WelcomeCard :viewMode="activeTab" :welcomeImg="welcomeImg"/>
+                            <HolidayCard :holidays="holidays"/>
+                        </div>
+                        <TrackedHours :viewMode="activeTab" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -98,6 +119,26 @@
     z-index: 1;
 }
 
+.main-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1); 
+    border-radius: 10px; 
+    border: 2px solid transparent; 
+    background-clip: content-box; 
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25); 
+}
+
+
+.main-content::-webkit-scrollbar-track {
+    background: transparent; 
+}
+
 .app.collapsed .main-content {
     margin-left: var(--sidebar-collapsed-width);
 }
@@ -132,8 +173,21 @@
     transition: width 0.3s ease-in-out;
 }
 
+.tabs button.active {
+    color: #88b6ff;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
 .tabs button.active::after {
-    width: 93%;
+    width: 100%; 
+    background: #88b6ff; 
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.tabs button:hover:not(.active) {
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
 }
 
 .cards {
@@ -141,7 +195,7 @@
     border-radius: 5px;
     width: 100%;
     min-height: 85vh; 
-    padding: 20px 20px 45px 20px; 
+    padding: 5px 20px 45px 20px; 
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -169,5 +223,17 @@ h3{
     font-weight: 600;
     margin-top: 5px;
     margin-left: 10px;
+}
+
+.tab-content {
+    animation: fadeIn 0.4s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
