@@ -217,17 +217,30 @@ public class AttendanceController : ControllerBase
     {
         var result = await _context.Attendances
             .Where(a => a.UserId == id)
-            .Select(a => new AttendanceDto
+            .Select(a => new
             {
-                Date = a.Date,
-                TimeIn = a.TimeIn,
-                BreakDuration = a.BreakDuration,
-                TimeOut = a.TimeOut,
-                LateMinutes = a.LateMinutes,
-                TotalWorkMinutes = a.TotalWorkMinutes,
-                ClockInSource = a.ClockInSource,
-                Status = a.Status,
-                Notes = a.Notes
+                a.Date,
+                a.TimeIn,
+                a.TimeOut,
+                BreakDuration = a.BreakDuration.TotalMinutes == 0
+                    ? "0 m"
+                    : a.BreakDuration.TotalHours < 1
+                        ? $"{a.BreakDuration.Minutes} m"
+                        : a.BreakDuration.Minutes == 0
+                            ? $"{(int)a.BreakDuration.TotalHours} hr"
+                            : $"{(int)a.BreakDuration.TotalHours} hr {a.BreakDuration.Minutes} m",
+                a.LateMinutes,
+                a.TotalWorkMinutes,
+                TotalWorkTime = a.TotalWorkMinutes == 0
+                    ? "0 m"
+                    : a.TotalWorkMinutes < 60
+                        ? $"{a.TotalWorkMinutes} m"
+                        : a.TotalWorkMinutes % 60 == 0
+                            ? $"{a.TotalWorkMinutes / 60} hr"
+                            : $"{a.TotalWorkMinutes / 60} hr {a.TotalWorkMinutes % 60} m",
+                a.ClockInSource,
+                a.Status,
+                a.Notes
             })
             .FirstOrDefaultAsync();
 
@@ -248,10 +261,22 @@ public class AttendanceController : ControllerBase
                 a.Date,
                 TimeIn = a.TimeIn.ToString("HH:mm"),
                 TimeOut = a.TimeOut.HasValue ? a.TimeOut.Value.ToString("HH:mm") : null,
-                BreakDuration = $"{(int)a.BreakDuration.TotalHours} hr {a.BreakDuration.Minutes} m",
+                BreakDuration = a.BreakDuration.TotalMinutes == 0
+                    ? "0 m"
+                    : a.BreakDuration.TotalHours < 1
+                        ? $"{a.BreakDuration.Minutes} m"
+                        : a.BreakDuration.Minutes == 0
+                            ? $"{(int)a.BreakDuration.TotalHours} hr"
+                            : $"{(int)a.BreakDuration.TotalHours} hr {a.BreakDuration.Minutes} m",
                 a.LateMinutes,
                 a.TotalWorkMinutes,
-                TotalWorkTime = $"{a.TotalWorkMinutes / 60} hr {a.TotalWorkMinutes % 60} m",
+                TotalWorkTime = a.TotalWorkMinutes == 0
+                    ? "0 m"
+                    : a.TotalWorkMinutes < 60
+                        ? $"{a.TotalWorkMinutes} m"
+                        : a.TotalWorkMinutes % 60 == 0
+                            ? $"{a.TotalWorkMinutes / 60} hr"
+                            : $"{a.TotalWorkMinutes / 60} hr {a.TotalWorkMinutes % 60} m",
                 a.ClockInSource,
                 a.Status,
                 a.Notes
