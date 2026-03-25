@@ -118,16 +118,33 @@ public class TeamsController : ControllerBase
         if (team.DeletedAt != null)
             return NotFound("This team has been deleted.");
 
+        var members = await _context.TeamMembers
+            .Select(t => new
+            {
+                t.UserId,
+                t.User.FirstName,
+                t.User.MiddleName,
+                t.User.LastName,
+                Role = t.TeamRole.ToString(),
+                t.JoinedAt
+            })
+            .ToListAsync();
+
         var result = new TeamDetailsDto
         {
             Id = team.Id,
             TeamName = team.TeamName,
             CreatedBy = team.CreatedBy,
-            Members = team.TeamMembers.Select(tm => new TeamMemberDto
+            Members = members.Select(tm => new TeamMemberDto
             {
                 UserId = tm.UserId,
-                FullName = tm.User.FirstName + " " + tm.User.MiddleName + " " + tm.User.LastName,
-                Role = tm.TeamRole.ToString(),
+                FullName = string.Join(" ", new[]
+                {
+                    tm.FirstName,
+                    tm.MiddleName,
+                    tm.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                Role = tm.Role,
                 JoinedAt = tm.JoinedAt
             }).ToList()
         };

@@ -251,13 +251,36 @@ public class AttendanceController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAttendance()
     {
-        var attendances = await _context.Attendances
-            .Include(a => a.User)
+        var data = await _context.Attendances
             .Select(a => new
             {
                 a.Id,
                 a.UserId,
-                FullName = a.User.FirstName + " " + a.User.MiddleName + " " + a.User.LastName,
+                a.User.FirstName,
+                a.User.MiddleName,
+                a.User.LastName,
+                a.Date,
+                a.TimeIn,
+                a.TimeOut,
+                a.BreakDuration,
+                a.LateMinutes,
+                a.TotalWorkMinutes,
+                a.ClockInSource,
+                a.Status,
+                a.Notes
+            })
+            .ToListAsync();
+
+        var attendances = data.Select(a => new
+            {
+                a.Id,
+                a.UserId,
+                FullName = string.Join(" ", new[]
+                {
+                    a.FirstName,
+                    a.MiddleName,
+                    a.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
                 a.Date,
                 TimeIn = a.TimeIn.ToString("HH:mm"),
                 TimeOut = a.TimeOut.HasValue ? a.TimeOut.Value.ToString("HH:mm") : null,
@@ -280,8 +303,7 @@ public class AttendanceController : ControllerBase
                 a.ClockInSource,
                 a.Status,
                 a.Notes
-            })
-            .ToListAsync();
+            });
 
         return Ok(attendances);
     }
