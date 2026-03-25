@@ -9,6 +9,8 @@ namespace ticksy_api.Models
         public User User { get; set; } = null!;
 
         public int LeaveTypeId { get; set; }
+
+        [ForeignKey("LeaveTypeId")]
         public TimeOffPolicy TimeOffPolicy { get; set; } = null!;
 
         public DateOnly StartDate { get; set; }
@@ -17,16 +19,17 @@ namespace ticksy_api.Models
         public enum RequestStatus {
             Pending,
             Approved,
-            Rejected
+            Rejected,
+            Cancelled
         }
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
-        public int? ApprovedBy { get; set; }
+        public int? ReviewedBy { get; set; }
         
-        [ForeignKey("ApprovedBy")]
-        public User? ApprovedByUser { get; set; }
+        [ForeignKey("ReviewedBy")]
+        public User? ReviewedByUser { get; set; }
 
-        public DateTime? ApprovedAt { get; set; }
+        public DateTime? ReviewedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

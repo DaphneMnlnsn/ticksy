@@ -130,35 +130,71 @@ public class SchedulesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSchedule(int id)
     {
-        var result = await _context.WorkSchedules
+        var data = await _context.WorkSchedules
             .Where(s => s.Id == id && s.DeletedAt == null)
-            .Select(schedule => new ScheduleDetailsDto
+            .Select(schedule => new
             {
-                Id = schedule.Id,
-                ScheduleName = schedule.ScheduleName,
-                CreatedBy = schedule.CreatedBy,
+                schedule.Id,
+                schedule.ScheduleName,
+                schedule.CreatedBy,
 
-                Days = schedule.ScheduleDays.Select(sd => new ScheduleDayDto
+                Days = schedule.ScheduleDays.Select(sd => new
                 {
-                    Day = sd.Day,
-                    StartTime = sd.StartTime,
-                    EndTime = sd.EndTime,
-                    IsRestDay = sd.IsRestDay,
+                    sd.Day,
+                    sd.StartTime,
+                    sd.EndTime,
+                    sd.IsRestDay,
 
-                    Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
+                    Breaks = sd.Breaks.Select(sb => new
                     {
-                        BreakName = sb.BreakName,
-                        BreakDuration = sb.BreakDuration
-                    }).ToList()
-                }).ToList(),
+                        sb.BreakName,
+                        sb.BreakDuration
+                    })
+                }),
 
-                UserWorkSchedules = schedule.UserWorkSchedules.Select(us => new UserWorkScheduleDto
+                Users = schedule.UserWorkSchedules.Select(us => new
                 {
-                    UserId = us.UserId,
-                    FullName = us.User.FirstName + " " + us.User.MiddleName + " " + us.User.LastName
-                }).ToList()
+                    us.UserId,
+                    us.User.FirstName,
+                    us.User.MiddleName,
+                    us.User.LastName
+                })
             })
             .FirstOrDefaultAsync();
+
+        if (data == null) return NotFound();
+
+        var result = new ScheduleDetailsDto
+        {
+            Id = data.Id,
+            ScheduleName = data.ScheduleName,
+            CreatedBy = data.CreatedBy,
+
+            Days = data.Days.Select(sd => new ScheduleDayDto
+            {
+                Day = sd.Day,
+                StartTime = sd.StartTime,
+                EndTime = sd.EndTime,
+                IsRestDay = sd.IsRestDay,
+
+                Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
+                {
+                    BreakName = sb.BreakName,
+                    BreakDuration = sb.BreakDuration
+                }).ToList()
+            }).ToList(),
+
+            UserWorkSchedules = data.Users.Select(us => new UserWorkScheduleDto
+            {
+                UserId = us.UserId,
+                FullName = string.Join(" ", new[]
+                {
+                    us.FirstName,
+                    us.MiddleName,
+                    us.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x)))
+            }).ToList()
+        };
 
         return Ok(result);
     }

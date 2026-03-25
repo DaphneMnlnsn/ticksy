@@ -38,9 +38,9 @@ namespace ticksy_api.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<LeaveRequest>()
-                .HasOne(lr => lr.ApprovedByUser)
-                .WithMany(u => u.ApprovedRequests)
-                .HasForeignKey(lr => lr.ApprovedBy)
+                .HasOne(lr => lr.ReviewedByUser)
+                .WithMany(u => u.ReviewedRequests)
+                .HasForeignKey(lr => lr.ReviewedBy)
                 .OnDelete(DeleteBehavior.Restrict);
 
             //Indexes and unique
