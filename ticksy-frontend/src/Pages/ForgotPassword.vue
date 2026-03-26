@@ -97,20 +97,21 @@ function handleReset() {
   margin: 0 auto 30px auto;
   width: 200px;
   height: auto;
-  margin-right: 55px;
+  margin-right: 60px;
 }
 
 .header-section h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  margin-left: 30px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .header-section h5 {
   font-size: 1rem;
   margin: 2px 0;
   font-weight: lighter;
-  margin-left: 30px;
+  margin-left: 5px;
 }
 
 .input-group {
@@ -151,14 +152,14 @@ function handleReset() {
   color: #fff;
   font-size: 0.9rem;
   text-decoration: underline;
-  margin-left: 55px;
+  margin-left: 15px;
 }
 
 button {
   width: 300px;
   display: block;
   margin: 25px auto 0 auto;
-  margin-left: 45px;
+  margin-left: 25px;
   padding: 12px;
   background: #0C365C;
   border: none;
@@ -171,6 +172,6 @@ button {
 }
 
 button:hover {
-  background: rgb(55, 146, 237);
+  opacity: 0.8;
 }
 </style>

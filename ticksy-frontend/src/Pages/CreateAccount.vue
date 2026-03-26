@@ -55,10 +55,10 @@
 
           <button type="submit">Create Account</button>
 
-          <p class="login-link">
-            Already have an account?
-            <router-link to="/login">Login</router-link>
-          </p>
+            <p class="login-link">
+              Already have an account?
+              <router-link to="/login">Login</router-link>
+            </p>
         </form>
       </div>
     </div>
@@ -139,24 +139,27 @@ function togglePassword() {
 
 .logo {
   display: block;
-  margin: 0 auto 30px auto;
   width: 200px;
   height: auto;
-  margin-right: 55px;
+  margin-right: 80px;
+  margin-left: 105px;
+
 }
 
 .header-section h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  margin-left: 20px;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .header-section h5 {
   font-size: 1rem;
   margin: 2px 0;
   font-weight: lighter;
-  margin-left: 25px; 
+  margin-left: 20px; 
 }
+
 
 .input-group {
   width: 100%;
@@ -204,7 +207,7 @@ button {
   width: 300px;
   display: block;
   margin: 25px auto 0 auto;
-  margin-left: 40px;
+  margin-left: 25px;
   padding: 12px;
   background: #0C365C;
   border: none;
@@ -217,7 +220,7 @@ button {
 }
 
 button:hover {
-  background: rgb(55, 146, 237);
+  opacity: 0.8;
 }
 
 .login-link {
@@ -225,7 +228,7 @@ button:hover {
   text-align: center;
   font-size: 0.9rem;
   color: #fff;
-  margin-left: 40px;
+  margin-left: 10px;
 }
 
 .login-link a {
