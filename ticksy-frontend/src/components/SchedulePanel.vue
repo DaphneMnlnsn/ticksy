@@ -1,13 +1,19 @@
 <template>
     <transition name="slide-workschedule">
-        <div 
-            v-if="isOpen" 
+        <div v-if="isOpen" 
             class="schedule-panel"
             :style="{ borderright: isSidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)' }"
         >   
+            <transition name="fade">
+                <div v-if="showToast" class="success-toast">
+                    <CheckCircle :size="18" />
+                    <span>Saved successfully!</span>
+                </div>
+            </transition>
+
             <div class="schedule-header">
                 <h3>Schedule</h3>
-                <button class="icon-btn" @click="emit('close')"><X /></button>
+                <button class="icon-btn" @click="emit('close')"><X/></button>
             </div>
             
             <div class="schedule-content">
@@ -16,40 +22,30 @@
                         <label class="form-label">Schedule name</label>
                         <span v-if="errors.name" class="error-msg">*Required</span>
                     </div>
-                    <input 
-                        type="text" 
-                        v-model="scheduleName" 
-                        placeholder="Schedule name"
-                        :class="{ 'border-error': errors.name }" 
-                    />
+                    <input type="text" v-model="scheduleName" placeholder="Schedule name" />
                 </div>
 
                 <div class="input-group">
                     <label class="form-label">Schedule Type</label>
                     <div class="schedule-type">
                         <button v-for="type in ['Fixed', 'Flexible', 'Weekly']"
-                            :key="type" :class="{active: scheduleType === type}"
+                            :key="type" :class="{ active: scheduleType === type }"
                             @click="scheduleType = type"
-                        > {{ type }}
-                        </button>
+                        > {{ type }} </button>
                     </div>
                 </div>
 
                 <div class="input-group">
                     <div class="label-header">
                         <label class="form-label">Time of the Week</label>
-                        <span v-if="errors.days" class="error-msg">*Select at least one day of the week</span>
+                        <span v-if="errors.days && scheduleType !== 'Weekly'" class="error-msg">*Select at least one day</span>
                     </div>
-                    
-                    <div class="day-picker" :class="{ 'border-error': errors.days }">
+                    <div class="day-picker">
                         <button v-for="(initial, index) in dayInitials"
-                            :key="index" 
-                            class="day-btn"
+                            :key="index" class="day-btn"
                             :class="{ active: scheduleData[dayMap[index]].selected }"
                             @click="toggleDay(index)"
-                        > 
-                            {{ initial }}
-                        </button>
+                        > {{ initial }} </button>
                     </div>
                 </div>
 
@@ -57,21 +53,33 @@
                     <template v-if="scheduleType !== 'Weekly'">
                         <div v-for="(data, day) in scheduleData" :key="day" class="time-row">
                             <span class="day-label">{{ day }}:</span>
-                            
                             <div class="time-inputs">
                                 <template v-if="data.selected">
-                                    <input type="time" v-model="data.start" class="time-box" required />
-                                    <MoveRight :size="19" color="white" class="arrow-icon" />
-                                    <input type="time" v-model="data.end" class="time-box" required />
+                                    <div v-if="scheduleType === 'Fixed'" class="duration-input">
+                                        <input type="time" v-model="data.start" class="time-box" />
+                                        <MoveRight :size="18" class="arrow-icon" />
+                                        <input type="time" v-model="data.end" class="time-box" />
+                                    </div>
+                                    <div v-else class="duration-input">
+                                        <input type="number" v-model="data.hours" class="time-box small" />
+                                        <span class="unit-label"> h</span>
+                                        <input type="number" v-model="data.minutes" class="time-box small" />
+                                        <span class="unit-label"> m</span>
+                                    </div>
                                 </template>
-                                
                                 <span v-else class="rest-day-label">Rest Day</span>
                             </div>
                         </div>
                     </template>
 
-                    <div v-else class="input-group">
-                        <label class="form-label">mwhihi</label>
+                    <div v-else class="weekly-container">
+                        <label class="form-label">Hours</label>
+                        <div class="duration-input large">
+                            <input type="number" v-model="weeklyTotal.hours" class="time-box" placeholder="0" />
+                            <span class="unit-label"> h</span>
+                            <input type="number" v-model="weeklyTotal.minutes" class="time-box" placeholder="0" />
+                            <span class="unit-label"> m</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,31 +94,34 @@
 
 <script setup>
     import { ref, watch } from "vue";
-    import { MoveRight, X } from "lucide-vue-next";
+    import { MoveRight, X, CheckCircle } from "lucide-vue-next";
 
-    const emit = defineEmits(['close']);
     const props = defineProps({
         isOpen: Boolean,
         isSidebarCollapsed: Boolean
     });
+    const emit = defineEmits(['close']);
 
     const scheduleName = ref('');
     const scheduleType = ref('Fixed');
     const errors = ref({ name: false, days: false });
     const isTouched = ref(false);
+    const showToast = ref(false);
 
     const dayInitials = ['M', 'T', 'W', 'TH', 'F', 'S', 'S'];
     const dayMap = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     const scheduleData = ref({
-        'Monday': { selected: false, start: '09:00', end: '17:00' },
-        'Tuesday': { selected: false, start: '09:00', end: '17:00' },
-        'Wednesday': { selected: false, start: '09:00', end: '17:00' },
-        'Thursday': { selected: false, start: '09:00', end: '17:00' },
-        'Friday': { selected: false, start: '09:00', end: '17:00' },
-        'Saturday': { selected: false, start: '09:00', end: '17:00' },
-        'Sunday': { selected: false, start: '09:00', end: '17:00' },
+        'Monday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Tuesday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Wednesday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Thursday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Friday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Saturday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+        'Sunday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
     });
+
+    const weeklyTotal = ref({ hours: 40, minutes: 0 });
 
     watch(
         () => scheduleData.value, 
@@ -139,19 +150,33 @@
     }
 
     function saveSchedule() {
-        const selectedDays = Object.values(scheduleData.value).filter(d => d.selected);
-        
-        if (selectedDays.length === 0) {
-            errors.value.days = true;
+        errors.value.days = false;
+        errors.value.name = false;
+
+        if (scheduleType.value !== 'Weekly') {
+            const selectedDays = Object.values(scheduleData.value).filter(d => d.selected);
+            
+            if (selectedDays.length === 0) {
+                errors.value.days = true;
+            }
+        }
+
+        if (scheduleType.value === 'Weekly' && weeklyTotal.value.hours === 0) {
+            alert("Please set a weekly hour goal!");
             return;
         }
 
         if (!scheduleName.value) {
             errors.value.name = true;
-            return;
         }
 
-        alert("Schedule Saved!");
+        if (errors.value.days || errors.value.name) return;
+
+        showToast.value = true;
+
+        setTimeout(() => {
+            showToast.value = false;
+        }, 2000);
     }
 </script>
 
@@ -163,7 +188,7 @@
         right: 0;
         bottom: 0;
         width: 420px;
-        background-color: #001324;
+        background-color: #001527;
         z-index: 1000;
         display: flex;
         flex-direction: column;
@@ -199,7 +224,26 @@
         flex: 1;
         overflow-y: auto;
         padding: 24px;
-        overflow-y: hidden;
+    }
+
+    .schedule-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .schedule-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .schedule-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
+
+
+    .schedule-content::-webkit-scrollbar-track {
+        background: transparent; 
     }
 
     .input-group {
@@ -285,6 +329,10 @@
         outline: none;
     }
 
+    .arrow-icon {
+        margin: 0 5px -5px 5px;
+    }
+
     .label-header {
         display: flex;
         justify-content: space-between;
@@ -331,11 +379,21 @@
     .btn-invite {
         background: #003867;
         color: white;
+        outline: none;
+    }
+
+    .btn-invite:hover {
+        opacity: 0.8;
     }
 
     .btn-save {
         background: rgb(0, 56, 103, 50%);
         color: white;
+        outline: none;
+    }
+
+    .btn-save:hover {
+        opacity: 0.8;
     }
 
     .slide-workschedule-enter-active,
@@ -350,10 +408,101 @@
 
     .rest-day-label {
         display: inline-block;
-        font-size: 0.85rem;
+        font-size: 0.80rem;
         color: rgba(255, 255, 255, 0.3);
         transform: skewX(-15deg);
         width: 130px; 
         text-align: center;
+    }
+
+    .duration-inputs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: white;
+    }
+
+    .time-box.small {
+        width: 50px;
+        text-align: center;
+        background: #001a33;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .unit-label {
+        font-size: 0.8rem;
+        color: white;;
+        margin-right: 8px;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .weekly-container, .form-label {
+        display: flex;
+        flex-direction: column;
+        align-items: left; 
+        border-radius: 12px;
+        margin-top: 10px;
+    }
+
+    .duration-input.large {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .duration-input.large .time-box {
+        width: 65px;
+        height: 40px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: center;
+        background: #001e36; 
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: white;
+    }
+
+    .unit-label {
+        font-size: 0.9rem;
+        color: white;
+        font-weight: 400;
+    }
+
+    .duration-input.large .time-box:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #002a4d;
+    }
+
+    .success-toast {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #06d6a0;
+        color: #001324;
+        padding: 10px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+        z-index: 2000;
+    }
+
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .fade-enter-from, .fade-leave-to {
+        opacity: 0;
+        transform: translate(-50%, -10px);
     }
 </style>

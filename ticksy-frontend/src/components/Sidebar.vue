@@ -254,7 +254,9 @@
     }
 
     nav li {
-        margin: 30px 0;
+        margin: 8px 0;
+        padding: 0;
+        list-style: none;
     }
 
     nav a {
@@ -286,15 +288,13 @@
     .menu-link {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
         gap: 10px;
-        color: white;
-        text-decoration: none;
+        padding: 10px 12px; 
+        background-color: transparent;
+        transition: background-color 0.2s ease;
+        margin: 0 !important; 
         width: 100%;
         box-sizing: border-box;
-        transition: justify-content 0.3s ease-in-out;
-        cursor: pointer;
-        font-weight: 600;
     }
 
     .menu-link:hover {
@@ -330,7 +330,6 @@
     .submenu {
         list-style: none;
         padding-left: 40px;
-
         max-height: 0;
         opacity: 0;
         overflow: hidden;
@@ -342,13 +341,13 @@
     }
 
     .submenu.open {
-        max-height: 500px; 
+        max-height: 120px;
         opacity: 1;
         transform: translateY(0);
     }
 
     .submenu li {
-        margin: 20px 0;
+        margin: 4px 0;
     }
 
     .submenu-link span {
@@ -358,9 +357,16 @@
     }
 
     .submenu-link {
-        color: white;
-        text-decoration: none;
-        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background-color: transparent; 
+        transition: background-color 0.2s ease; 
+        margin: 0 !important; 
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .submenu-link:hover {
@@ -412,6 +418,7 @@
         background-color: #083A73;
         border-radius: 15px;
         padding: 10px 7px;
-        margin: 0;
+        margin: 5px 0;
+        opacity: 1;
     }
 </style>
