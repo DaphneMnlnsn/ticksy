@@ -15,8 +15,41 @@
 </template>
 
 <script setup>
+    import { Timer, Coffee, Square,  } from "lucide-vue-next"; 
+    import { ref } from "vue";
+
     const lastOut = "Last out an hour ago"
-    import { Timer } from "lucide-vue-next"; 
+    const isClockedIn = ref(false)
+    const timerValue = ref("0:00:00")
+    let timerInterval = null
+
+    const toggleClock = () => {
+        isClockedIn.value = !isClockedIn.value;
+    
+        if  (isClockedIn.value) {
+            startTimer();
+        }
+        else {
+            stopTimer();
+        }
+    }
+
+    const startTimer = () => {
+        let seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            timerValue.value = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        clearInterval(timerInterval);
+        timerValue.value = "0:00:00";
+    };
+
 
     defineProps({
         title: {

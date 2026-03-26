@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isScheduleOpen" @close="isScheduleOpen = false" /> 
+
     <div class="dashboard">
         <div class="main-bg"></div>
         <div :class="['app', { collapsed: !isOpen }]">
@@ -62,7 +64,7 @@
     <SchedulePanel
         :isOpen="isScheduleOpen"
         :isSidebarCollapsed="!isOpen"
-        @close="closeSchedule"
+        @close="isScheduleOpen = false"
     />
 </template>   
 
@@ -76,6 +78,7 @@
     import Sidebar from '../components/Sidebar.vue';
     import SchedulePanel from '../components/SchedulePanel.vue';
     import { ChevronRight, FilePen } from 'lucide-vue-next';
+    import DimmedBg from '../components/DimmedBg.vue';
 
     const activeTab = ref ('Day')
     const holidays = [
@@ -177,6 +180,7 @@
         flex: 1;
         padding: 20px 20px 60px 20px;
         transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        color:#ffffff;
         overflow-x: hidden;
         min-width: 0;
         z-index: 1;

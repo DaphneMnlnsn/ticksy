@@ -39,8 +39,8 @@
                         <div class="input-group">
                             <div class="form-label">Phone Number</div>
                             <input
-                                :type="tel"
-                                v-model="password"
+                                :type="phoneNumber"
+                                v-model="phoneNumber"
                                 :disabled="!isEditing"
                             />
                         </div>
@@ -49,7 +49,7 @@
                             <div class="form-label">Password</div>
                             <input
                                 :type="password"
-                                v-model="Password"
+                                v-model="password"
                                 :disabled="!isEditing"
                             />
                         </div>
@@ -87,15 +87,21 @@
             </div>
         </div>
     </transition>
+
+    <Teleport to="body">
+        <DimmedBg :show="isOpen" @close="$emit('close')" />
+    </Teleport>
 </template>
 
 <script setup>
     import { ref } from 'vue'
     import { X, Pencil, TextSelect } from 'lucide-vue-next';
     import { useRouter } from "vue-router"
+    import DimmedBg from './DimmedBg.vue';
 
     const router = useRouter()
 
+    const autoClockIn = ref(false)
     const email = ref("")
     const password = ref("")
     const phoneNumber = ref("")
