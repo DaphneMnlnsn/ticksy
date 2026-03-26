@@ -14,14 +14,17 @@
                     </div>
                     <div class="search-wrapper">
                         <div class="search-box">
-                            <Search />
+                            <Search v-model="search" />
                         </div>
                         <div class="range-container">
-                            <DatePicker v-model="startDate" placeholder="Start date" />
-                            <MoveRight class_="icon" />
-                            <DatePicker v-model="endDate" placeholder="End date" />
+                            <DatePicker v-model="startDate" placeholder="DD/MM/YYYY" />
+                            <MoveRight class="icon" :size="18" />
+                            <DatePicker v-model="endDate" placeholder="DD/MM/YYYY" />
                         </div>
-                        <button class="export-btn">Export</button>
+                        <button class="export-btn">
+                            <Download class="export-icon" />
+                            <span>Export</span>                       
+                        </button>
                     </div>
                     <div class="report-table">
                         <table>
@@ -64,7 +67,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(report, index) in reports" :key="index">
+                                <tr v-for="(report, index) in filteredReports" :key="index">
                                     <td>
                                         <div class="user-group">
                                             <img :src="sampleIMG" alt="profile" class="avatar" /> 
@@ -108,15 +111,21 @@
         awaySummary, 
         reports
     } from '../services/summaryData.js'
+    import { useSearch } from '../services/search.js';
     import Search from '../components/Search.vue'
-    import { Users, ClockCheck, ClockPlus, FileText, ChevronsUpDownIcon, MoveRight } from 'lucide-vue-next'
+    import { Users, ClockCheck, ClockPlus, FileText, 
+        ChevronsUpDownIcon, MoveRight, Download 
+    } from 'lucide-vue-next'
     import timeStyle from '../assets/time_style.png'
     import sampleIMG from '../assets/sample_img.jpg'
     import DatePicker from '../components/DatePicker.vue'
+    import { computed } from 'vue'
 
-    const startDate = ref(null)
-    const endDate = ref(null)
+    const reportsRef = reports
+    const { search, filtered: filteredReports } = useSearch(reportsRef, ['name'])
 
+    const startDate = ref(new Date())
+    const endDate = ref(new Date())
     const isOpen = ref(true)
 
     function toggleSidebar() {
@@ -169,6 +178,7 @@
         overflow-x: hidden;
         min-width: 0;
         z-index: 1;
+        color: #F0F0F0;
     }
 
     .app.collapsed .main-content {
@@ -184,7 +194,7 @@
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
-        gap: 15px;
+        gap: 25px;
         margin-bottom: 30px;
     }
 
@@ -222,6 +232,7 @@
         background-color: #6366f1;
         color: white;
         cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
 
     .report-table {
@@ -322,6 +333,26 @@
 
     .span-total {
         font-size: 12px;
+    }
+
+    .export-btn {
+        background-color: #234C70;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        outline: none;
+    }
+
+    .export-btn:hover {
+        opacity: 0.8;
+    }
+
+    .export-icon {
+        width: 16px;
+        height: 16px;
     }
 
 </style>
