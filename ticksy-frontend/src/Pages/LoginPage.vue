@@ -122,21 +122,21 @@
   margin: 0 auto 30px auto;
   width: 200px;
   height: auto;
-  margin-right: 25px;
+  margin-right: 55px;
  
 }
 
 .header-section h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  margin-left: 20px;
+  margin-left: 10px;
 }
 
 .header-section h5 {
   font-size: 1rem;
   margin: 2px 0;
   font-weight: lighter;
-  margin-left: 25px;
+  margin-left: 10px;
 }
 
 .input-group {
@@ -179,7 +179,7 @@
 .links {
   display: flex;
   justify-content: space-between;
-  width: 105%;
+  width: 97%;
   margin: 5px ;
   font-size: 0.9rem;
   color: #fff;
@@ -195,7 +195,7 @@ button {
   width: 300px;
   display: block;
   margin: 25px auto 0 auto;
-  margin-left: 45px;
+  margin-left: 35px;
   padding: 12px;
   background: #0C365C;
   border: none;
@@ -208,7 +208,7 @@ button {
 }
 
 button:hover {
-  background: rgb(55, 146, 237);
+  opacity: 0.8;
 }
 
 input[type="password"]::-ms-reveal,
