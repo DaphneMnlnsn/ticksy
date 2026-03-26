@@ -34,6 +34,9 @@ builder.Services.AddControllers()
         );
     });
 
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<ReportService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
