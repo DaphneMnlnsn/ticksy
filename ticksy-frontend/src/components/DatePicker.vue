@@ -1,49 +1,31 @@
 <template>
     <div class="ticksy-datepicker">
-        <VueDatePicker
-            v-model="internalValue"
-            :enable-time-picker="false"
-            format="dd/MM/yyyy"
-            :placeholder="placeholder"
+        <input 
+            type="date" 
+            v-model="formattedValue" 
+            class="custom-input"
         />
+        <Calendar class="calendar-icon" :size="18" />
     </div>
 </template>
 
 <script setup>
-    import { ref, watch } from 'vue'
-    import { VueDatePicker } from '@vuepic/vue-datepicker'
-    import '@vuepic/vue-datepicker/dist/main.css'
+    import { computed } from 'vue'
     import dayjs from 'dayjs'
-    import customParseFormat from 'dayjs/plugin/customParseFormat'
-
-    dayjs.extend(customParseFormat)
-
-    const format = (date) => {
-        return dayjs(date).format('DD/MM/YYYY')
-    }
+    import { Calendar } from 'lucide-vue-next'
 
     const props = defineProps({
-        modelValue: [Date, Array], 
-        placeholder: {
-            type: String,
-            default: 'Select date'
-        },
-        range: {
-            type: Boolean,
-            default: false
-        }
+    modelValue: {
+        type: [String, Date, null],
+        default: null
+    }
     })
 
     const emit = defineEmits(['update:modelValue'])
 
-    const internalValue = ref(props.modelValue)
-
-    watch(() => props.modelValue, (val) => {
-        internalValue.value = val
-    })
-
-    watch(internalValue, (val) => {
-        emit('update:modelValue', val)
+    const formattedValue = computed({
+        get: () => (props.modelValue ? dayjs(props.modelValue).format('YYYY-MM-DD') : ''),
+        set: (val) => emit('update:modelValue', val)
     })
 </script>
 
@@ -51,32 +33,40 @@
     .ticksy-datepicker {
         position: relative;
         width: 100%;
+        max-width: 160px; 
     }
 
-    :deep(.dp__input) {
-        padding: 8px 40px 8px 12px;
+    .custom-input {
+        width: 100%;
+        padding: 10px 12px;
+        padding-right: 35px;
         border-radius: 10px;
-        border: 1px solid #ddd;
+        border: 1px solid #75889A80;
+        background-color: transparent;
+        color: #F0F0F0;
+        font-family: inherit;
+        outline: none;
     }
 
-    .ticksy-datepicker::after {
-        content: "📅";
+    .custom-input::-webkit-calendar-picker-indicator {
+        position: absolute;
+        right: 10px;
+        cursor: pointer;
+        opacity: 0; 
+        z-index: 2;
+    }
+
+    .calendar-icon {
         position: absolute;
         right: 12px;
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
+        color: #F0F0F0;
+        z-index: 1;
     }
 
-    :deep(.dp__input_wrap) {
-        position: relative;
-    }
-
-    :deep(.dp__input_wrap::before) {
-        content: "→";
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        color: #888;
-    }
+    .custom-input::-webkit-datetime-edit { color: #F0F0F0; }
+    .custom-input::-webkit-datetime-edit-fields-wrapper { padding: 0; }
+    
 </style>

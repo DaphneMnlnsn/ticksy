@@ -9,29 +9,28 @@
             <div class="card">
             <div class="top-bar">
                 <div class="left">
-                    
                     <div class="dropdown">
-                    <div class="dropdown-trigger" @click="toggleDropdown">
-                        <span class="title">
-                        {{
-                            selectedTimesheet === 'weekly'
-                            ? 'Weekly Timesheets'
-                            : selectedTimesheet === 'daily'
-                            ? 'Daily Timesheets'
-                            : 'Monthly Timesheets'
-                        }}
-                        </span>
+                        <div class="dropdown-trigger" @click="toggleDropdown">
+                            <span class="title">
+                            {{
+                                selectedTimesheet === 'weekly'
+                                ? 'Weekly Timesheets'
+                                : selectedTimesheet === 'daily'
+                                ? 'Daily Timesheets'
+                                : 'Monthly Timesheets'
+                            }}
+                            </span>
 
-                        <div class="icon-btn">
-                        <ChevronDown />
+                            <div class="icon-btn">
+                                <ChevronDown />
+                            </div>
                         </div>
-                    </div>
 
-                    <div v-if="showDropdown" class="dropdown-menu">
-                        <div @click="selectTimesheet('weekly')">Weekly Timesheets</div>
-                        <div @click="selectTimesheet('daily')">Daily Timesheets</div>
-                        <div @click="selectTimesheet('monthly')">Monthly Timesheets</div>
-                    </div>
+                        <div v-if="showDropdown" class="dropdown-menu">
+                            <div @click="selectTimesheet('weekly')">Weekly Timesheets</div>
+                            <div @click="selectTimesheet('daily')">Daily Timesheets</div>
+                            <div @click="selectTimesheet('monthly')">Monthly Timesheets</div>
+                        </div>
                     </div>
 
                     <div class="icon-btn" @click="prevWeek">
@@ -43,39 +42,69 @@
                     </span>
 
                     <span v-else-if="selectedTimesheet === 'daily'">
-                        {{ new Date(startDate).toDateString() }}
+                        {{ startDate.toDateString() }}
                     </span>
 
                     <span v-else>
-                        {{ new Date(startDate).toLocaleString('default', { month: 'long', year: 'numeric' }) }}
+                        {{ startDate.toLocaleString('default', { month: 'long', year: 'numeric' }) }}
                     </span>
 
                     <div class="icon-btn" @click="nextWeek">
                         <ChevronRight />
                     </div>
 
-                    <div class="icon-btn" @click="toggleDatePicker">
+                    <div class="icon-btn" ref="calendarBtn" @click="toggleDatePicker">
                         <Calendar/>
                     </div>
 
-                    <div v-if="showDatePicker" class="date-picker">
-                        <input type="date" @change="setStartDate($event.target.value)" />
-                        <input type="date" @change="setEndDate($event.target.value)" />
+                    <div v-if="showDatePicker" class="date-picker-wrapper" :style="pickerStyle">
+                        <!-- WEEKLY -->
+                        <VueDatePicker
+                            v-if="selectedTimesheet === 'weekly' && showDatePicker"
+                            v-model="dateRange"
+                            range
+                            inline
+                            :enable-time-picker="false"
+                            @update:model-value="onRangeSelect"
+                            dark
+                        />
+
+                        <!-- DAILY -->
+                        <VueDatePicker
+                            v-else-if="selectedTimesheet === 'daily'"
+                            v-model="startDate"
+                            inline
+                            auto-apply
+                            :enable-time-picker="false"
+                            @update:model-value="onDaySelect"
+                            dark
+                        />
+
+                        <!-- MONTHLY -->
+                        <VueDatePicker
+                            v-else
+                            v-model="selectedMonth"
+                            inline
+                            month-picker
+                            auto-apply
+                            @update:model-value="onMonthSelect"
+                            dark
+                        />
                     </div>
 
                 </div>
                 <button class="export-btn">
-                <Download />
-                Export
+                    <Download class="export-icon" />
+                    <span>Export</span>                       
                 </button>
             </div>
             <div class="header-line"></div>
 
-                        <!-- ================= WEEKLY ================= -->
+            <!-- ================= WEEKLY ================= -->
             <div v-if="selectedTimesheet === 'weekly'" class="table">
 
                 <div class="table-header">
-                    <input type="text" placeholder="Search..." v-model="search" />
+                    <SearchBar v-model="search" />
                     <div class="days">
                         <span>M</span>
                         <span>T</span>
@@ -90,7 +119,7 @@
 
                 <div class="row" v-for="user in filteredUsers" :key="user.name">
                     <div class="user">
-                        <img :src="user.avatar" />
+                        <img :src="user.avatar" class="avatar" />
                         <span>{{ user.name }}</span>
                     </div>
 
@@ -108,7 +137,7 @@
             <div v-if="selectedTimesheet === 'daily'" class="table">
 
                 <div class="table-header">
-                    <input type="text" placeholder="Search..." v-model="search" />
+                    <SearchBar v-model="search" />
                     <div class="days daily">
                         <span>First In</span>
                         <span>Last Out</span>
@@ -118,7 +147,7 @@
 
                 <div class="row" v-for="user in filteredUsers" :key="user.name">
                     <div class="user">
-                        <img :src="user.avatar" />
+                        <img :src="user.avatar" class="avatar" />
                         <span>{{ user.name }}</span>
                     </div>
 
@@ -134,7 +163,7 @@
             <div v-if="selectedTimesheet === 'monthly'" class="table">
 
                 <div class="table-header">
-                    <input type="text" placeholder="Search..." v-model="search" />
+                    <SearchBar v-model="search" />
                     <div class="days monthly">
                         <span v-for="day in 31" :key="day">{{ day }}</span>
                         <span>Total</span>
@@ -143,7 +172,7 @@
 
                 <div class="row" v-for="user in filteredUsers" :key="user.name">
                     <div class="user">
-                        <img :src="user.avatar" />
+                        <img :src="user.avatar" class="avatar" />
                         <span>{{ user.name }}</span>
                     </div>
 
@@ -155,19 +184,27 @@
             </div>
         </div>
     </div>
-
-    
     </div>
 </template>
 
 <script setup>
-    
-    import { ref, computed } from 'vue'
+    import { ref, computed, nextTick } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
+    import SearchBar from '../components/Search.vue'
     import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Download, TreePalm} from "lucide-vue-next"
     import { watch } from 'vue'
+    import { users } from '../services/summaryData.js'
+    import { useSearch } from '../services/search.js'
+    import { VueDatePicker } from '@vuepic/vue-datepicker'
+    import '@vuepic/vue-datepicker/dist/main.css'
+    import dayjs from 'dayjs'
+
+    const calendarBtn = ref(null)
+    const pickerStyle = ref({})
 
     const isOpen = ref(true)
+    const { search, filtered: filteredUsers } = useSearch(users, ['name'])
+    const selectedMonth = ref(new Date())
     
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -181,17 +218,16 @@
     }
 
     const showDatePicker = ref(false)
-    const startDate = ref(new Date())
-    const endDate = ref(new Date())
-    endDate.value.setDate(startDate.value.getDate() + 6)
+    const dateRange = ref([
+        dayjs().toDate(),
+        dayjs().add(6, 'day').toDate()
+    ])
+    const startDate = ref(dateRange.value[0])
+    const endDate = ref(dateRange.value[1])
 
     function selectTimesheet(type) {
         selectedTimesheet.value = type
         showDropdown.value = false
-    }
-    
-    function toggleDatePicker() {
-        showDatePicker.value = !showDatePicker.value
     }
 
     const formattedRange = computed(() => {
@@ -204,73 +240,109 @@
     })
 
     function nextWeek() {
-    if (selectedTimesheet.value === 'weekly') {
-        startDate.value.setDate(startDate.value.getDate() + 7)
-        endDate.value.setDate(endDate.value.getDate() + 7)
-    } 
-    else if (selectedTimesheet.value === 'daily') {
-        startDate.value.setDate(startDate.value.getDate() + 1)
-    } 
-    else if (selectedTimesheet.value === 'monthly') {
-        startDate.value.setMonth(startDate.value.getMonth() + 1)
-    }
-
-    startDate.value = new Date(startDate.value)
-    endDate.value = new Date(endDate.value)
-}
-    function prevWeek() {
-        startDate.value.setDate(startDate.value.getDate() - 7)
-        endDate.value.setDate(endDate.value.getDate() - 7)
-
-        startDate.value = new Date(startDate.value)
-        endDate.value = new Date(endDate.value)
-    }
-
-    function setStartDate(value) {
-        startDate.value = new Date(value)
-    }
-
-    function setEndDate(value) {
-        endDate.value = new Date(value)
-    }
-    
-    const search = ref("")
-        const users = ref([
-        {
-            name: "Kiana Martin",
-            avatar: "https://i.pravatar.cc/40?img=1",
-            days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
-            total: "40 hrs"
-        },
-        {
-            name: "Daphne Manalansan",
-            avatar: "https://i.pravatar.cc/40?img=2",
-            days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
-            total: "40 hrs"
-        },
-        {
-            name: "Lei Anysson Marquez",
-            avatar: "https://i.pravatar.cc/40?img=3",
-            days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
-            total: "40 hrs"
-        },
-        {
-            name: "Quiana Domingo",
-            avatar: "https://i.pravatar.cc/40?img=4",
-            days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
-            total: "40 hrs"
+        if (selectedTimesheet.value === 'weekly') {
+            dateRange.value = [
+                dayjs(startDate.value).add(7, 'day').toDate(),
+                dayjs(endDate.value).add(7, 'day').toDate()
+            ]
+        } 
+        else if (selectedTimesheet.value === 'daily') {
+            startDate.value = dayjs(startDate.value).add(1, 'day').toDate()
+            endDate.value = startDate.value
+        } 
+        else {
+            dateRange.value = [
+                dayjs(startDate.value).add(1, 'month').startOf('month').toDate(),
+                dayjs(startDate.value).add(1, 'month').endOf('month').toDate()
+            ]
         }
-    ])
+    }
 
-     const filteredUsers = computed(() => {
-    return users.value.filter(user =>
-        user.name.toLowerCase().includes(search.value.toLowerCase())
-    )
-})
-    </script>
+    function prevWeek() {
+        if (selectedTimesheet.value === 'weekly') {
+            dateRange.value = [
+                dayjs(startDate.value).subtract(7, 'day').toDate(),
+                dayjs(endDate.value).subtract(7, 'day').toDate()
+            ]
+        } 
+        else if (selectedTimesheet.value === 'daily') {
+            startDate.value = dayjs(startDate.value).subtract(1, 'day').toDate()
+            endDate.value = startDate.value
+        } 
+        else {
+            dateRange.value = [
+                dayjs(startDate.value).subtract(1, 'month').startOf('month').toDate(),
+                dayjs(startDate.value).subtract(1, 'month').endOf('month').toDate()
+            ]
+        }
+    }
+
+    function onRangeSelect(val) {
+        if (val && val.length === 2) {
+            dateRange.value = val
+            startDate.value = val[0]
+            endDate.value = val[1]
+            showDatePicker.value = false
+        }
+    }
+
+    function onDaySelect(val) {
+        startDate.value = val
+        endDate.value = val
+
+        dateRange.value = [val, val]
+
+        showDatePicker.value = false
+    }
+
+    function onMonthSelect(val) {
+        let date
+
+        if (val instanceof Date) {
+            date = val
+        } else {
+            date = new Date(val.year, val.month, 1)
+        }
+
+        selectedMonth.value = date
+
+        const start = dayjs(date).startOf('month').toDate()
+        const end = dayjs(date).endOf('month').toDate()
+
+        dateRange.value = [start, end]
+        startDate.value = start
+        endDate.value = end
+
+        showDatePicker.value = false
+    }
+
+    function toggleDatePicker() {
+        showDatePicker.value = !showDatePicker.value
+
+        if (showDatePicker.value) {
+            nextTick(() => {
+                const rect = calendarBtn.value.getBoundingClientRect()
+
+                pickerStyle.value = {
+                    position: 'absolute',
+                    top: `${rect.bottom + 5}px`,
+                    left: `${rect.left}px`,
+                    zIndex: 999
+                }
+            })
+        }
+    }
+
+    watch(dateRange, (val) => {
+        if (val && val.length === 2) {
+            startDate.value = val[0]
+            endDate.value = val[1]
+        }
+    })
+
+</script>
 
 <style scoped>
-
     .app {
         width: 100%;
         flex: 1;
@@ -321,11 +393,18 @@
         background-repeat: no-repeat;
         z-index: -1;
     }
+
     .card {
         background-color: rgba(0, 19, 36, 0.2);
-        border-radius: 15px;
-        padding: 20px;
-        
+        border-radius: 5px;
+        width: 100%;
+        min-height: 85vh; 
+        padding: 40px 20px; 
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        gap: 5px;
+        margin-bottom: 30px;
     }
 
     .top-bar {
@@ -369,10 +448,10 @@
     }
 
     .export-btn {
-        background: #052947;
+        background: #052348;
         border: none;
         border-radius: 10px;
-        padding: 8px 15px;
+        padding: 8px 25px;
         color: white;
         display: flex;
         align-items: center;
@@ -380,14 +459,14 @@
         outline: none;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
     }
+
     .export-btn:hover {
-        background: #083A73;
-        transition: 0.2s ease;
-    }
-   .h2{
+        opacity: 0.8;    }
+
+    .h2 {
         font-size: 30px;
         margin-bottom: 20px;
-   }
+    }
 
     .table {
         backdrop-filter: blur(6px);
@@ -422,18 +501,14 @@
         display: grid;
         grid-template-columns: 250px 1fr;
         align-items: center;
-        padding: 15px 0;
+        padding: 12px 0;
         border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     .user {
         display: flex;
         align-items: center;
-        gap: 10px;
-    }
-
-    .user img {
-        border-radius: 50%;
+        gap: 15px;
     }
 
     .rest {
@@ -475,19 +550,49 @@
     }
 
     .days.daily {
-    grid-template-columns: repeat(3, 1fr);
-}
+        grid-template-columns: repeat(3, 1fr);
+    }
 
-.days.monthly {
-    grid-template-columns: repeat(32, 1fr);
-}
+    .days.monthly {
+        grid-template-columns: repeat(32, 1fr);
+    }
 
-.box {
-    width: 20px;
-    height: 20px;
-    background: #ccc;
-    border-radius: 2px;
-    margin: auto;
-}
+    .box {
+        width: 20px;
+        height: 20px;
+        background: #ccc;
+        border-radius: 2px;
+        margin: auto;
+    }
+
+    .export-btn:hover {
+        opacity: 0.8;
+    }
+
+    .export-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+    }
+
+    span {
+        font-size: 14px;
+    }
+
+    :global(.dp__theme_dark) {
+        --dp-background-color: #052348;   
+        --dp-text-color: #ffffff;          
+        --dp-primary-color: #012033;     
+        --dp-primary-text-color: #ffffff;
+        --dp-hover-color: #083A73;     
+        --dp-border-color: rgba(255,255,255,0.1);
+        --dp-menu-border-color: rgba(255,255,255,0.1);
+        --dp-border-radius: 10px;
+    }
 
 </style>

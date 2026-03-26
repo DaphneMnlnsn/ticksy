@@ -1,5 +1,6 @@
 import { Clock, ClockAlert, ClockCheck, OctagonAlert, Ban, CircleX, TreePalm, CalendarX } from 'lucide-vue-next'
 import { ref } from 'vue'
+import sampleIMG from '../assets/sample_img.jpg'
 
 export const presentSummary = [
     { label: 'On time', value: 23, icon: Clock },
@@ -53,6 +54,60 @@ export const reports = ref([
     }
 ])
 
+export const users = ref([
+    {
+        name: "Kiana Martin",
+        avatar: sampleIMG,
+        days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
+        total: "40 hrs"
+    },
+    {
+        name: "Daphne Manalansan",
+        avatar: sampleIMG,
+        days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
+        total: "40 hrs"
+    },
+    {
+        name: "Lei Anysson Marquez",
+        avatar: sampleIMG,
+        days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
+        total: "40 hrs"
+    },
+    {
+        name: "Quiana Domingo",
+        avatar: sampleIMG,
+        days: ["8hrs", "8hrs", "8hrs", "8hrs", "8hrs", "rest", "rest"],
+        total: "40 hrs"
+    }
+])
+
+export const allUsers = ref([
+    {
+        name: "Kiana",
+        email: "kianamartinxiv@gmail.com",
+        team: "-",
+        lastActive: "9 minutes ago"
+    },
+    {
+        name: "Daphne",
+        email: "daphnemenalansan123@gmail.com",
+        team: "-",
+        lastActive: "19 minutes ago"
+    },
+    {
+        name: "Lei Anysson",
+        email: "anyssonleim.it@gmail.com",
+        team: "-",
+        lastActive: "10 minutes ago"
+    },
+    {
+        name: "Kirsten Quiana",
+        email: "quianadomingo004@gmail.com",
+        team: "-",
+        lastActive: "8 minutes ago"
+    }
+])
+
 function getTotalHours(clockIn, clockOut) {
     const parseTime = (timeStr) => {
         const [time, modifier] = timeStr.split(' ')
@@ -73,7 +128,6 @@ function getTotalHours(clockIn, clockOut) {
 
     let diff = end - start
 
-    // convert ms → minutes
     const totalMinutes = Math.floor(diff / 1000 / 60)
 
     const hours = Math.floor(totalMinutes / 60)

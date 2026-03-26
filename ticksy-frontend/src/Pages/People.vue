@@ -4,43 +4,44 @@
         <div :class="['app', { collapsed: !isOpen }]">
             <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
-                <div class="main-content">
-                    <Header title="People" />
+            <div class="main-content">
+                <Header title="People" />
 
-                    <div class="cards">
+                <div class="cards">
                     <div class="tabs">
-                <span 
-                    :class="{ active: activeTab === 'members' }"
-                    @click="activeTab = 'members'"
-                >
-                    Members
-                </span>
+                    <span 
+                        :class="{ active: activeTab === 'members' }"
+                        @click="activeTab = 'members'"
+                    >
+                        Members
+                    </span>
 
-                <span 
-                    :class="{ active: activeTab === 'teams' }"
-                    @click="activeTab = 'teams'"
-                >
-                    Teams
-                </span>
+                    <span 
+                        :class="{ active: activeTab === 'teams' }"
+                        @click="activeTab = 'teams'"
+                    >
+                        Teams
+                    </span>
 
-            </div>
-                <div class="search-row">
-                    <input type="text" placeholder="Search..." v-model="search" />
+                </div>
+            <div class="search-row">
+                <div class="search-box">
+                    <Search v-model="search" />
+                </div>
 
                 <button class="add-btn">
                     + Add Member
                 </button>
             </div>
 
-            <div class="header-line"></div>
-                <div class="table">
-                    <div class="table-header people">
+            <div class="table">
+                <div class="table-header people">
 
                 <span>
                     <input type="checkbox" v-model="selectAll" @change="toggleAll" />
                 </span>
 
-                <span>{{ users.length }} Members</span>
+                <span>{{ filteredUsers.length }} Members</span>
                 <span>Email</span>
                 <span>Team</span>
                 <span>Last Active</span>
@@ -48,23 +49,23 @@
 
             </div>
 
-                <div class="row people" v-for="user in filteredUsers" :key="user.email">
+            <div class="row people" v-for="user in filteredUsers" :key="user.email">
 
-                    <span>
-                    <input type="checkbox" v-model="selectedUsers" :value="user.email" />
-                </span>
+                <span>
+                <input type="checkbox" v-model="selectedUsers" :value="user.email" />
+            </span>
 
-                    <div class="user">
-                        <img :src="sampleIMG" class="avatar" />
-                        <span>{{ user.name }}</span>
-                        </div>
-                            <span>{{ user.email }}</span>
-                            <span>{{ user.team }}</span>
-                            <span>{{ user.lastActive }}</span>
-                            <span class="dots">•••</span>
-                        </div>
-                    </div>
+            <div class="user">
+                <img :src="sampleIMG" class="avatar" />
+                <span>{{ user.name }}</span>
                 </div>
+                    <span>{{ user.email }}</span>
+                    <span>{{ user.team }}</span>
+                    <span>{{ user.lastActive }}</span>
+                    <span class="dots">•••</span>
+                </div>
+            </div>
+            </div>
             </div>
         </div>
     </div>
@@ -76,55 +77,27 @@
     import Header from '../components/Header.vue';
     import { computed } from 'vue'
     import sampleIMG from '../assets/sample_img.jpg'
+    import SearchBar from '../components/Search.vue'
+    import { useSearch } from '../services/search.js'
+    import Search from '../components/Search.vue'
+    import { 
+        allUsers
+    } from '../services/summaryData.js'
     
     const activeTab = ref('members')
     const isOpen = ref(true)
+    const { search, filtered: filteredUsers } = useSearch(allUsers, ['name', 'email', 'team'])
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
-
-    const search = ref("")
-    const users = ref([
-        {
-            name: "Kiana",
-            email: "kianamartinxiv@gmail.com",
-            team: "-",
-            lastActive: "9 minutes ago"
-        },
-        {
-            name: "Daphne",
-            email: "daphnemenalansan123@gmail.com",
-            team: "-",
-            lastActive: "19 minutes ago"
-        },
-        {
-            name: "Lei",
-            email: "anyssonleim.it@gmail.com",
-            team: "-",
-            lastActive: "10 minutes ago"
-        },
-        {
-            name: "Quiana",
-            email: "quianadomingo004@gmail.com",
-            team: "-",
-            lastActive: "8 minutes ago"
-        }
-    ])
-
-    const filteredUsers = computed(() => {
-        return users.value.filter(user =>
-            user.name.toLowerCase().includes(search.value.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.value.toLowerCase())
-        )
-    })
 
     const selectedUsers = ref([])
     const selectAll = ref(false)
 
     function toggleAll() {
         if (selectAll.value) {
-            selectedUsers.value = users.value.map(user => user.email)
+            selectedUsers.value = filteredUsers.value.map(user => user.email)
         } else {
             selectedUsers.value = []
         }
@@ -189,24 +162,29 @@
         border-radius: 5px;
         width: 100%;
         min-height: 85vh; 
-        padding: 20px 20px 45px 20px; 
+        padding: 20px; 
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
+        gap: 25px;
         margin-bottom: 30px;
     }
 
     .table {
         backdrop-filter: blur(6px);
         border-radius: 8px;
-        padding: 20px;
+        margin-left: -20px;
+        margin-right: -20px;
     }
 
     .table-header.people {
-        display: grid;
-        grid-template-columns: 250px 1.5fr 1fr 1fr 40px;
+        background-color: #75889A4D;
+        display: flex;
         align-items: center;
-        padding: 10px 0;
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-start;
+        padding: 10px 20px;
     }
 
     .table-header input {
@@ -222,8 +200,9 @@
         display: grid;
         grid-template-columns: 250px 1fr;
         align-items: center;
-        padding: 15px 0;
+        padding: 15px 20px;
         border-top: 1px solid rgba(255,255,255,0.1);
+        gap: 10px;
     }
 
     .row.people span {
@@ -285,30 +264,17 @@
 
     .search-row {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin: 10px 0;
-    }
-
-    .search-row input {
-        width: 250px;
-        padding: 10px 15px;
-        border-radius: 10px;
-        border: 2px solid rgba(255,255,255,0.1);
-        background-color: rgba(0, 19, 36, 0.2);
-        color: white;
-        outline: none;
-    }
-
-    .header-line {
+        justify-content: space-between;
         width: 100%;
-        height: 1px;
-        background: rgba(255,255,255,0.1);
-        margin: 10px 0;
+    }
+
+    .search-box {
+        width: 30%;
     }
 
     .add-btn {
-        background: #052947;
+        background: none;
         border: none;
         border-radius: 10px;
         padding: 8px 15px;
@@ -317,7 +283,7 @@
         align-items: center;
         gap: 5px;
         outline: none;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
+        font-size: 13px;
     }
 
     .add-btn:hover {
@@ -327,8 +293,18 @@
     .table-header.people,
     .row.people {
         display: grid;
-        grid-template-columns: 40px 250px 1.5fr 1fr 1fr 50px;
+        grid-template-columns: 40px 250px 1.5fr 1.5fr 2fr 50px;
         align-items: center;
+    }
+
+    .table-header.people span:nth-child(4),
+    .table-header.people span:nth-child(5) {
+        text-align: center;
+    }
+
+    .row.people span:nth-child(4),
+    .row.people span:nth-child(5) {
+        text-align: center;
     }
 
 </style>
