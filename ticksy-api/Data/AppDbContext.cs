@@ -21,7 +21,6 @@ namespace ticksy_api.Data
         public DbSet<UserWorkSchedule> UserWorkSchedules { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Holiday> Holidays { get; set; }
-        public DbSet<Report> Reports { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<TimeOffPolicy> TimeOffPolicies { get; set; }

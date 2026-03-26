@@ -242,7 +242,7 @@ public class AttendanceController : ControllerBase
                 a.Status,
                 a.Notes
             })
-            .FirstOrDefaultAsync();
+            .ToListAsync();
 
         return Ok(result);
     }
