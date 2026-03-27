@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-    import { Timer, Coffee, Square,  } from "lucide-vue-next"; 
+    import { Timer, Coffee, Square } from "lucide-vue-next"; 
     import { ref } from "vue";
 
     const lastOut = "Last out an hour ago"

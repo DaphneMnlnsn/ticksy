@@ -157,8 +157,7 @@
         margin-left: var(--sidebar-collapsed-width);
     }
 
-    .cards {
-        background-color: rgba(0, 19, 36, 0.2);
+    .cards {        
         border-radius: 5px;
         width: 100%;
         min-height: 85vh; 
