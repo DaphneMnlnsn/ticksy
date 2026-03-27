@@ -351,12 +351,32 @@
     }
 
     .main-content {
-        margin-left: var(--sidebar-width); /*DO NOT CHANGE!*/
+        margin-left: var(--sidebar-width);
         flex: 1;
         padding: 1rem;
         transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         color: white; 
        
+    }
+
+    .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
+
+
+    .main-content::-webkit-scrollbar-track {
+        background: transparent; 
     }
 
     .app.collapsed .main-content {
