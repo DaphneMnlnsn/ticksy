@@ -1,4 +1,4 @@
-import { Clock, ClockAlert, ClockCheck, OctagonAlert, Ban, CircleX, TreePalm, CalendarX } from 'lucide-vue-next'
+import { Clock, ClockAlert, ClockCheck, OctagonAlert, Ban, CircleX, TreePalm, CalendarX, ChevronsRight, Download } from 'lucide-vue-next'
 import { ref } from 'vue'
 import sampleIMG from '../assets/sample_img.jpg'
 
@@ -106,6 +106,17 @@ export const allUsers = ref([
         team: "-",
         lastActive: "8 minutes ago"
     }
+])
+
+export const schedules = ref([
+    { id: 1, name: "Internship", label: "Default", icon: ChevronsRight },
+    { id: 2, name: "Hybrid Schedule", icon: ChevronsRight },
+    { id: 3, name: "Part-timers", icon: ChevronsRight }
+])
+
+export const calendars = ref([
+    { id: 1, name: "Philippines", label: "Imported Calendar", icon: Download },
+    { id: 2, name: "United States - Texas", label: "Imported Calendar", icon: Download },
 ])
 
 function getTotalHours(clockIn, clockOut) {
