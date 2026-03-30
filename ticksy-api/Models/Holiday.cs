@@ -17,11 +17,12 @@ namespace ticksy_api.Models
         public enum HolidaySource {
             Manual,
             Google,
-            Outlook
+            Outlook,
+            Imported
         }
         public HolidaySource Source { get; set; } = HolidaySource.Manual;
 
-        public string? ExternalId { get; set; }
+        public string? ExternalCalendarId { get; set; }
 
         public int CreatedBy { get; set; }
 
@@ -31,5 +32,9 @@ namespace ticksy_api.Models
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+
+        public int CalendarId { get; set; }
+        [ForeignKey("CalendarId")]
+        public HolidayCalendar Calendar { get; set;} = null!;
     }
 }
