@@ -13,6 +13,15 @@ namespace ticksy_api.Models
             AssignedToTeam
         }
         public NotifType Type { get; set; } = NotifType.AssignedToTeam;
+        
+        public enum NotificationStatus
+        {
+            Pending,
+            Sent,
+            Failed
+        }
+
+        public NotificationStatus Status { get; set; } = NotificationStatus.Pending;
 
         public required string Message { get; set; }
         public DateTime? ReadAt { get; set; }
