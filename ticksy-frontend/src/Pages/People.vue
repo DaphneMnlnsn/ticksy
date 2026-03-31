@@ -1,71 +1,148 @@
 <template>
     <div class="dashboard">
         <div class="main-bg"></div>
-        <div :class="['app', { collapsed: !isOpen }]">
-            <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
+            <div :class="['app', { collapsed: !isOpen }]">
+                <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
+                    <div class="main-content">
+                        <Header title="People" />
 
-            <div class="main-content">
-                <Header title="People" />
+                        <div class="cards">
+                            <div class="tabs">
+                            <span 
+                                :class="{ active: activeTab === 'members' }"
+                                @click="activeTab = 'members'"
+                            >
+                                Members
+                            </span>
 
-                <div class="cards">
-                    <div class="tabs">
-                    <span 
-                        :class="{ active: activeTab === 'members' }"
-                        @click="activeTab = 'members'"
-                    >
-                        Members
-                    </span>
+                            <span 
+                                :class="{ active: activeTab === 'teams' }"
+                                @click="activeTab = 'teams'"
+                            >
+                                Teams
+                            </span>
+                        </div>
 
-                    <span 
-                        :class="{ active: activeTab === 'teams' }"
-                        @click="activeTab = 'teams'"
-                    >
-                        Teams
-                    </span>
+                        <div class="search-row">
+                            <div v-if="activeTab === 'members'" class="search-box">
+                                <Search v-model="search" />
+                            </div>
 
+                             <button v-if="activeTab === 'members'" class="add-btn">
+                                + Add Member
+                            </button>
+                        </div>
+                        
+                        <div :key="activeTab" class="tab-content">
+                            <div v-if="activeTab === 'members'" class="table">
+                                <div class="table-header people">
+                                    <span>
+                                        <input type="checkbox" v-model="selectAll" @change="toggleAll" />
+                                    </span>
+                                    <span>{{ filteredUsers.length }} Members</span>
+                                    <span>Email</span>
+                                    <span>Team</span>
+                                    <span>Last Active</span>
+                                    <span></span>
+                                </div>
+
+                            <div class="row people" v-for="user in filteredUsers" :key="user.email">
+                                <span>
+                                    <input type="checkbox" v-model="selectedUsers" :value="user.email" />
+                                </span>
+
+                                <div class="user">
+                                    <img :src="sampleIMG" class="avatar" />
+                                    <span>{{ user.name }}</span>
+                                </div>
+                                <span>{{ user.email }}</span>
+                                <span>{{ user.team }}</span>
+                                <span>{{ user.lastActive }}</span>
+                            <div class="actions" @click.stop>
+                                <span class="dots" @click="toggleMenu(user.email)">•••</span>
+
+                            <div v-if="activeMenu === user.email" class="dropdown">
+                                <div class="dropdown-item">
+                                    <Edit size="14" />
+                                    Edit
+                                 </div>
+
+                                <div class="dropdown-item archive">
+                                    <Archive size="14" />
+                                    Archive
+                                </div>  
+                                    </div>
+                                    </div>
+                                </div>
+                        </div>
+                        <div v-else class="teams-layout">
+                            <div class="teams-left">
+                                <div class="panel-search">
+                                    <input type="text" placeholder="Search..." v-model="teamSearch" />
+                                </div>
+
+                                <div 
+                                    v-for="team in filteredTeams"
+                                    :key="team.id"
+                                    class="team-item"
+                                    :class="{ active: selectedTeam === team.id }"
+                                    @click="selectedTeam = team.id">
+                                    <div>
+                                        <div class="team-name">{{ team.name }}</div>
+                                        <div class="team-sub">{{ team.members }} members</div>
+                                    </div>
+
+                                    <div class="team-arrow">››</div>
+                                </div>
+
+                                <div class="add-team">
+                                    + Add Team
+                                </div>
+                            </div>
+
+                            <div class="teams-right" @click="closeMenu">
+                                <div class="table-header people">
+                                    <span>
+                                        <input type="checkbox" />
+                                    </span>
+                                    <span>{{ selectedTeamMembers.length }} Members</span>
+                                    <span>Email</span>
+                                    <span>Last Active</span>
+                                    <span></span>
+                                </div>
+
+                                <div 
+                                    class="row people"
+                                    v-for="user in selectedTeamMembers"
+                                    :key="user.email"
+                                >
+                                <span><input type="checkbox" /></span>
+                                    <div class="user">
+                                        <img :src="sampleIMG" class="avatar" />
+                                        <span>{{ user.name }}</span>
+                                    </div>
+
+                                <span>{{ user.email }}</span>
+                                <span>{{ user.lastActive }}</span>
+                            <div class="actions" @click.stop>
+                                <span class="dots" @click="toggleMenu(user.email)">•••</span>
+
+                                <div v-if="activeMenu === user.email" class="dropdown">
+                                    <div class="dropdown-item">
+                                        <Edit size="14" />
+                                        Edit
+                                    </div>
+                                    <div class="dropdown-item archive">
+                                        <Archive size="14" />
+                                        Archive
+                                    </div>  
+                                </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            <div class="search-row">
-                <div class="search-box">
-                    <Search v-model="search" />
-                </div>
-
-                <button class="add-btn">
-                    + Add Member
-                </button>
-            </div>
-
-            <div class="table">
-                <div class="table-header people">
-
-                <span>
-                    <input type="checkbox" v-model="selectAll" @change="toggleAll" />
-                </span>
-
-                <span>{{ filteredUsers.length }} Members</span>
-                <span>Email</span>
-                <span>Team</span>
-                <span>Last Active</span>
-                <span></span>
-
-            </div>
-
-            <div class="row people" v-for="user in filteredUsers" :key="user.email">
-
-                <span>
-                <input type="checkbox" v-model="selectedUsers" :value="user.email" />
-            </span>
-
-            <div class="user">
-                <img :src="sampleIMG" class="avatar" />
-                <span>{{ user.name }}</span>
-                </div>
-                    <span>{{ user.email }}</span>
-                    <span>{{ user.team }}</span>
-                    <span>{{ user.lastActive }}</span>
-                    <span class="dots">•••</span>
-                </div>
-            </div>
-            </div>
             </div>
         </div>
     </div>
@@ -80,9 +157,8 @@
     import SearchBar from '../components/Search.vue'
     import { useSearch } from '../services/search.js'
     import Search from '../components/Search.vue'
-    import { 
-        allUsers
-    } from '../services/summaryData.js'
+    import { allUsers } from '../services/summaryData.js'
+    import { Edit, Archive, Trash2 } from 'lucide-vue-next'
     
     const activeTab = ref('members')
     const isOpen = ref(true)
@@ -91,6 +167,29 @@
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
+    import { onMounted, onUnmounted } from 'vue'
+
+    const activeMenu = ref(null)
+
+    function toggleMenu(email) {
+        activeMenu.value = activeMenu.value === email ? null : email
+    }
+
+    function closeMenu() {
+        activeMenu.value = null
+    }
+
+    function handleClickOutside() {
+        activeMenu.value = null
+    }
+
+    onMounted(() => {
+        document.addEventListener('click', handleClickOutside)
+    })
+
+    onUnmounted(() => {
+        document.removeEventListener('click', handleClickOutside)
+    })
 
     const selectedUsers = ref([])
     const selectAll = ref(false)
@@ -102,10 +201,60 @@
             selectedUsers.value = []
         }
     }
+
+    const teamSearch = ref('')
+    const selectedTeam = ref(1)
+
+    const teams = ref([
+    {
+        id: 1,
+        name: 'Interns',
+        members: 9,
+        users: [
+            { name: 'Kiana', email: 'kianamartinxxiv@gmail.com', lastActive: '9 minutes ago' },
+            { name: 'Daphne', email: 'daphnemanalansan1213@gmail.com', lastActive: '19 minutes ago' },
+            { name: 'Lei', email: 'anyssonleim.it@gmail.com', lastActive: '10 minutes ago' },
+            { name: 'Quiana', email: 'quianadomingo004@gmail.com', lastActive: '8 minutes ago' }
+        ]
+    },
+    {
+        id: 2,
+        name: 'Dev Team',
+        members: 4,
+        users: [
+            { name: 'Mark', email: 'markdev@gmail.com', lastActive: '5 minutes ago' },
+            { name: 'John', email: 'johncode@gmail.com', lastActive: '12 minutes ago' },
+            { name: 'Lisa', email: 'lisa.dev@gmail.com', lastActive: '1 hour ago' },
+            { name: 'Anne', email: 'anne.dev@gmail.com', lastActive: '30 minutes ago' }
+        ]
+    },
+    {
+        id: 3,
+        name: 'QA Team',
+        members: 4,
+        users: [
+            { name: 'Paul', email: 'paul.qa@gmail.com', lastActive: '15 minutes ago' },
+            { name: 'Jane', email: 'jane.qa@gmail.com', lastActive: '22 minutes ago' },
+            { name: 'Kyle', email: 'kyle.qa@gmail.com', lastActive: '40 minutes ago' },
+            { name: 'Mia', email: 'mia.qa@gmail.com', lastActive: '1 hour ago' }
+        ]
+    }
+    ])
+
+    const filteredTeams = computed(() => {
+        return teams.value.filter(t =>
+            t.name.toLowerCase().includes(teamSearch.value.toLowerCase())
+        )
+    })
+
+    const selectedTeamMembers = computed(() => {
+        const team = teams.value.find(t => t.id === selectedTeam.value)
+        return team ? team.users : []
+    })
+
 </script>
 
 <style scoped>
-
     :global(html), 
     :global(body), 
     :global(#app) {
@@ -153,31 +302,12 @@
         color: white;
     }
 
-    .main-content::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .main-content::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1); 
-        border-radius: 10px; 
-        border: 2px solid transparent; 
-        background-clip: content-box; 
-    }
-
-    .main-content::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.25); 
-    }
-
-
-    .main-content::-webkit-scrollbar-track {
-        background: transparent; 
-    }
-
     .app.collapsed .main-content {
         margin-left: var(--sidebar-collapsed-width);
     }
 
-    .cards {       
+    .cards {
+        background-color: rgba(0, 19, 36, 0.2);
         border-radius: 5px;
         width: 100%;
         min-height: 85vh; 
@@ -187,12 +317,14 @@
         box-sizing: border-box;
         gap: 25px;
         margin-bottom: 30px;
+        
     }
 
     .table {
         backdrop-filter: blur(6px);
         border-radius: 8px;
-        margin-right: -20px;
+        margin-left: 5px;
+        margin-right: 10px;
     }
 
     .table-header.people {
@@ -325,16 +457,176 @@
         text-align: center;
     }
 
-    .table {
-        animation: fadeIn 0.4s ease-in-out;
+    .tab-content {
+        animation: fadeInUp 0.35s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .teams-layout {
+        display: flex;
+        height: 100%;
+
+    }
+
+    .teams-left {
+        width: 260px;
+        height: 550px;
+        background: rgba(0, 19, 36, 0.6);
         display: flex;
         flex-direction: column;
+        margin-top: -65px;
+        margin-left: -20px;
+    }
+
+    .panel-search {
+        padding: 10px;
+    }
+
+    .panel-search input {
         width: 100%;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: transparent;
+        color: white;
+    }
+
+    .team-item {
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+    }
+
+    .team-item:hover {
+        background-color: rgba(0, 19, 36, 0.2);
+
+    }
+
+    .team-item.active {
+        background: rgba(0, 56, 103, 0.6);
+        border-left: 3px solid #3b82f6;
+    }
+
+    .team-name {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .team-sub {
+        font-size: 11px;
+        opacity: 0.6;
+    }
+
+    .team-arrow {
+        opacity: 0.6;
+    }
+
+    .add-team {
+        margin-top: auto;
+        padding: 10px;
+        text-align: center;
+        background: #003867;
+        cursor: pointer;
+    }
+
+    .teams-right {
+        flex: 1;
+    }
+
+    .teams-right {
+        margin-left: 20px;
+        margin-top: -40px;
+    }
+
+
+    .teams-right .table-header.people,
+    .teams-right .row.people {
+        display: grid;
+        grid-template-columns: 40px 1.5fr 2fr 1.5fr 2fr 50px;
+        align-items: center;
+        
+    }
+
+    .teams-right .row.people span {
+        font-size: 13px;
+    }
+
+    .teams-right .dots {
+        text-align: center;
+    }
+
+    .actions {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .dots {
+        cursor: pointer;
+        font-size: 18px;
+        opacity: 0.7;
+    }
+
+    .dots:hover {
+        opacity: 1;
+    }
+
+    .dropdown {
+        position: absolute;
+        right: 0;
+        top: 22px;
+        width: 140px;
+        background: #061a2b; /* dark navy like image */
+        border-radius: 12px;
+        padding: 6px;
+        z-index: 100;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    .dropdown-item.archive {
+        color: #ff4d4d;
+    }
+    
+    .dropdown {
+        animation: fadeIn 0.12s ease;
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
 </style>
