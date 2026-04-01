@@ -82,7 +82,10 @@
                                     <div class="mini-card">
                                         <div class="divider">
                                             <div class="divider-left">
-                                                <div class="card-title">SCHEDULE</div>
+                                                <div class="card-title2">
+                                                    <span>SCHEDULE</span>
+                                                    <SquarePen class="icon"/>
+                                                </div>
 
                                                 <div class="schedule">
                                                     <div class="row">
@@ -116,7 +119,7 @@
                                                 </div>
                                             </div>
                                             <div class="divider-right">
-                                                <div class="card-title">BREAKS</div>
+                                                <div class="card-title2">BREAKS</div>
 
                                                 <div class="schedule">
                                                     <div class="row">
@@ -143,7 +146,7 @@
                                                         <span>Lunch Time</span>
                                                         <span>60 minutes</span>
                                                     </div>
-                                                    <div class="row">
+                                                    <div class="btn-row">
                                                         <button class="add-btn">+ Add Break</button>
                                                     </div>
                                                 </div>
@@ -152,8 +155,16 @@
                                     </div>
                                     <div class="mini-card">
                                         <div class="card-title">ASSIGNED MEMBERS</div>
-                                        <div class="row">
-                                            <button class="add-btn">Assign</button>
+                                        <div class="row2">
+                                            <div class="avatar-group">
+                                                <img :src="sampleIMG" class="avatar"/>
+                                                <img :src="sampleIMG" class="avatar"/>
+                                                <img :src="sampleIMG" class="avatar"/>
+                                                <img :src="sampleIMG" class="avatar"/>
+                                            </div>
+                                            <div>
+                                                <button class="assign-btn">Assign</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -164,7 +175,56 @@
                     <div v-else-if="activeTab === 'Time Off'" class="tab-content">
                         <div class="two-cards">
                             <div class="container">
-                                    
+                                <div class="search-row">
+                                    <div class="search-box">
+                                        <Search v-model="search" />
+                                    </div>
+
+                                    <button class="create-btn">
+                                        <FilePlus class="create-icon"/>
+                                        <span>Create Request</span>
+                                    </button>
+                                </div>
+                                <div class="holiday-table-wrapper">
+                                    <table class="timeoff-table">
+                                        <thead>
+                                            <tr>
+                                                <th>
+                                                    <div class="table-header">
+                                                        <input type="checkbox" v-model="selectAllRequests" @change="toggleAllRequests" />
+                                                    </div>
+                                                </th>
+                                                <th><div class="table-header">Name</div></th>
+                                                <th><div class="table-header">Type</div></th>
+                                                <th><div class="table-header">Reason</div></th>
+                                                <th><div class="table-header">Requested Dates</div></th>
+                                                <th><div class="table-header">Status</div></th>
+                                                <th><div class="table-header"></div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="request in timeOffRequests" :key="request.name">
+                                                <td>
+                                                    <input type="checkbox" v-model="selectedRequests" :value="request.name" />
+                                                </td>
+                                                <td>{{ request.name }}</td>
+                                                <td>
+                                                    <span :class="['leave-badge', getLeaveTypeClass(request.type)]">
+                                                        {{ request.type }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ request.reason }}</td>
+                                                <td>{{ request.r_date }}</td>
+                                                <td>
+                                                    <span :class="['status-badge', getStatusClass(request.status)]">
+                                                        {{ request.status }}
+                                                    </span>
+                                                </td>
+                                                <td><span class="dots" @click="toggleMenu(user.email)">•••</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -192,8 +252,41 @@
                                 </SidePanel> 
                             </div>
                             <div class="right-side">
-                                <div class="container">
-                                    
+                                <div class="holiday-container">
+                                    <div class="title-group">
+                                        <div>
+                                            <span>United States - Texas (Imported Calendar)</span>
+                                            <span class="year-bubble">2026</span>
+                                        </div>
+                                        
+                                        <div class="btn-group">
+                                            <SquarePen class="icon" />
+                                            <SquarePlus class="icon" />
+                                        </div>
+                                    </div>
+                                    <div class="holiday-table-wrapper">
+                                        <table class="holiday-table">
+                                            <colgroup>
+                                                <col style="width: 55%;" />
+                                                <col style="width: 23%;" />
+                                                <col style="width: 22%;" />
+                                            </colgroup>
+                                            <thead>
+                                                <tr>
+                                                    <th><div class="table-header">Name</div></th>
+                                                    <th><div class="table-header"><span>Date</span></div></th>
+                                                    <th><div class="table-header"><span>Day</span></div></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(holiday, index) in holidays" :key="index">
+                                                    <td>{{ holiday.name }}</td>
+                                                    <td>{{ holiday.date }}</td>
+                                                    <td>{{ holiday.day }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -209,16 +302,58 @@
     import { ref } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import SidePanel from '../components/SidePanel.vue'
-    import { } from 'lucide-vue-next'
     import DimmedBg from '../components/DimmedBg.vue'
     import Search from '../components/Search.vue'
     import RowItem from '../components/RowItem.vue'
-    import { schedules, calendars } from '../services/summaryData'
+    import { schedules, calendars, timeOffRequests } from '../services/summaryData'
+    import sampleIMG from '../assets/sample_img.jpg'
+    import { holidays } from '../services/summaryData'
+    import { SquarePen, SquarePlus, FilePlus } from 'lucide-vue-next'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
 
     const isOpen = ref(true)
+
+    const selectedRequests = ref([]);
+    const selectAllRequests = ref(false);
+
+    const toggleAllRequests = () => {
+        if (selectAllRequests.value) {
+            selectedRequests.value = timeOffRequests.value.map(r => r.name); 
+        } else {
+            selectedRequests.value = []; 
+        }
+    };
+
+    const getLeaveTypeClass = (type) => {
+        switch (type) {
+            case 'Sick Leave':
+                return 'leave-sick';
+            case 'Vacation Leave':
+                return 'leave-vacation';
+            case 'Emergency Leave':
+                return 'leave-emergency';
+            case 'Unpaid Leave':
+                return 'leave-unpaid';
+            default:
+                return '';
+        }
+    };
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'Approved':
+                return 'status-approved';
+            case 'Pending':
+                return 'status-pending';
+            case 'Rejected':
+                return 'status-rejected';
+            default:
+                return '';
+        }
+    };
+
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
@@ -314,7 +449,7 @@
         margin-left: var(--sidebar-collapsed-width);
     }
 
-    .tabs{
+    .tabs {
         display: flex;
         gap: 10px;
         padding: 0;
@@ -364,8 +499,7 @@
     .cards {
         background-color: rgba(0, 19, 36, 0.2);
         border-radius: 5px;
-        width: 100%;
-        height: 85vh; 
+        width: 100%;    
         padding: 5px 0 0 0; 
         display: flex;
         flex-direction: column;
@@ -376,25 +510,30 @@
     .two-cards {
         display: flex;
         width: 100%;
-        height: 100%;
-        box-sizing: border-box;
         align-items: stretch;
-        flex: 1;
     }
 
     .left-side {
         width: 260px;
         min-width: 260px;
         max-width: 260px;
-        height: 100%;
         display: flex;
         flex-direction: column;
         overflow: hidden;
     }
 
+    .left-side > * {
+        flex: 1;
+    }
+
+    .left-side :deep(.side-panel-root) {
+        flex: 1;
+    }
+
     .right-side {
         width: 100%;
-        padding: 0 20px;
+        flex: 1;
+        min-height: 0;
     }
 
     h3 {
@@ -409,10 +548,17 @@
         display: flex;
         flex-direction: column;
         width: 100%;
-        flex: 1;
     }
 
     .container {
+        padding: 20px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .holiday-container {
         padding: 20px;
         display: flex;
         flex-direction: column;
@@ -434,11 +580,16 @@
         width: 100%;
     }
 
-    .card-title {
+    .card-title, .card-title2 {
         font-size: 15px;
         font-weight: 500;
         color: #F0F0F0;
         padding-bottom: 10px;
+    }
+
+    .card-title2 {
+        padding-bottom: 20px;
+        margin-left: -15px;
     }
 
     .card-row {
@@ -459,13 +610,13 @@
     }
 
     .divider-left {
-        border-right: 1px solid #F0F0F0;
-        padding: 20px;
+        border-right: 1px solid #75889A80;
+        padding: 10px 20px;
         flex: 1;
     }
 
     .divider-right {
-        padding: 20px;
+        padding: 10px 20px;
         flex: 1;
     }
 
@@ -495,9 +646,187 @@
         color: #9ca3af;
     }
 
-    .add-btn {
+    .add-btn, .assign-btn {
         background-color: #003867;
+        padding: 8px 25px;
         border: none;
+        outline: none;
+        font-size: 14px;
+    }
+
+    .btn-row {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .row2 {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .avatar-group {
+        display: flex;
+        margin-left: 15px;
+    }
+
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        box-shadow: 4px 0 6px rgba(0, 0, 0, 0.15); 
+        margin-left: -8px; 
+    }
+
+    .avatar:first-child {
+        margin-left: 0;
+    }
+
+    .holiday-table-wrapper {
+        max-height: 100vh;
+        min-height: 65vh;
+        overflow-y: auto;
+    }
+
+    .holiday-table-wrapper table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-start;
+        padding: 10px 20px;
+    }
+
+    th {
+        text-align: left;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 400;
+    }
+
+    thead {
+        background-color: #75889A4D;
+    }
+    
+    td {
+        padding: 10px 20px;
+        font-size: 12px;
+    }
+
+    .title-group, .card-title2 {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .btn-group {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .icon, .create-icon {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .icon:hover, .create-btn:hover {
+        opacity: 0.8;
+    }
+
+    .year-bubble {
+        font-size: 11px;
+        color: #F0F0F0;
+        border-radius: 10px;
+        background-color:#003867;
+        padding: 5px 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        margin-left: 10px;
+    }
+
+    .search-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .search-box {
+        width: 30%;
+    }
+    
+    .create-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        gap: 10px;
+        background: none;
+        outline: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .leave-badge {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .leave-sick {
+        background-color: #EB322380;
+        color: #F0F0F0;
+    }
+
+    .leave-vacation {
+        background-color: #083A73;
+        color: #F0F0F0;
+    }
+
+    .leave-emergency {
+        background-color: #FF7B0080;
+        color: #F0F0F0;
+    }
+
+    .leave-unpaid {
+        background-color: #7E7E7E80;
+        color: #F0F0F0;
+    }
+
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 999px; 
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-approved {
+        color: #00DC28;
+        background-color: #00DC2880;
+    }
+
+    .status-pending {
+        color: #F0F0F0;
+        background-color: #7E7E7E99;
+    }
+
+    .status-rejected {
+        color: #F3857C;
+        background-color: #EB322380;
+    }
+
+    .table-header input {
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 2px solid rgba(255,255,255,0.1);
+        background-color: rgba(0, 19, 36, 0.2);
+        color: white;
         outline: none;
     }
 

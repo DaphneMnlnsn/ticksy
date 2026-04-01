@@ -119,6 +119,51 @@ export const calendars = ref([
     { id: 2, name: "United States - Texas", label: "Imported Calendar", icon: Download },
 ])
 
+export const holidays = ref([
+    { name: "New Year's Day", date: "Jan 01, 2026", day: "Thursday" },
+    { name: "Martin Luther King Jr. Day", date: "Jan 19, 2026", day: "Monday" },
+    { name: "Washington's Birthday (Presidents' Day)", date: "Feb 16, 2026", day: "Monday" },
+    { name: "Memorial Day", date: "May 25, 2026", day: "Monday" },
+    { name: "Juneteenth National Independence Day", date: "Jun 19, 2026", day: "Friday" },
+    { name: "Independence Day", date: "Jul 04, 2026", day: "Saturday" },
+    { name: "Labor Day", date: "Sep 07, 2026", day: "Monday" },
+    { name: "Columbus Day", date: "Oct 12, 2026", day: "Monday" },
+    { name: "Veterans Day", date: "Nov 11, 2026", day: "Wednesday" },
+    { name: "Thanksgiving Day", date: "Nov 26, 2026", day: "Thursday" },
+    { name: "Christmas Day", date: "Dec 25, 2026", day: "Friday" },
+]);
+
+export const timeOffRequests = ref([
+    {
+        name: "Kiana",
+        type: "Sick Leave",
+        reason: "Dental Appointment",
+        r_date: "March 9, 2026",
+        status: "Approved"
+    },
+    {
+        name: "Daphne",
+        type: "Vacation Leave",
+        reason: "Family Vacation",
+        r_date: "March 15 - March 25, 2026",
+        status: "Pending"
+    },
+    {
+        name: "Lei",
+        type: "Emergency Leave",
+        reason: "Urgent Family Matters",
+        r_date: "March 5, 2026",
+        status: "Rejected"
+    },
+    {
+        name: "Quiana",
+        type: "Unpaid Leave",
+        reason: "Taking Additional Rest",
+        r_date: "March 10 - 12, 2026",
+        status: "Approved"
+    }
+])
+
 function getTotalHours(clockIn, clockOut) {
     const parseTime = (timeStr) => {
         const [time, modifier] = timeStr.split(' ')

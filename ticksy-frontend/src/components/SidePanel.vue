@@ -29,7 +29,6 @@
 <style scoped>
     .panel {
         width: 260px;
-        height: 100%;
         display: flex;
         flex: 1;
         flex-direction: column;
