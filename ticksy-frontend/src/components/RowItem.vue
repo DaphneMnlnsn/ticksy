@@ -49,6 +49,9 @@
 
     .icon {
         font-size: 16px;
-        opacity: 0.7;
+    }
+
+    .icon:hover {
+        opacity: 0.8;
     }
 </style>
