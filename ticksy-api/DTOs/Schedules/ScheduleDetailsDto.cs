@@ -5,6 +5,7 @@ public class ScheduleDetailsDto
     public int Id { get; set; }
     public string ScheduleName { get; set; } = null!;
     public WorkSchedule.WorkArrangementType WorkArrangement { get; set; }
+    public TimeSpan? WeeklyDuration { get; set; }
 
     public int CreatedBy { get; set; }
 

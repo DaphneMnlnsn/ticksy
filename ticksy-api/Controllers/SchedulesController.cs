@@ -22,10 +22,11 @@ public class SchedulesController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        if (await _context.WorkSchedules.AnyAsync(s => s.ScheduleName.ToLower() == dto.ScheduleName.ToLower() && s.DeletedAt == null))
+        if (await _context.WorkSchedules.AnyAsync(s => 
+            s.ScheduleName.ToLower() == dto.ScheduleName.ToLower() && s.DeletedAt == null))
             return BadRequest("A schedule with this name already exists.");
-        
-        if (dto.Days == null || dto.Days.Count != 7)
+
+        if ((dto.Days == null || dto.Days.Count != 7) && !dto.WorkArrangement.Equals(WorkSchedule.WorkArrangementType.Weekly))
             return BadRequest("All 7 days must be provided.");
 
         var hasDuplicateDays = dto.Days
@@ -37,8 +38,11 @@ public class SchedulesController : ControllerBase
 
         var schedule = new WorkSchedule
         {
-            ScheduleName =  dto.ScheduleName,
+            ScheduleName = dto.ScheduleName,
             WorkArrangement = dto.WorkArrangement,
+            WeeklyDuration = dto.WorkArrangement == WorkSchedule.WorkArrangementType.Weekly 
+                ? ParseDuration(dto.WeeklyDuration)
+                : null,
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -52,6 +56,7 @@ public class SchedulesController : ControllerBase
             Day = day.Day,
             StartTime = day.IsRestDay ? null : day.StartTime,
             EndTime = day.IsRestDay ? null : day.EndTime,
+            Duration = day.IsRestDay ? null : day.Duration,
             IsRestDay = day.IsRestDay
         }).ToList();
 
@@ -59,13 +64,16 @@ public class SchedulesController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetSchedule),new { id = schedule.Id }, new {
+        return CreatedAtAction(nameof(GetSchedule), new { id = schedule.Id }, new
+        {
             schedule.Id,
             schedule.ScheduleName,
-            Days = daysToAdd.Select(d => new {
+            Days = daysToAdd.Select(d => new
+            {
                 d.Day,
                 d.StartTime,
                 d.EndTime,
+                d.Duration,
                 d.IsRestDay
             })
         });
@@ -136,6 +144,7 @@ public class SchedulesController : ControllerBase
             {
                 schedule.Id,
                 schedule.ScheduleName,
+                schedule.WeeklyDuration,
                 schedule.CreatedBy,
 
                 Days = schedule.ScheduleDays.Select(sd => new
@@ -144,6 +153,7 @@ public class SchedulesController : ControllerBase
                     sd.StartTime,
                     sd.EndTime,
                     sd.IsRestDay,
+                    sd.Duration,
 
                     Breaks = sd.Breaks.Select(sb => new
                     {
@@ -168,6 +178,7 @@ public class SchedulesController : ControllerBase
         {
             Id = data.Id,
             ScheduleName = data.ScheduleName,
+            WeeklyDuration = data.WeeklyDuration,
             CreatedBy = data.CreatedBy,
 
             Days = data.Days.Select(sd => new ScheduleDayDto
@@ -176,6 +187,7 @@ public class SchedulesController : ControllerBase
                 StartTime = sd.StartTime,
                 EndTime = sd.EndTime,
                 IsRestDay = sd.IsRestDay,
+                Duration = sd.Duration,
 
                 Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
                 {
@@ -254,6 +266,7 @@ public class SchedulesController : ControllerBase
 
         if(!string.IsNullOrWhiteSpace(dto.ScheduleName)) schedule.ScheduleName = dto.ScheduleName;
         schedule.WorkArrangement = dto.WorkArrangement;
+        schedule.WeeklyDuration = dto.WeeklyDuration;
         schedule.UpdatedAt = DateTime.UtcNow;
 
         if (dto.Days == null || dto.Days.Count != 7)
@@ -269,7 +282,8 @@ public class SchedulesController : ControllerBase
             Day = d.Day,
             IsRestDay = d.IsRestDay,
             StartTime = d.IsRestDay ? null : d.StartTime,
-            EndTime = d.IsRestDay ? null : d.EndTime
+            EndTime = d.IsRestDay ? null : d.EndTime,
+            Duration = d.Duration
         }).ToList();
 
         await _context.SaveChangesAsync();
@@ -310,5 +324,18 @@ public class SchedulesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Schedule deleted successfully."});
+    }
+    private TimeSpan ParseDuration(string input)
+    {
+        var parts = input.Split(':');
+
+        if (parts.Length != 2)
+            throw new Exception("Invalid format. Use HH:mm");
+
+        if (!int.TryParse(parts[0], out int hours) ||
+            !int.TryParse(parts[1], out int minutes))
+            throw new Exception("Invalid numbers");
+
+        return TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);
     }
 }
