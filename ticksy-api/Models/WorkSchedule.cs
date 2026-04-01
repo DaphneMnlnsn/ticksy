@@ -12,6 +12,7 @@ namespace ticksy_api.Models
             Weekly
         }
         public WorkArrangementType WorkArrangement { get; set; } =  WorkArrangementType.Fixed;
+        public TimeSpan? WeeklyDuration { get; set; }
 
         public int CreatedBy { get; set; }
         
