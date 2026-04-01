@@ -1,109 +1,132 @@
 <template>
     <div class="dashboard">
         <div class="main-bg"></div>
-            <div :class="['app', { collapsed: !isOpen }]">
-                <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
-                    <div class="main-content">
-                        <Header title="People" />
 
-                        <div class="cards">
-                            <div class="tabs">
-                            <span 
-                                :class="{ active: activeTab === 'members' }"
-                                @click="activeTab = 'members'"
-                            >
-                                Members
-                            </span>
+        <div :class="['app', { collapsed: !isOpen }]">
+            <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
-                            <span 
-                                :class="{ active: activeTab === 'teams' }"
-                                @click="activeTab = 'teams'"
-                            >
-                                Teams
-                            </span>
+            <div class="main-content">
+                <Header title="People" />
+
+                <div class="cards">
+
+                    <div class="tabs">
+                        <span 
+                            :class="{ active: activeTab === 'members' }"
+                            @click="activeTab = 'members'"
+                        >
+                            Members
+                        </span>
+
+                        <span 
+                            :class="{ active: activeTab === 'teams' }"
+                            @click="activeTab = 'teams'"
+                        >
+                            Teams
+                        </span>
+                    </div>
+
+                    <div class="search-row">
+                        <div v-if="activeTab === 'members'" class="search-box">
+                            <Search v-model="search" />
                         </div>
 
-                        <div class="search-row">
-                            <div v-if="activeTab === 'members'" class="search-box">
-                                <Search v-model="search" />
-                            </div>
-
-                             <button v-if="activeTab === 'members'" class="add-btn">
-                                + Add Member
-                            </button>
-                        </div>
+                            <button v-if="activeTab === 'members'" class="add-btn">
+                            + Add Member
+                        </button>
+                    </div>
                         
-                        <div :key="activeTab" class="tab-content">
-                            <div v-if="activeTab === 'members'" class="table">
-                                <div class="table-header people">
-                                    <span>
-                                        <input type="checkbox" v-model="selectAll" @change="toggleAll" />
-                                    </span>
-                                    <span>{{ filteredUsers.length }} Members</span>
-                                    <span>Email</span>
-                                    <span>Team</span>
-                                    <span>Last Active</span>
-                                    <span></span>
-                                </div>
+                    <div :key="activeTab" class="tab-content">
+                        
+                        <div v-if="activeTab === 'members'" class="table">
+                            <div class="table-header people">
+                                <span>
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="selectAll" 
+                                        @change="toggleAll" 
+                                    />
+                                </span>
+                                <span>{{ filteredUsers.length }} Members</span>
+                                <span>Email</span>
+                                <span>Team</span>
+                                <span>Last Active</span>
+                                <span></span>
+                            </div>
 
                             <div class="row people" v-for="user in filteredUsers" :key="user.email">
                                 <span>
-                                    <input type="checkbox" v-model="selectedUsers" :value="user.email" />
+                                    <input 
+                                        type="checkbox"
+                                        v-model="selectedUsers" 
+                                        :value="user.email"
+                                    />
                                 </span>
 
                                 <div class="user">
                                     <img :src="sampleIMG" class="avatar" />
                                     <span>{{ user.name }}</span>
                                 </div>
+
                                 <span>{{ user.email }}</span>
                                 <span>{{ user.team }}</span>
                                 <span>{{ user.lastActive }}</span>
-                            <div class="actions" @click.stop>
-                                <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
-                            <div v-if="activeMenu === user.email" class="dropdown">
-                                <div class="dropdown-item">
-                                    <Edit size="14" />
-                                    Edit
-                                 </div>
+                                <div class="actions" @click.stop>
+                                    <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
-                                <div class="dropdown-item archive">
-                                    <Archive size="14" />
-                                    Archive
-                                </div>  
-                                    </div>
+                                    <div v-if="activeMenu === user.email" class="dropdown">
+                                        <div class="dropdown-item">
+                                            <Edit size="14" />
+                                            Edit
+                                        </div>
+
+                                        <div class="dropdown-item archive">
+                                            <Archive size="14" />
+                                            Archive
+                                        </div>  
                                     </div>
                                 </div>
+                            </div>
                         </div>
+                        
                         <div v-else class="teams-layout">
+
                             <div class="teams-left">
-                                <div class="panel-search">
-                                    <input type="text" placeholder="Search..." v-model="teamSearch" />
-                                </div>
+                                <SidePanel buttonText="+ Add Team">
+                                    
+                                    <template #header>
+                                        <Search v-model="teamSearch" />
+                                    </template>
 
-                                <div 
-                                    v-for="team in filteredTeams"
-                                    :key="team.id"
-                                    class="team-item"
-                                    :class="{ active: selectedTeam === team.id }"
-                                    @click="selectedTeam = team.id">
-                                    <div>
-                                        <div class="team-name">{{ team.name }}</div>
-                                        <div class="team-sub">{{ team.members }} members</div>
-                                    </div>
+                                    <template #body>
+                                        <div 
+                                            v-for="team in filteredTeams"
+                                            :key="team.id"
+                                            class="team-item"
+                                            :class="{ active: selectedTeam === team.id }"
+                                            @click="selectedTeam = team.id"
+                                        >
+                                            <div class="team-info">
+                                                <div class="team-name">{{ team.name }}</div>
+                                                <div class="team-sub">{{ team.users.length }} members</div>
+                                            </div>
 
-                                    <div class="team-arrow">››</div>
-                                </div>
+                                            <div class="team-arrow">››</div>
+                                        </div>
+                                    </template>
 
-                                <div class="add-team">
-                                    + Add Team
-                                </div>
+                                </SidePanel>
                             </div>
 
                             <div class="teams-right" @click="closeMenu">
                                 <div class="table-header people">
                                     <span>
-                                        <input type="checkbox" />
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="selectAllTeams" 
+                                            @change="toggleAllTeams" 
+                                        />
                                     </span>
                                     <span>{{ selectedTeamMembers.length }} Members</span>
                                     <span>Email</span>
@@ -116,27 +139,36 @@
                                     v-for="user in selectedTeamMembers"
                                     :key="user.email"
                                 >
-                                <span><input type="checkbox" /></span>
+                                    <span>
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="selectedTeamUsers" 
+                                            :value="user.email"
+                                        />
+                                    </span>
+
                                     <div class="user">
                                         <img :src="sampleIMG" class="avatar" />
                                         <span>{{ user.name }}</span>
                                     </div>
 
-                                <span>{{ user.email }}</span>
-                                <span>{{ user.lastActive }}</span>
-                            <div class="actions" @click.stop>
-                                <span class="dots" @click="toggleMenu(user.email)">•••</span>
+                                    <span>{{ user.email }}</span>
+                                    <span>{{ user.lastActive }}</span>
 
-                                <div v-if="activeMenu === user.email" class="dropdown">
-                                    <div class="dropdown-item">
-                                        <Edit size="14" />
-                                        Edit
-                                    </div>
-                                    <div class="dropdown-item archive">
-                                        <Archive size="14" />
-                                        Archive
-                                    </div>  
-                                </div>
+                                    <div class="actions" @click.stop>
+                                        <span class="dots" @click="toggleMenu(user.email)">•••</span>
+
+                                        <div v-if="activeMenu === user.email" class="dropdown">
+                                            <div class="dropdown-item">
+                                                <Edit size="14" />
+                                                Edit
+                                            </div>
+
+                                            <div class="dropdown-item archive">
+                                                <Archive size="14" />
+                                                Archive
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -154,11 +186,13 @@
     import Header from '../components/Header.vue';
     import { computed } from 'vue'
     import sampleIMG from '../assets/sample_img.jpg'
-    import SearchBar from '../components/Search.vue'
+    import { watch } from 'vue'
     import { useSearch } from '../services/search.js'
     import Search from '../components/Search.vue'
     import { allUsers } from '../services/summaryData.js'
     import { Edit, Archive, Trash2 } from 'lucide-vue-next'
+    import SidePanel from '../components/SidePanel.vue'
+    
     
     const activeTab = ref('members')
     const isOpen = ref(true)
@@ -191,8 +225,16 @@
         document.removeEventListener('click', handleClickOutside)
     })
 
+    const selectedTeam = ref(1)  
     const selectedUsers = ref([])
     const selectAll = ref(false)
+    const selectedTeamUsers = ref([])
+    const selectAllTeams = ref(false)
+
+    watch(selectedTeam, () => {
+        selectedTeamUsers.value = []
+        selectAllTeams.value = false
+    })
 
     function toggleAll() {
         if (selectAll.value) {
@@ -202,8 +244,15 @@
         }
     }
 
+    function toggleAllTeams() {
+        if (selectAllTeams.value) {
+            selectedTeamUsers.value = selectedTeamMembers.value.map(user => user.email)
+        } else {
+            selectedTeamUsers.value = []
+        }
+    }
+
     const teamSearch = ref('')
-    const selectedTeam = ref(1)
 
     const teams = ref([
     {
@@ -589,7 +638,7 @@
         right: 0;
         top: 22px;
         width: 140px;
-        background: #061a2b; /* dark navy like image */
+        background: #061a2b; 
         border-radius: 12px;
         padding: 6px;
         z-index: 100;
