@@ -46,6 +46,7 @@
     import ClockInOutPanel from "./ClockInOutPanel.vue";
     import Swal from "sweetalert2";
     
+    const alarmSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
     const props = defineProps({
     title: { type: String, default: "Page Title" },
@@ -144,25 +145,29 @@
         }
 
         if(breakType) {
-            startBreakMode();
+
+            const minutes = breakType === 'lunch' 
+            ? breakTime.lunchDuration 
+            : breakTime.shortBreakDuration;
+            startBreakMode(minutes);
         }
     };
 
-    const startBreakMode = () => {
+    const startBreakMode = (durationInMinutes) => {
         clearInterval(timerInterval);
         timerInterval = null;
 
         isOnBreak.value = true;
         breakCount.value++;
         let seconds = 0;
-        const limitInSeconds = durationInMinutes * 60;
+        const limitInSeconds = (durationInMinutes || 15)* 60;
         
         if (breakInterval) clearInterval(breakInterval);
         breakInterval = setInterval(() => {
             seconds++;
 
             if (seconds === limitInSeconds) {
-                breakEndSound.play();
+                breakEndSound.play().catch(() => {});
             }
 
             const h = Math.floor(seconds / 3600);
@@ -186,8 +191,6 @@
         });
 
         if (isConfirmed) {
-
-            const alarmSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
             alarmSound.play();
 
