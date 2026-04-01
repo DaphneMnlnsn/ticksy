@@ -81,3 +81,60 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.swal2-popup.swal-custom-dark .swal2-radio {
+    display: flex !important;
+    flex-direction: column !important; 
+    align-items: flex-start !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 10px 40px !important;
+    gap: 15px !important;
+}
+
+.swal-custom-dark .swal2-title {
+    font-size: 25px !important; 
+    color: #ffffff !important;
+    padding-top: 20px !important;
+}
+
+.swal2-popup.swal-custom-dark .swal2-radio label {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: white !important;
+    font-size: 16px !important; 
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 5px 0 !important;
+    cursor: pointer !important;
+    width: 100% !important;
+}
+
+.swal2-popup.swal-custom-dark .swal2-input-group {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.swal2-popup.swal-custom-dark .swal2-radio input[type="radio"] {
+    accent-color: #88b6ff !important; 
+    margin-right: 12px !important;
+    cursor: pointer !important;
+}
+
+.swal2-popup.swal-custom-dark .swal2-radio label:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 4px;
+}
+
+.swal-custom-dark .swal2-actions button {
+    min-width: 120px !important; /* Matches your .btn-cancel/.btn-save min-width */
+    height: 40px !important;    /* Standard height for your UI */
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    margin: 0 8px !important;    /* Even spacing between buttons */
+    border: none !important;     /* Removes default borders */
+    transition: opacity 0.2s ease !important;
+}
