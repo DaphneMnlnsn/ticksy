@@ -10,10 +10,12 @@ using ticksy_api.Models;
 public class TeamsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly NotificationService _notificationService;
 
-    public TeamsController(AppDbContext context)
+    public TeamsController(AppDbContext context, NotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     [Authorize]
@@ -66,6 +68,20 @@ public class TeamsController : ControllerBase
 
         _context.TeamMembers.AddRange(membersToAdd);
         await _context.SaveChangesAsync();
+
+        var creator = await _context.Users.FindAsync(userId);
+
+        foreach (var member in membersToAdd)
+        {
+            if (member.UserId == userId) continue;
+
+            await _notificationService.CreateAsync(
+                member.UserId,
+                Notification.NotifType.AssignedToTeam,
+                $"{creator.FirstName} added you to team '{team.TeamName}'.",
+                false
+            );
+        }
 
         return CreatedAtAction(nameof(GetTeam), new { id = team.Id }, new {
             team.Id,
@@ -251,6 +267,19 @@ public class TeamsController : ControllerBase
 
         _context.TeamMembers.AddRange(membersToAdd);
         await _context.SaveChangesAsync();
+
+        var leader = await _context.Users.FindAsync(userId);
+        var team = await _context.Teams.FindAsync(id);
+
+        foreach (var member in membersToAdd)
+        {
+            await _notificationService.CreateAsync(
+                member.UserId,
+                Notification.NotifType.AssignedToTeam,
+                $"{leader.FirstName} added you to team '{team.TeamName}'.",
+                false
+            );
+        }
 
         return Ok(new { message = "Members added successfully.", added = membersToAdd.Count });
     }

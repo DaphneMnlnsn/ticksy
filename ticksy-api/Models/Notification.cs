@@ -10,6 +10,7 @@ namespace ticksy_api.Models
             LeaveRequest,
             ForgotClockOut,
             LeaveApproved,
+            LeaveRejected,
             AssignedToTeam
         }
         public NotifType Type { get; set; } = NotifType.AssignedToTeam;
