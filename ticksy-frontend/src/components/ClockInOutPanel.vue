@@ -1,16 +1,7 @@
 <template>
     <transition name="slide-workschedule">
-        <div v-if="isOpen" 
-            class="clockInOut-panel"
-            :style="{ borderright: isSidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)' }"
-        >   
-            <transition name="fade">
-                <div v-if="showToast" class="success-toast">
-                    <CheckCircle :size="18" />
-                    <span>Saved successfully!</span>
-                </div>
-            </transition>
-
+        <div v-if="isOpen" class="clockInOut-panel">
+            
             <div class="clockInOut-header">
                 <h3>Clock In/Out</h3>
                 <button class="icon-btn" @click="emit('close')"><X/></button>
@@ -20,38 +11,37 @@
                 <div class="user-profile">
                     <div class="avatar-profile">
                         <img :src="avatar" class="avatar" />
-                        <User :size="38" color="#fffff"/>
                     </div>
                     <div class="user-info">
-                        <span class="user-name">IDA Admin</span> <!--HARDCODED-->
-                        <span class="user-status">Last in 2 hours ago</span> <!--HARDCODED-->
+                        <span class="user-name">{{ userName }}</span>
+                        <span class="user-status">{{ lastInStatus }}</span>
                     </div>
                 </div>
             </div>
 
             <div class="tabs">
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: mode === 'in' }" 
-                    @click="mode = 'in'"
-                > Clock In
-                </button>
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: mode === 'out' }" 
-                    @click="mode = 'out'"
-                > Clock Out
-                </button>
+                <button class="tab-btn" :class="{ active: mode === 'in' }" @click="mode = 'in'">Clock In</button>
+                <button class="tab-btn" :class="{ active: mode === 'out' }" @click="mode = 'out'">Clock Out</button>
             </div>
 
             <div class="form-body">
-                <div class="input-field">
-                    <span>2:40 pm</span>
+                <div class="input-field" @click="$refs.timeInput.showPicker()">
+                    <input 
+                        ref="timeInput"
+                        type="time" 
+                        v-model="selectedTime" 
+                        class="native-picker"
+                    />
                     <Clock :size="18"/>
                 </div>
 
-                <div class="input-field">
-                    <span>Today</span>
+                <div class="input-field" @click="$refs.dateInput.showPicker()">
+                    <input 
+                        ref="dateInput"
+                        type="date" 
+                        v-model="selectedDate" 
+                        class="native-picker"
+                    />
                     <Calendar :size="18"/>
                 </div>
 
@@ -61,7 +51,7 @@
             </div>
 
             <div class="footer-actions">
-                <button class="btn-cancel">Cancel</button>
+                <button class="btn-cancel" @click="emit('close')">Cancel</button>
                 <button class="btn-save" @click="handleSave">Save</button>
             </div>
         </div>
@@ -69,26 +59,69 @@
 </template>
 
 <script setup>
-    import { ref } from "vue";
+    import { ref, watch } from "vue";
     import {X, CheckCircle, User, Clock, Calendar} from "lucide-vue-next";
     import avatar from "../assets/sample_img.jpg";
     import DimmedBg from "./DimmedBg.vue";
 
     const props = defineProps({
+        recordedTime: { 
+            type: String, 
+            default: "" 
+        },
         isOpen: Boolean,
-        isSidebarCollapsed: Boolean
+        isSidebarCollapsed: Boolean,
+
+        initialTab: { 
+            type: String, 
+            default: "in" 
+        },
+
+        lastInStatus: { 
+            type: String, 
+            default: "" 
+        },
+
+        userName: {
+            type: String,
+            default: "Guest"
+        },
+
+        userRole: {
+            type: String,
+            default: "user"
+        }
     });
 
     const emit = defineEmits(['close', 'save']);
+
     const showToast = ref(false)
-    const mode = ref('in'); 
+    const note = ref("")
+    const mode = ref('in')
+    const selectedTime = ref("")
+    const selectedDate = ref("")
+
+    watch(() => props.isOpen, (opened) => {
+        if (opened) {
+            mode.value = props.initialTab;
+            const now = new Date();
+            selectedTime.value = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');     
+            selectedDate.value = now.toISOString().split('T')[0];
+        }
+    });
 
     const handleSave = () => {
-        showToast.value = true;
-        setTimeout(() => {
-            showToast.value = false;
-            emit('save'); 
-        }, 800);
+        const [h, m] = selectedTime.value.split(':');
+        const hour = parseInt(h, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        const finalTime = `${hour12}:${m} ${ampm}`;
+
+        emit('save', {
+            time: finalTime,
+            date: selectedDate.value,
+            note: note.value
+        });
     };
 
 </script>
@@ -263,8 +296,26 @@
         gap: 20px;
     }
 
+    .native-picker {
+        background: transparent;
+        border: none;
+        color: white;
+        font-family: inherit;
+        font-size: 16px;
+        width: 100%;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .native-picker::-webkit-calendar-picker-indicator {
+        display: none;
+    }
+
     .input-field {
-        background: #00233d;
+        background: #001f3f;
         font-size: 14px;
         border-radius: 8px;
         padding: 16px;
