@@ -735,7 +735,7 @@
         cursor: pointer;
     }
 
-    .icon:hover, .create-btn:hover {
+    .icon:hover, .create-btn:hover, .add-btn:hover, .assign-btn:hover {
         opacity: 0.8;
     }
 
