@@ -31,8 +31,14 @@
                             <Search v-model="search" />
                         </div>
 
-                            <button v-if="activeTab === 'members'" class="add-btn">
-                            + Add Member
+                        <button 
+                        v-if="activeTab === 'members'" 
+                        class="add-btn"
+                        @click="showAddMemberModal = true"
+                    >
+                        + Add Member
+
+                            
                         </button>
                     </div>
                         
@@ -178,6 +184,61 @@
             </div>
         </div>
     </div>
+
+    <div v-if="showAddMemberModal" class="modal-overlay">
+        <div class="modal">
+
+            <div class="modal-header">
+                <h2>Add Members</h2>
+                <button class="close-btn" @click="showAddMemberModal = false">✕</button>
+            </div>
+
+            <div class="section">
+                <p class="section-title">Invite by Link</p>
+                <p class="desc">
+                    We recommend letting members create their profile so they can log from their devices.
+                    Send them this invite link to get started!
+                </p>
+
+                <div class="link-box">
+                    <input type="text" value="ticksy.com/join/sample" readonly />
+                    <button class="copy-btn">Copy</button>
+                </div>
+
+                <span class="generate-link">Generate new link</span>
+            </div>
+
+            <div class="section">
+                <p class="section-title">Manually Add Members</p>
+
+            <div class="modal-search-wrapper">
+                <Search v-model="search" />
+            </div>
+
+                <div class="table">
+                    <div class="table-header people">
+                        <span></span>
+                        <span>Name</span>
+                        <span>Email</span>
+                        <span>Contact</span>
+                    </div>
+
+                    <div class="row people" v-for="user in filteredUsers" :key="user.email">
+                        <span><input type="checkbox" /></span>
+                        <span>{{ user.name }}</span>
+                        <span>{{ user.email }}</span>
+                        <span>09123456789</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel" @click="showAddMemberModal = false">Cancel</button>
+                <button class="save">Save</button>
+            </div>
+        </div>
+    </div>
+
 </template>   
 
 <script setup>
@@ -300,6 +361,8 @@
         const team = teams.value.find(t => t.id === selectedTeam.value)
         return team ? team.users : []
     })
+
+    const showAddMemberModal = ref(false)
 
 </script>
 
@@ -677,5 +740,159 @@
             transform: translateY(0);
         }
     }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 19, 36, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        color: white;
+    }
+
+    .modal {
+        width: 600px;
+        background: #031e2f;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+    }
+
+    .section {
+        margin-top: 20px;
+    }
+
+    .section-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .desc {
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+
+    .link-box {
+        display: flex;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+
+    .link-box input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: white;
+        padding: 10px;
+    }
+
+    .copy-btn {
+        background: #003867;
+        border: none;
+        color: white;
+        padding: 10px;
+        outline: none;
+    }
+
+    .copy-btn:hover {
+        opacity: 0.85;
+        cursor: pointer;
+    }
+
+    .generate-link {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #4db8ff;
+        cursor: pointer;
+    }
+
+    .modal .table-header.people,
+    .modal .row.people {
+        display: grid;
+        grid-template-columns: 40px 1fr 1.5fr 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+    }
+
+    .modal .table-header.people {
+        background: transparent !important;
+        font-size: 16px;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    .modal .row.people {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding: 12px 20px;
+    }
+
+    .modal .row.people:hover {
+        background: rgba(255,255,255,0.04);
+    }
+
+    .modal .table-header span:first-child,
+    .modal .row.people span:first-child {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-search-wrapper {
+        margin: 10px 0;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .cancel {
+        background: none;
+        border: none;
+        color: white;
+        outline: none;
+    }
+
+    .save {
+        background: #003867;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        color: white;
+        outline: none;
+    }
+
+    .save:hover {
+        opacity: 0.85;
+        cursor: pointer;
+    }
+
+    .modal input[type="checkbox"] {
+        cursor: pointer;
+        transform: scale(1.05);
+    }
+
 
 </style>
