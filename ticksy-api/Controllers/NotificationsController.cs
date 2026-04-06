@@ -10,10 +10,12 @@ using ticksy_api.Models;
 public class NotificationsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly EmailService _emailService;
 
-    public NotificationsController(AppDbContext context)
+    public NotificationsController(AppDbContext context, EmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     [HttpPost("create")]
@@ -33,9 +35,30 @@ public class NotificationsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Notification created successfully." });
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == dto.UserId && u.DeletedAt == null);
 
-        //send gmail
+        if (user != null)
+        {
+            var body = $@"
+                <h3>New Notification</h3>
+                <p>Hello {user.FirstName},</p>
+                <p>{dto.Message}</p>
+                <br/>
+                <small>This is an automated message.</small>
+            ";
+
+            if (dto.SendEmail && user != null)
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "New Notification",
+                    body
+                );
+            }
+        }
+
+        return Ok(new { message = "Notification created successfully." });
     }
 
     [Authorize(Roles = "Admin")]

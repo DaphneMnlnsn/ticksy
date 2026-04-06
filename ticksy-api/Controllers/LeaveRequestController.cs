@@ -10,10 +10,12 @@ using ticksy_api.Models;
 public class LeaveRequestController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly NotificationService _notificationService;
 
-    public LeaveRequestController(AppDbContext context)
+    public LeaveRequestController(AppDbContext context, NotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     [Authorize]
@@ -21,6 +23,9 @@ public class LeaveRequestController : ControllerBase
     public async Task<IActionResult> CreateLeaveRequest([FromBody] LeaveRequestCreateDto dto)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var admins = await _context.Users
+            .Where(u => u.Role == ticksy_api.Models.User.UserRole.Admin && u.DeletedAt == null)
+            .ToListAsync();
 
         if (await _context.LeaveRequests.AnyAsync(r =>
             r.UserId == userId &&
@@ -56,6 +61,16 @@ public class LeaveRequestController : ControllerBase
         _context.LeaveRequests.Add(request);
 
         await _context.SaveChangesAsync();
+
+        foreach (var admin in admins)
+        {
+            await _notificationService.CreateAsync(
+                admin.Id,
+                Notification.NotifType.LeaveRequest,
+                $"New leave request from user ID {userId}.",
+                true
+            );
+        }
 
         return Ok(new { message = "Leave request created successfully."});
     }
@@ -139,6 +154,13 @@ public class LeaveRequestController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        await _notificationService.CreateAsync(
+            request.UserId,
+            Notification.NotifType.LeaveApproved,
+            "Your leave request has been approved.",
+            true
+        );
+
         return Ok(new { message = "Leave request approved successfully."});
     }
 
@@ -160,6 +182,13 @@ public class LeaveRequestController : ControllerBase
         request.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        await _notificationService.CreateAsync(
+            request.UserId,
+            Notification.NotifType.LeaveRejected,
+            "Your leave request has been rejected.",
+            true
+        );
 
         return Ok(new { message = "Leave request rejected successfully."});
     }

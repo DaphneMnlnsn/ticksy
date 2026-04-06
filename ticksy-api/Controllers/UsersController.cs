@@ -17,12 +17,14 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _context;
     private readonly PasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _config;
+    private readonly EmailService _emailService;
 
-    public UsersController(AppDbContext context, IConfiguration config)
+    public UsersController(AppDbContext context, IConfiguration config, EmailService emailService)
     {
         _context = context;
         _passwordHasher = new PasswordHasher<User>();
         _config = config;
+        _emailService = emailService;
     }
 
     [HttpPost("register")]
@@ -235,7 +237,16 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        //EMAIL HERE
+        var resetLink = $"http://localhost:3000/reset-password?token={token}";
+
+        var body = $@"
+            <h3>Password Reset</h3>
+            <p>Click the link below to reset your password:</p>
+            <a href='{resetLink}'>Reset Password</a>
+            <p>This link expires in 15 minutes.</p>
+        ";
+
+        await _emailService.SendEmailAsync(user.Email, "Reset Password", body);
 
         return Ok(new { message = "Reset link sent." });
     }

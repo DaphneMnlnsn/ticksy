@@ -36,6 +36,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
