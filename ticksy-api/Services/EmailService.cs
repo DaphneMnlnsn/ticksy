@@ -25,11 +25,9 @@ public class EmailService
 
         using var smtp = new SmtpClient();
 
-        await smtp.ConnectAsync(
-            _config["Email:SmtpServer"],
-            int.Parse(_config["Email:Port"]),
-            false
-        );
+        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //To be removed upon deployment
+
+        await smtp.ConnectAsync("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
 
         await smtp.AuthenticateAsync(
             _config["Email:Username"],
