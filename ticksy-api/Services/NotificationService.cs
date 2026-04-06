@@ -32,7 +32,7 @@ public class NotificationService
             {
                 await _emailService.SendEmailAsync(
                     user.Email,
-                    "Notification",
+                    "You have a notification from Ticksy!",
                     message
                 );
             }
