@@ -57,4 +57,8 @@
         outline: none;
         border: none;
     }
+
+    .btn:hover {
+        opacity: 0.8;
+    }
 </style>
