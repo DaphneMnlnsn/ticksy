@@ -4,7 +4,7 @@
 
     <div v-if="showTimer" class="timer-wrapper">
         <template v-if="isClockedIn">
-            <span v-if="isOnBreak" class="timer-text break-mode-color">
+            <span v-if="isOnBreak" class="timer-text break-mode-color" :class="{ 'flashing-red': isOverBreakLimit }">
                 {{ breakTimerValue }} (On Break)
             </span>
             <span v-else class="timer-text">
@@ -32,10 +32,15 @@
     </div>
 
     <ClockInOutPanel
+        :userName="currentUser?.name"
+        :userRole="currentUser?.role"
+        :lastInStatus="lastOut"
         :isOpen="isPanelOpen"
+        :recordedTime = "currentTimeForPanel"
+        :initialTab = "activePanelTab"
         :isSidebarCollapsed="isSidebarCollapsed"
         @close="isPanelOpen = false"
-        @save="confirmClockIn"
+        @save="confirmSave"
     />
   </div>
 </template>
@@ -45,21 +50,55 @@
     import { ref } from "vue";
     import ClockInOutPanel from "./ClockInOutPanel.vue";
     import Swal from "sweetalert2";
-    
-    const alarmSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+    const currentUser = ref({
+        name: "IDA Admin",
+        role: "admin"
+    });
+
+    const getCurrentFormattedTime = () => {
+        const now = new Date();
+        return now.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
+    const getWelcomeMessage = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning! Ready to clock in?";
+        if (hour < 18) return "Good afternoon! Time to start?";
+        return "Working late? Start your session here.";
+    };
+
+    const confirmSave = () => {
+        if(activePanelTab.value == 'in'){
+            isPanelOpen.value = false;
+            isClockedIn.value = true;
+            startTimer();
+        } else {
+            isPanelOpen.value = false;
+            stopTimer();
+        }
+    }
 
     const props = defineProps({
     title: { type: String, default: "Page Title" },
-    showTimer: { type: Boolean, default: false },
-    lastOut: { type: String, default: "Last out 1h ago" }
+    showTimer: { type: Boolean, default: false }
     });
 
     const isClockedIn = ref(false)
     const isPanelOpen = ref(false)
     const isOnBreak = ref(false)
+    const isOverBreakLimit= ref(false)
+    const isSidebarCollapsed = ref(false)
 
     const timerValue = ref("0:00:00")
     const breakTimerValue = ref("0:00:00")
+    const currentTimeForPanel = ref("")
+    const activePanelTab = ref("in")
+    const lastOut = ref (getWelcomeMessage())
     const totalWorkedTime = ref(0)
     const breakCount = ref(0)
     const MAX_BREAKS = 2
@@ -70,21 +109,19 @@
     //connect to API 
     const breakTime = { 
         lunchDuration: 60, 
-        shortBreakDuration: 15
+        shortBreakDuration: 1 //change to how many minutes for short break time
     };
 
     const handleButtonClick = () => {
         if (isClockedIn.value) {
-            stopTimer(); 
+            currentTimeForPanel.value = getCurrentFormattedTime();
+            activePanelTab.value = 'out';
+            isPanelOpen.value = true;
         } else {
+            currentTimeForPanel.value = getCurrentFormattedTime();
+            activePanelTab.value = 'in';
             isPanelOpen.value = true; 
         }
-    };
-
-    const confirmClockIn = () => {
-        isPanelOpen.value = false;
-        isClockedIn.value = true;
-        startTimer();
     };
 
     const startTimer = () => {
@@ -100,6 +137,12 @@
     };
 
     const stopTimer = () => {
+        const now = new Date();
+        const day = now.toLocaleDateString([], {weekday: 'long'});
+        const time = now.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit', hour12: true});
+
+        lastOut.value = `Last out at ${time}, ${day}`;
+
         clearInterval(timerInterval);
         clearInterval(breakInterval);
         timerInterval = null; 
@@ -110,6 +153,7 @@
         timerValue.value = "0:00:00";      
         isClockedIn.value = false;
         isOnBreak.value = false;
+        isOverBreakLimit.value = false;
     }; 
 
     const handleBreak = async () => {
@@ -145,7 +189,6 @@
         }
 
         if(breakType) {
-
             const minutes = breakType === 'lunch' 
             ? breakTime.lunchDuration 
             : breakTime.shortBreakDuration;
@@ -160,14 +203,14 @@
         isOnBreak.value = true;
         breakCount.value++;
         let seconds = 0;
-        const limitInSeconds = (durationInMinutes || 15)* 60;
+        const limitInSeconds = 5;
         
         if (breakInterval) clearInterval(breakInterval);
         breakInterval = setInterval(() => {
             seconds++;
 
             if (seconds === limitInSeconds) {
-                breakEndSound.play().catch(() => {});
+                isOverBreakLimit.value = true;
             }
 
             const h = Math.floor(seconds / 3600);
@@ -191,19 +234,11 @@
         });
 
         if (isConfirmed) {
-
-            alarmSound.play();
-
             clearInterval(breakInterval);
             breakInterval = null;
             isOnBreak.value = false;
+            isOverBreakLimit.value = false;
             breakTimerValue.value = "0:00:00";
-
-            setTimeout(() => {
-                alarmSound.currentTime = 0; 
-                alarmSound.play();
-            }, 300);
-
             startTimer();
         }
     };
@@ -329,5 +364,17 @@
     .break-btn.active-break {
         background: rgba(255, 159, 67, 0.2);
         border: 1px solid #ff9f43;
+    }
+
+    .flashing-red {
+        color: #ff4d4d !important;
+        animation: pulse-red 1s infinite;
+        font-weight: bold;
+    }
+
+    @keyframes pulse-red {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
     }
 </style>
