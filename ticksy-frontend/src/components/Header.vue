@@ -38,7 +38,7 @@
         :isOpen="isPanelOpen"
         :recordedTime = "currentTimeForPanel"
         :initialTab = "activePanelTab"
-        :isSidebarCollapsed="isSidebarCollapsed"
+        :isClockedIn = "isClockedIn" :isSidebarCollapsed="isSidebarCollapsed"
         @close="isPanelOpen = false"
         @save="confirmSave"
     />
@@ -72,13 +72,22 @@
         return "Working late? Start your session here.";
     };
 
-    const confirmSave = () => {
-        if(activePanelTab.value == 'in'){
+    const confirmSave = (data) => {
+        console.log("Saving record...");
+        console.log("Saving record of type:", data.type);
+        console.log("Time picked:", data.time);
+        console.log("Note added:", data.note);
+
+        if (data.type === 'in' && isClockedIn.value) return;
+        if (data.type === 'out' && !isClockedIn.value) return;
+
+        if (data.type === 'in') {
             isPanelOpen.value = false;
             isClockedIn.value = true;
             startTimer();
-        } else {
+        } else {    
             isPanelOpen.value = false;
+            isClockedIn.value = false;
             stopTimer();
         }
     }
@@ -173,7 +182,14 @@
             confirmButtonColor: 'rgb(0, 56, 103, 50%)',
             showCancelButton: true,
             cancelButtonColor: '#003867',
-            customClass: {popup: 'swal-custom-dark'}
+            customClass: {popup: 'swal-custom-dark'},
+            backdrop: `rgba(0, 21, 39, 0.6)`, 
+            didOpen: () => {
+                const container = Swal.getContainer();
+                if (container) {
+                    container.style.backdropFilter = 'blur(3px)';
+                }
+            }
         });
 
         if(breakCount.value >= MAX_BREAKS){
@@ -203,13 +219,13 @@
         isOnBreak.value = true;
         breakCount.value++;
         let seconds = 0;
-        const limitInSeconds = 5;
+        const limitInSeconds = durationInMinutes * 60 + 1;
         
         if (breakInterval) clearInterval(breakInterval);
         breakInterval = setInterval(() => {
             seconds++;
 
-            if (seconds === limitInSeconds) {
+            if (seconds >= limitInSeconds) {
                 isOverBreakLimit.value = true;
             }
 
@@ -338,6 +354,7 @@
 
     :deep(.swal-custom-dark) {
         border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     }
 
     :deep(.swal-custom-dark .swal2-radio) {
@@ -355,6 +372,10 @@
     :deep(.swal-custom-dark .swal2-label) {
         color: white !important;
     }
+
+    :deep(.swal-custom-dark) {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
     .break-mode-color {
         color: #ff9f43 !important;

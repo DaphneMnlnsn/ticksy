@@ -129,12 +129,17 @@ button:focus-visible {
 }
 
 .swal-custom-dark .swal2-actions button {
-    min-width: 120px !important; /* Matches your .btn-cancel/.btn-save min-width */
-    height: 40px !important;    /* Standard height for your UI */
+    min-width: 120px !important;
+    height: 40px !important;    
     border-radius: 6px !important;
     font-size: 14px !important;
     font-weight: 500 !important;
-    margin: 0 8px !important;    /* Even spacing between buttons */
-    border: none !important;     /* Removes default borders */
+    margin: 0 8px !important;    
+    border: none !important;     
     transition: opacity 0.2s ease !important;
+    outline: none !important;
+}
+
+.swal-custom-dark {   
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.363);    
 }

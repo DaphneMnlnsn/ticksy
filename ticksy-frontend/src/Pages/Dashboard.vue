@@ -65,12 +65,13 @@
         :isOpen="isScheduleOpen"
         :isSidebarCollapsed="!isOpen"
         @close="isScheduleOpen = false"
+        @setup-finished="handleSetupFinished"
     />
 </template>   
 
 <script setup>
     import Header from '../components/Header.vue';
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import welcomeImg from "/welcome-img.png";
     import WelcomeCard from '../components/WelcomeCard.vue';
     import HolidayCard from '../components/HolidayCard.vue';
@@ -79,6 +80,7 @@
     import SchedulePanel from '../components/SchedulePanel.vue';
     import { ChevronRight, FilePen } from 'lucide-vue-next';
     import DimmedBg from '../components/DimmedBg.vue';
+    import Swal from 'sweetalert2';
 
     const activeTab = ref ('Day')
     const holidays = [
@@ -91,14 +93,37 @@
         isOpen.value = !isOpen.value
     }
     const isSetupComplete = ref(false)
-    
     const isScheduleOpen = ref(false)
+
     function openSchedule() {
         isScheduleOpen.value = true;
     }
     function closeSchedule() {
         isScheduleOpen.value = false;
     }
+
+    onMounted(() => {
+        const setupDone = localStorage.getItem('ticksy_setup_done');
+        if (setupDone === 'true') {
+            isSetupComplete.value = true;
+        }
+    });
+
+    const handleSetupFinished = () => {
+        isSetupComplete.value = true;
+        localStorage.setItem('ticksy_setup_done', 'true');
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Setup Complete!',
+            text: 'You have successfully set up Ticksy.',
+            showConfirmButton: false,
+            timer: 3000,
+            background: '#001527',
+            color: '#fff'
+        });
+    };
 </script>
 
 <style scoped>
