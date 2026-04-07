@@ -8,6 +8,7 @@ public class ScheduleDetailsDto
     public TimeSpan? WeeklyDuration { get; set; }
 
     public int CreatedBy { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public List<ScheduleDayDto> Days { get; set; } = [];
     public List<UserWorkScheduleDto> UserWorkSchedules { get; set; } = [];

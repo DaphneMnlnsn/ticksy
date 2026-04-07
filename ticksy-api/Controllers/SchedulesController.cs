@@ -144,8 +144,10 @@ public class SchedulesController : ControllerBase
             {
                 schedule.Id,
                 schedule.ScheduleName,
+                schedule.WorkArrangement,
                 schedule.WeeklyDuration,
                 schedule.CreatedBy,
+                schedule.UpdatedAt,
 
                 Days = schedule.ScheduleDays.Select(sd => new
                 {
@@ -167,6 +169,7 @@ public class SchedulesController : ControllerBase
                     us.UserId,
                     us.User.FirstName,
                     us.User.MiddleName,
+                    us.User.AvatarUrl,
                     us.User.LastName
                 })
             })
@@ -178,8 +181,10 @@ public class SchedulesController : ControllerBase
         {
             Id = data.Id,
             ScheduleName = data.ScheduleName,
+            WorkArrangement = data.WorkArrangement,
             WeeklyDuration = data.WeeklyDuration,
             CreatedBy = data.CreatedBy,
+            UpdatedAt = data.UpdatedAt,
 
             Days = data.Days.Select(sd => new ScheduleDayDto
             {
@@ -203,7 +208,8 @@ public class SchedulesController : ControllerBase
                 {
                     us.FirstName,
                     us.MiddleName,
-                    us.LastName
+                    us.LastName,
+                    us.AvatarUrl
                 }.Where(x => !string.IsNullOrWhiteSpace(x)))
             }).ToList()
         };

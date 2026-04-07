@@ -95,12 +95,14 @@
 <script setup>
     import { ref, watch } from "vue";
     import { MoveRight, X, CheckCircle } from "lucide-vue-next";
+    import { createSchedule } from "../services/schedule";
 
     const props = defineProps({
         isOpen: Boolean,
         isSidebarCollapsed: Boolean
     });
-    const emit = defineEmits(['close']);
+    const emit = defineEmits(['close', 'setup-finished']);
+    const formatTime = (time) => time ? `${time}:00` : null;
 
     const scheduleName = ref('');
     const scheduleType = ref('Fixed');
@@ -149,13 +151,12 @@
         scheduleData.value[dayName].selected = !scheduleData.value[dayName].selected;
     }
 
-    function saveSchedule() {
+    async function saveSchedule() {
         errors.value.days = false;
         errors.value.name = false;
 
         if (scheduleType.value !== 'Weekly') {
             const selectedDays = Object.values(scheduleData.value).filter(d => d.selected);
-            
             if (selectedDays.length === 0) {
                 errors.value.days = true;
             }
@@ -172,11 +173,71 @@
 
         if (errors.value.days || errors.value.name) return;
 
-        showToast.value = true;
+        try {
+            const workArrangement = scheduleType.value;
 
-        setTimeout(() => {
-            showToast.value = false;
-        }, 2000);
+            const weeklyDuration = workArrangement === 'Weekly'
+                ? `${String(weeklyTotal.value.hours).padStart(2, '0')}:${String(weeklyTotal.value.minutes).padStart(2, '0')}`
+                : null;
+
+            const days = dayMap.map(day => {
+                const data = scheduleData.value[day];
+
+                if (!data.selected) {
+                    return {
+                        day,
+                        isRestDay: true,
+                        startTime: null,
+                        endTime: null,
+                        duration: null
+                    };
+                }
+
+                if (workArrangement === 'Fixed') {
+                    return {
+                        day,
+                        isRestDay: false,
+                        startTime: formatTime(data.start),
+                        endTime: formatTime(data.end),
+                        duration: null
+                    };
+                }
+
+                return {
+                    day,
+                    isRestDay: false,
+                    startTime: null,
+                    endTime: null,
+                    duration: `${String(data.hours).padStart(2, '0')}:${String(data.minutes).padStart(2, '0')}:00`
+                };
+            });
+
+            const payload = {
+                scheduleName: scheduleName.value,
+                workArrangement,
+                weeklyDuration,
+                days
+            };
+
+            const result = await createSchedule(payload);
+
+            showToast.value = true;
+
+            setTimeout(() => {
+                showToast.value = false;
+                emit('setup-finished');
+                emit('close');
+            }, 2000);
+
+        } catch (err) {
+            console.error("FULL ERROR:", err.response?.data);
+
+            if (err.response?.data?.errors) {
+                alert(JSON.stringify(err.response.data.errors, null, 2));
+            } else {
+                alert(err.response?.data?.message || "Failed to save schedule");
+            }
+        }
     }
 </script>
 
@@ -218,6 +279,7 @@
         color: white;
         cursor: pointer;
         opacity: 0.7;
+        outline: none;
     }
 
     .schedule-content {

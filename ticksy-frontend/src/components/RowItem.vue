@@ -1,5 +1,5 @@
 <template>
-    <div class="row-item">
+    <div :class="['row-item', $attrs.class]">
         <div class="text">
             <span class="name">{{ item.name }}</span>
             <span v-if="item.label" class="sub">{{ item.label }}</span>

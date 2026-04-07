@@ -39,11 +39,13 @@
                                             :key="item.id" 
                                             :item="item"
                                             :icon="item.icon"
+                                            :class="{ active: selectedSchedule?.id === item.id }"
+                                            @click="selectSchedule(item.id)" 
                                         />
                                     </template>
                                 </SidePanel> 
                             </div>
-                            <div class="right-side">
+                            <div class="right-side" v-if="selectedSchedule">
                                 <div class="container">
                                     <div class="top-row">
                                         <div class="mini-card">
@@ -51,15 +53,15 @@
                                             
                                             <div class="card-row">
                                                 <span>Total Weekly Hours</span>
-                                                <span>48 Hrs</span>
+                                                <span>{{ totalWeeklyHours }} Hrs</span>
                                             </div>   
                                             <div class="card-row">
                                                 <span>Average Shift</span>
-                                                <span>8 Hrs</span>
+                                                <span>{{ averageShift }} Hrs</span>
                                             </div>  
                                             <div class="card-row">
                                                 <span>Scheduled Days</span>
-                                                <span>6</span>
+                                                <span>{{ scheduledDaysCount }}</span>
                                             </div>   
                                         </div>
                                         <div class="mini-card">
@@ -67,15 +69,17 @@
 
                                             <div class="card-row">
                                                 <span>Work Arrangement</span>
-                                                <span style="color:#00DC28">Fixed</span>
-                                            </div>   
+                                                <span style="color:#00DC28">{{ selectedSchedule.workArrangement }}</span>
+                                            </div>
                                             <div class="card-row">
                                                 <span>Total Staff Assigned</span>
-                                                <span>12</span>
-                                            </div>  
+                                                <span>
+                                                    {{ selectedSchedule ? (selectedSchedule.userWorkSchedules?.length || 0) : '—' }}
+                                                </span>
+                                            </div>
                                             <div class="card-row">
                                                 <span>Last Modified</span>
-                                                <span>5 Mar 2026</span>
+                                                <span>{{ formatFullDateTime(selectedSchedule.updatedAt) }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -88,63 +92,34 @@
                                                 </div>
 
                                                 <div class="schedule">
-                                                    <div class="row">
-                                                        <span>Monday</span>
-                                                        <span>9:00am - 5:00pm</span>
+                                                    <div v-if="selectedSchedule.workArrangement === 'Weekly'" class="row">
+                                                        <span>Required Weekly</span>
+                                                        <span class="total-highlight">{{ displayWeeklyHours }} Hours</span>
                                                     </div>
-                                                    <div class="row">
-                                                        <span>Tuesday</span>
-                                                        <span>9:00am - 5:00pm</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Wednesday</span>
-                                                        <span>9:00am - 5:00pm</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Thursday</span>
-                                                        <span>9:00am - 5:00pm</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Friday</span>
-                                                        <span>9:00am - 5:00pm</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Saturday</span>
-                                                        <span>9:00am - 5:00pm</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Sunday</span>
-                                                        <span class="rest-day">Rest Day</span>
-                                                    </div>
+
+                                                    <template v-else>
+                                                        <div v-for="day in selectedSchedule.days" :key="day.day" class="row">
+                                                            <span>{{ day.day }}</span>
+
+                                                            <span v-if="day.isRestDay" class="rest-day">Rest Day</span>
+                                                            
+                                                            <span v-else-if="selectedSchedule.workArrangement === 'Flexible'">
+                                                                {{ formatDuration(day.duration) || 0 }} hrs
+                                                            </span>
+
+                                                            <span v-else>
+                                                                {{ formatTime(day.startTime) }} - {{ formatTime(day.endTime) }}
+                                                            </span>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </div>
                                             <div class="divider-right">
                                                 <div class="card-title2">BREAKS</div>
-
                                                 <div class="schedule">
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
-                                                    </div>
-                                                    <div class="row">
-                                                        <span>Lunch Time</span>
-                                                        <span>60 minutes</span>
+                                                    <div v-for="breakItem in selectedSchedule.breaks" :key="breakItem.id" class="row">
+                                                        <span>{{ breakItem.name }}</span>
+                                                        <span>{{ breakItem.duration }} minutes</span>
                                                     </div>
                                                     <div class="btn-row">
                                                         <button class="add-btn">+ Add Break</button>
@@ -157,13 +132,19 @@
                                         <div class="card-title">ASSIGNED MEMBERS</div>
                                         <div class="row2">
                                             <div class="avatar-group">
-                                                <img :src="sampleIMG" class="avatar"/>
-                                                <img :src="sampleIMG" class="avatar"/>
-                                                <img :src="sampleIMG" class="avatar"/>
-                                                <img :src="sampleIMG" class="avatar"/>
+                                                <img v-for="assignment in selectedSchedule?.userWorkSchedules" 
+                                                    :key="assignment.userId"
+                                                    :src="assignment.profilePicture || sampleIMG" 
+                                                    :title="assignment.fullName"
+                                                    class="avatar"
+                                                />
+                                                
+                                                <span v-if="!selectedSchedule?.userWorkSchedules?.length" class="no-members">
+                                                    None
+                                                </span>
                                             </div>
                                             <div>
-                                                <button class="assign-btn">Assign</button>
+                                                <button class="assign-btn" @click="handleAssignMember">Assign</button>
                                             </div>
                                         </div>
                                     </div>
@@ -295,20 +276,30 @@
             </div>
         </div>
     </div>
+
+    <SchedulePanel
+        :isOpen="isScheduleOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="isScheduleOpen = false"
+    />
 </template>   
 
-<script setup>
+<script setup lang="ts">
     import Header from '../components/Header.vue'
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import SidePanel from '../components/SidePanel.vue'
+    import SchedulePanel from '../components/SchedulePanel.vue'
     import DimmedBg from '../components/DimmedBg.vue'
     import Search from '../components/Search.vue'
     import RowItem from '../components/RowItem.vue'
-    import { schedules, calendars, timeOffRequests } from '../services/summaryData'
+    import { calendars, timeOffRequests } from '../services/summaryData'
     import sampleIMG from '../assets/sample_img.jpg'
     import { holidays } from '../services/summaryData'
-    import { SquarePen, SquarePlus, FilePlus } from 'lucide-vue-next'
+    import { SquarePen, SquarePlus, FilePlus, ChevronsRight } from 'lucide-vue-next'
+    import api from '../services/api'
+    import { computed } from 'vue';
+import { getScheduleById, getSchedules } from '../services/schedule'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
@@ -325,6 +316,24 @@
             selectedRequests.value = []; 
         }
     };
+
+    const displayWeeklyHours = computed(() => {
+        const input = selectedSchedule.value?.weeklyDuration || "00:00:00";
+        
+        const match = input.match(/(?:(\d+)\.)?(\d+):(\d+)/);
+        
+        if (!match) return '0';
+
+        const days = parseInt(match[1] || '0');
+        const hours = parseInt(match[2] || '0');
+        const minutes = parseInt(match[3] || '0');
+
+        const totalHours = (days * 24) + hours;
+        
+        return minutes > 0 
+            ? `${totalHours}:${String(minutes).padStart(2, '0')}` 
+            : totalHours;
+    });
 
     const getLeaveTypeClass = (type) => {
         switch (type) {
@@ -357,10 +366,123 @@
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
-
     function handleAddSchedule() {
-        console.log("Add Schedule clicked")
+        isScheduleOpen.value = true;
     }
+
+    function closeSchedule() {
+        isScheduleOpen.value = false;
+    }
+
+    const formatTime = (timeString: string | null) => {
+        if (!timeString) return '--:--';
+
+        const [hoursStr, minutesStr] = timeString.split(':');
+        let hours = parseInt(hoursStr);
+        const minutes = minutesStr;
+
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+
+        return `${hours}:${minutes} ${ampm}`;
+    };
+
+    const formatDuration = (timeString: string | null) => {
+        if (!timeString) return '--:--';
+
+        const [hoursStr, minutesStr] = timeString.split(':');
+        let hours = parseInt(hoursStr);
+        const minutes = minutesStr;
+
+        return `${hours}.${minutes}`;
+    };
+
+    const formatFullDateTime = (isoString: string | null) => {
+        if (!isoString) return '--';
+        
+        const date = new Date(isoString);
+        
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
+    const schedules = ref<{ id: number, name: string, label?: string, icon: any }[]>([]);
+    const selectedSchedule = ref<any>(null);
+    const isLoadingDetails = ref(false);
+
+    async function loadSchedules() {
+        try {
+            schedules.value = await getSchedules();
+            
+            if (schedules.value.length > 0) {
+                await selectSchedule(schedules.value[0].id);
+            }
+        } catch (error) {
+            console.error("Failed to load schedules:", error);
+        }
+    }
+
+    async function selectSchedule(id: number) {
+        isLoadingDetails.value = true;
+        try {
+            selectedSchedule.value = await getScheduleById(id);
+        } catch (error) {
+            console.error("Error fetching schedule details:", error);
+        } finally {
+            isLoadingDetails.value = false;
+        }
+    }
+
+    onMounted(() => {
+        loadSchedules();
+    });
+
+    const totalWeeklyHours = computed(() => {
+        if (!selectedSchedule.value?.days) return 0;
+        
+        return selectedSchedule.value.days.reduce((acc, day) => {
+            if (day.isRestDay) return acc;
+
+            if (day.duration) {
+                return acc + parseFloat(day.duration);
+            }
+
+            if (day.startTime && day.endTime) {
+                const [startH, startM] = day.startTime.split(':').map(Number);
+                const [endH, endM] = day.endTime.split(':').map(Number);
+
+                const startInMinutes = startH * 60 + startM;
+                const endInMinutes = endH * 60 + endM;
+
+                let diffInMinutes = endInMinutes - startInMinutes;
+                if (diffInMinutes < 0) {
+                    diffInMinutes += 24 * 60;
+                }
+
+                return acc + (diffInMinutes / 60);
+            }
+
+            return acc;
+        }, 0);
+    });
+
+    const averageShift = computed(() => {
+        const activeDays = selectedSchedule.value?.days.filter(d => !d.isRestDay) || [];
+        if (activeDays.length === 0) return 0;
+        return (totalWeeklyHours.value / activeDays.length).toFixed(1);
+    });
+
+    const scheduledDaysCount = computed(() => {
+        return selectedSchedule.value?.days.filter(d => !d.isRestDay).length || 0;
+    });
 
 </script>
 
@@ -629,7 +751,7 @@
     .row {
         display: flex;
         justify-content: flex-start;
-        gap: 40px;
+        gap: 10px;
         padding-bottom: 5px;
     }
 
@@ -828,6 +950,37 @@
         background-color: rgba(0, 19, 36, 0.2);
         color: white;
         outline: none;
+    }
+
+    .total-highlight {
+        color: #88b6ff;
+        font-weight: 600;
+        font-size: 12px !important;
+    }
+
+    .row span:last-child {
+        margin-left: auto;
+        text-align: right;
+    }
+
+    .schedule-item {
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border-left: 4px solid transparent;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .left-side .row-item.active {
+        background-color: rgba(255, 255, 255, 0.04);
+        border-left: 4px solid #88b6ffc8;
+        color: #ffffff;
+        opacity: 1;
+    }
+
+    .schedule-item:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.01);
+        color: #ffffff;
     }
 
     @keyframes fadeIn {
