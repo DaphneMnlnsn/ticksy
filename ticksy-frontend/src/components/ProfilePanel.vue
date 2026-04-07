@@ -14,44 +14,42 @@
                 </div>
             </div>
             <div class="profile-content">
-               <div class="profile-info">
+                <div class="profile-info">
                     <img :src="avatar" class="avatar" />
-                    
                     <div class="text-info">
-                        <h3>{{ name }}</h3>
+                        <h3 :title="name">{{ fullName }}</h3>
                         <p class="role">{{ role }}</p>
                     </div>
                 </div>
             </div>
             <div class="profile-details">
                 <div class="form">
-                    <label>Login & Security</label>
+                    <label>Account Information</label>
+                    
                     <form>
                         <div class="input-group">
-                            <div class="form-label">Email</div>
-                            <input
-                                type="email"
-                                v-model="email"
-                                :disabled="!isEditing"
-                            />
+                            <div class="form-label">First Name</div>
+                            <input type="text" v-model="form.firstName" :disabled="!isEditing" />
                         </div>
-
+                        <div class="input-group">
+                            <div class="form-label">Middle Initial</div>
+                            <input type="text" v-model="form.middleName" :disabled="!isEditing" />
+                        </div>
+                        <div class="input-group">
+                            <div class="form-label">Last Name</div>
+                            <input type="text" v-model="form.lastName" :disabled="!isEditing" />
+                        </div>
+                        <div class="input-group">
+                            <div class="form-label">Email</div>
+                            <input type="email" v-model="form.email" :disabled="!isEditing" />
+                        </div>
                         <div class="input-group">
                             <div class="form-label">Phone Number</div>
-                            <input
-                                :type="phoneNumber"
-                                v-model="phoneNumber"
-                                :disabled="!isEditing"
-                            />
+                            <input type="text" v-model="form.phone" :disabled="!isEditing" />
                         </div>
-
                         <div class="input-group">
                             <div class="form-label">Password</div>
-                            <input
-                                :type="password"
-                                v-model="password"
-                                :disabled="!isEditing"
-                            />
+                            <button class="pass-btn">Change Password</button>
                         </div>
                     </form>
                 </div>
@@ -60,7 +58,7 @@
                     <div class="input-group">
                         <form>
                             <div class="form-label">Timezone</div>
-                            <select v-model="timezone" class="form-select" >
+                            <select v-model="form.timezone" class="form-select" :disabled="!isEditing" >
                                 <option v-for="tz in timezones" :key="tz" :value="tz">
                                     {{ tz }}
                                 </option>
@@ -75,7 +73,7 @@
                 </div>
             </div>
             <div v-if="isEditing" class="save-footer">
-                <button class="cancel-btn" v-if="isEditing" @click="isEditing = false">
+                <button class="cancel-btn" v-if="isEditing" @click="cancelEdit">
                     Cancel
                 </button>
                 <button class="save-btn" @click="saveChanges">
@@ -94,41 +92,99 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
-    import { X, Pencil, TextSelect } from 'lucide-vue-next';
+    import { ref, watch, computed } from 'vue'
+    import { X, Pencil, TextSelect } from 'lucide-vue-next'
     import { useRouter } from "vue-router"
-    import DimmedBg from './DimmedBg.vue';
+    import DimmedBg from './DimmedBg.vue'
+    import { getUserProfile, updateUserProfile } from '../services/userService'
 
     const router = useRouter()
 
     const autoClockIn = ref(false)
-    const email = ref("")
-    const password = ref("")
-    const phoneNumber = ref("")
+    const passwordType = ref('password')
     const isEditing = ref(false)
     const emit = defineEmits(['close'])
-    
+
     const props = defineProps({
         isOpen: Boolean,
         name: String,
+        firstName: String,
+        middleName: String,
+        lastName: String,
         email: String,
         role: String,
         avatar: String,
+        phone: String,
+        timeZone: String,
         isSidebarCollapsed: Boolean
     })
 
-    const timezone = ref('Asia/Manila')
-
     const timezones = [
+        ' ',
         'Asia/Manila',
         'UTC',
         'America/New_York'
     ]
 
-    function saveChanges() {
-        alert('Profile Saved successfully!')
+    const form = ref({
+        name: '',
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        password: '',
+        timezone: 'Asia/Manila'
+    })
+    
+    const fullName = computed(() => {
+        return `${form.value.firstName} ${form.value.middleName} ${form.value.lastName}`.trim()
+    })
 
-        isEditing.value = false
+    async function saveChanges() {
+        try {
+            const userId = localStorage.getItem("userId");
+            await updateUserProfile(userId, form.value);
+
+            alert('Profile saved successfully!');
+            isEditing.value = false;
+            refreshProfile();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save profile');
+        }
+    }
+
+    async function refreshProfile() {
+        try {
+            const userId = localStorage.getItem("userId");
+            const res = await getUserProfile(userId);
+
+            form.value = {
+                firstName: res.data.firstName,
+                middleName: res.data.middleName,
+                lastName: res.data.lastName,
+                email: res.data.email,
+                phone: res.data.phone,
+                password: '',
+                timezone: res.data.timeZone || 'Asia/Manila'
+            };
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function cancelEdit() {
+        form.value = {
+            firstName: props.firstName || '',
+            middleName: props.middleName || '',
+            lastName: props.lastName || '',
+            email: props.email || '',
+            phone: props.phone || '',
+            password: '',
+            timezone: props.timeZone || 'Asia/Manila'
+        };
+        isEditing.value = false;
     }
 
     function handleLogout () {
@@ -136,6 +192,20 @@
             router.push('/')
         }
     }
+
+    watch(() => props.isOpen, (open) => {
+        if (open) {
+            form.value = {
+                firstName: props.firstName || '',
+                middleName: props.middleName || '',
+                lastName: props.lastName || '',
+                email: props.email || '',
+                phone: props.phone || '',
+                password: '',
+                timezone: props.timeZone || 'Asia/Manila'
+            }
+        }
+    }, { immediate: true })
 </script>
 
 <style scoped>
@@ -158,6 +228,27 @@
         transition: left 0.4s ease-in-out;
 
         z-index: 99999;
+        overflow-y: auto;
+    }
+
+    .profile-panel::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .profile-panel::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .profile-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
+
+
+    .profile-panel::-webkit-scrollbar-track {
+        background: transparent; 
     }
 
     :host(.collapsed) .profile-panel {
@@ -206,7 +297,7 @@
         padding: 0;
         outline: none;
         box-shadow: none;
-        
+        color: #F0F0F0;
         width: 20px;
         height: 20px;
     }
@@ -225,34 +316,40 @@
 
     .profile-info {
         display: flex;
-        justify-content: center;
-        gap: 30px;
-        margin: 30px;
-    }
-
-    .avatar {
-        width: 85px;
-        height: 85px;
-        border-radius: 50%;
-        object-fit: cover;
+        align-items: center; 
+        gap: 20px; 
+        margin: 20px; 
+        min-width: 0;
     }
 
     .text-info {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
-    }
-
-    h3 {
-        font-size: 20px;
-        font-family: righteous;
+        align-items: flex-start;
+        min-width: 0;
+        flex: 1;
     }
 
     .text-info h3 {
         margin: 0;
-        font-size: 20px;
-        font-family: righteous;
+        font-size: 18px;
+        font-family: 'Righteous', sans-serif;
+        color: white;
+
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .avatar {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 2px solid rgba(255, 255, 255, 0.1);
     }
 
     .role {
@@ -349,7 +446,22 @@
         box-shadow: none;
     }
 
-    .save-btn:hover, .cancel-btn:hover, .logout-btn:hover {
+    .pass-btn {
+        font-size: 12px;
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        background: #00386780;
+        color: white;
+        border: none;
+        cursor: pointer;
+
+        border: none;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .save-btn:hover, .cancel-btn:hover, .logout-btn:hover, .pass-btn:hover {
         opacity: 0.8;
     }
 

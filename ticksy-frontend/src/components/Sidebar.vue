@@ -22,7 +22,7 @@
                         <component 
                             :is="CircleChevronDown"
                             class="icon arrow"
-                            :class="{ 'rotated': isDropdownOpen(item) }"
+                            :class="{ 'rotated': manuallyOpened.includes(item.name) }"
                         />
                         <component :is="item.icon" class="icon" />
                         <span :class="{ 'text-hidden': !props.isOpen }">
@@ -32,12 +32,12 @@
 
                     <ul 
                         v-if="item.children && props.isOpen"
-                        :class="['submenu', { open: isDropdownOpen(item) }]"
+                        :class="['submenu', { open: manuallyOpened.includes(item.name) }]"
                     >
                         <li v-for="child in item.children" :key="child.name">
                             <router-link :to="child.path" class="submenu-link" :class="{ active: isActive(child.path) }">
-                                <component :is="child.icon" class="icon submenu-icon" />
-                                <span>{{ child.name }}</span>
+                            <component :is="child.icon" class="icon submenu-icon" />
+                            <span :class="{ 'text-hidden': !props.isOpen }">{{ child.name }}</span>
                             </router-link>
                         </li>
                     </ul>
@@ -60,10 +60,10 @@
 
         <div class="sidebar-footer">
             <div class="menu-link profile-link" @click="openProfileModal">
-                <img :src="sampleIMG" class="avatar" />
+                <img :src="user.avatar || sampleIMG" class="avatar" @error="handleImageError" />
 
                 <span :class="{ 'text-hidden': !props.isOpen }">
-                    IDA Admin
+                    {{ user.name }}
                 </span>
 
                 <component 
@@ -78,10 +78,15 @@
             <ProfilePanel
                 :isOpen="isProfileOpen"
                 @close="isProfileOpen = false"
-                name="IDA Admin"
-                email="admin@email.com"
-                role="Administrator"
-                :avatar="sampleIMG"
+                :name="user.name"
+                :firstName="user.firstName"
+                :middleName="user.middleName"
+                :lastName="user.lastName"
+                :email="user.email"
+                :role="user.role"
+                :avatar="user.avatar || sampleIMG"
+                :phone="user.phone"
+                :timeZone="user.timezone"
                 :isSidebarCollapsed="!props.isOpen"
             />
         </Teleport>
@@ -89,7 +94,7 @@
 </template>
 
 <script setup>
-    import { ref, defineProps } from 'vue'
+    import { onMounted, ref, defineProps, watchEffect } from 'vue'
     import logo from "../assets/ticksy_logo_white.png"
     import sampleIMG from '../assets/sample_img.jpg'
     import { LayoutDashboard, ClipboardClock, FileChartLine, 
@@ -98,9 +103,10 @@
     } from 'lucide-vue-next';
     import { useRoute } from 'vue-router'
     import ProfilePanel from './ProfilePanel.vue'
+    import { getUserProfile } from '../services/userService'
 
     const route = useRoute()
-    const manuallyClosed = ref([])
+    const manuallyOpened = ref([])
     const isProfileOpen = ref(false)
 
     const props = defineProps({
@@ -124,18 +130,21 @@
         }
     })
 
-    function toggleDropdown(item) {
-        const index = manuallyClosed.value.indexOf(item.name)
+    const user = ref({
+        name: '',
+        email: '',
+        role: '',
+        avatar: ''
+    })
 
-        if (index === -1) {
-            manuallyClosed.value.push(item.name)
-        } else {
-            manuallyClosed.value.splice(index, 1)
-        }
+    function toggleDropdown(item) {
+        const index = manuallyOpened.value.indexOf(item.name)
+        if (index === -1) manuallyOpened.value.push(item.name)
+        else manuallyOpened.value.splice(index, 1)
     }
 
     function isDropdownOpen(item) {
-        return !manuallyClosed.value.includes(item.name)
+        return props.isOpen || manuallyOpened.value.includes(item.name)
     }
 
     function openProfileModal() {
@@ -145,6 +154,45 @@
     function isActive(path) {
         return route.path === path
     }
+
+    function handleImageError(e) {
+        e.target.src = sampleIMG
+    }
+
+    onMounted(async () => {
+        try {
+            const userId = localStorage.getItem('userId')
+
+            const res = await getUserProfile(userId)
+            const data = res.data
+
+            user.value = {
+                firstName: data.firstName,
+                middleName: data.middleName,
+                lastName: data.lastName,
+                name: [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' '),
+                email: data.email,
+                role: data.role,
+                avatar: data.avatarUrl,
+                phone: data.phone,           
+                timezone: data.timeZone
+            }
+
+        } catch (err) {
+            console.error('Failed to fetch user:', err)
+        }
+    })
+
+    onMounted(() => {
+        props.menuItems.forEach(item => {
+            if (item.children) {
+                const childMatch = item.children.some(child => child.path === route.path)
+                if (childMatch && !manuallyOpened.value.includes(item.name)) {
+                    manuallyOpened.value.push(item.name)
+                }
+            }
+        })
+    })
 
 </script>
 
@@ -156,7 +204,7 @@
             #001B31 47%,
             #003867 93%
         );
-        color: white;
+        color: #F0F0F0;
         transition: width 0.4s ease-in-out, padding 0.4s ease-in-out;
         padding: 16px;
         height: 100dvh;
@@ -257,6 +305,7 @@
         margin: 8px 0;
         padding: 0;
         list-style: none;
+        position: relative;
     }
 
     nav a {
