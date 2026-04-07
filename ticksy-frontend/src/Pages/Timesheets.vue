@@ -4,7 +4,7 @@
         <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
         <div class="main-content"> <!--DO NOT change class!-->
-            <h2>Timesheets</h2>
+            <Header title="Timesheets" />
 
             <div class="card">
             <div class="top-bar">
@@ -191,6 +191,7 @@
     import { ref, computed, nextTick } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import SearchBar from '../components/Search.vue'
+    import Header from '../components/Header.vue'
     import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Download, TreePalm} from "lucide-vue-next"
     import { watch } from 'vue'
     import { users } from '../services/summaryData.js'

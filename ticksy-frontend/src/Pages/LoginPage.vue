@@ -48,36 +48,62 @@
 		</div>
 		</div>
 	</div>
+	<Toast 
+		:message="toastMessage" 
+		:type="toastType" 
+		:icon="toastIcon"
+		@finished="toastMessage = ''"
+	/>
 </template>
 
 <script setup>
-	import { ref } from "vue"
+	import { ref, nextTick } from "vue"
 	import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
 	import logo from "../assets/ticksy_logo.png"
 	import { useRouter } from 'vue-router'
 	import { loginUser } from "../services/auth"
+	import Toast from "../components/Toast.vue"
+	import { CheckCircle, XCircle } from "lucide-vue-next"
 
 	const router = useRouter()
 	const email = ref("")
 	const password = ref("")
 	const showPassword = ref(false)
+	const toastMessage = ref('')
+	const toastType = ref('success')
+	const toastIcon = ref(null)
+	const emit = defineEmits(['finished']);
 
 	function togglePassword() {
 		showPassword.value = !showPassword.value
 	}
 
+	function showToast(message, type = 'success', icon = null) {
+		toastType.value = type
+		toastIcon.value = icon
+		toastMessage.value = '' 
+		nextTick(() => {
+			toastMessage.value = message
+		})
+	}
+
 	async function handleLogin() {
 		try {
-			const data = await loginUser(email.value, password.value);
+			const data = await loginUser(email.value, password.value)
+			showToast("Login successful!", "success", CheckCircle)
 
-			console.log("LOGIN SUCCESS", data);
-
-			router.push("/dashboard");
+			setTimeout(() => {
+				router.push("/dashboard")
+			}, 1000)
 
 		} catch (err) {
-			console.error(err.response?.data || err.message);
+			console.error(err.response?.data || err.message)
 
-			alert(err.response?.data || "Invalid email or password");
+			const msg = typeof err.response?.data === "string"
+				? err.response.data
+				: err.response?.data?.message || "Invalid email or password"
+
+			showToast(msg, "error", XCircle)
 		}
 	}
 </script>
