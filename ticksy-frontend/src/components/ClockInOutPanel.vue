@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+    
     <transition name="slide-workschedule">
         <div v-if="isOpen" class="clockInOut-panel">
             
@@ -20,8 +22,16 @@
             </div>
 
             <div class="tabs">
-                <button class="tab-btn" :class="{ active: mode === 'in' }" @click="mode = 'in'">Clock In</button>
-                <button class="tab-btn" :class="{ active: mode === 'out' }" @click="mode = 'out'">Clock Out</button>
+                <button class="tab-btn" 
+                    :class="{ active: mode === 'in', 'disabled-tab' : isClockedIn }" 
+                    :disabled="isClockedIn" 
+                    @click="mode = 'in'"> Clock In
+                </button>
+                <button class="tab-btn" 
+                    :class="{ active: mode === 'out', 'disabled-tab' : !isClockedIn }" 
+                    :disabled= "!isClockedIn "
+                    @click="mode = 'out'"> Clock Out
+                </button>
             </div>
 
             <div class="form-body">
@@ -65,6 +75,8 @@
     import DimmedBg from "./DimmedBg.vue";
 
     const props = defineProps({
+        isClockedIn: Boolean,
+
         recordedTime: { 
             type: String, 
             default: "" 
@@ -120,10 +132,12 @@
         emit('save', {
             time: finalTime,
             date: selectedDate.value,
-            note: note.value
+            note: note.value,
+            type: mode.value
         });
+        note.value = "";
+        emit("close");
     };
-
 </script>
 
 <style scoped>
@@ -398,6 +412,10 @@
         opacity: 0.8;
     }
 
+    .icon-btn{
+        outline: none;
+    }
+
     .slide-workschedule-enter-active,
     .slide-workschedule-leave-active {
         transition: transform 0.3s ease;
@@ -432,5 +450,11 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
         transform: translate(-50%, -10px);
+    }
+
+    .tab-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        filter: grayscale(1);
     }
 </style>

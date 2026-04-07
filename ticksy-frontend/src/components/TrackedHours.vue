@@ -1,8 +1,12 @@
 <template>
     <div class="tracked-hours">
         <div class="title-group">
-            <h3 class="main-title">TRACKED HOURS</h3>
-            <p class="subtitle">({{ displayTitle }})</p>
+            <div class="main-titles">
+                <h3 class="main-title">TRACKED HOURS</h3>
+                <p class="subtitle">({{ displayTitle }})</p>
+            </div>
+            
+            <span @click="goToTimesheets" class="view-link">View Timesheets</span>
         </div>
 
         <div class="tracked-content">
@@ -48,6 +52,12 @@
 
 <script setup>
     import {computed} from 'vue'
+    import { useRouter } from 'vue-router'
+
+    const router = useRouter()
+    const goToTimesheets = () => {
+        router.push('/Timesheets');
+    }
 
     const props = defineProps({
         viewMode: String
@@ -75,107 +85,130 @@
 </script>
 
 <style scoped>
-.tracked-hours {
-    background: #001527;
-    width: 100%; 
-    padding: 20px 25px 35px;
-    border-radius: 5px;
-    box-sizing: border-box;
-    color: #E6EDF3;
-}
+    .tracked-hours {
+        background: #001527;
+        width: 100%; 
+        padding: 20px 25px 35px;
+        border-radius: 5px;
+        box-sizing: border-box;
+        color: #E6EDF3;
+    }
 
-.title-group {
-    display: flex;
-    align-items: baseline; 
-    gap: 12px;             
-    margin-bottom: 10px;   
-}
+    .title-group {
+        display: flex;
+        justify-content: space-between; /* Pushes content to opposite ends */
+        align-items: center; 
+        margin-bottom: 10px;
+        width: 100%;
+    }
 
-.subtitle {
-    margin: 0;             
-    font-size: 14px;
-    opacity: 0.6;          
-    font-weight: 400;
-}
+    .main-titles {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+    }
 
-.tracked-content {
-    display: flex;
-    margin-top: 30px;
-}
+    .view-link {
+        color: #4FB4FF; 
+        text-decoration: none;
+        opacity: 0.8;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        cursor: pointer;
+    }
 
-.legend {
-    width: 220px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+    .view-link:hover {
+        text-decoration: none;
+        transform: scale(1.1);
+        opacity: 1;
+    }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+    .subtitle {
+        margin: 0;             
+        font-size: 14px;
+        opacity: 0.6;          
+        font-weight: 400;
+    }
 
-.dot {
-    margin-left: 15px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
+    .tracked-content {
+        display: flex;
+        margin-top: 30px;
+    }
 
-.green { background: #00d12f; }
-.orange { background: #ff8c00; }
-.red { background: #ff3b30; }
+    .legend {
+        width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
 
-.label {
-    font-size: 12px;
-    opacity: 0.7;
-    margin: 0;
-}
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-.value {
-    font-size: 14px;
-    margin: 2px 0 0 0;
-}
+    .dot {
+        margin-left: 15px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
 
-.graph {
-    flex: 1;
-    position: relative;
-    margin-left: 50px;
-}
+    .green { background: #00d12f; }
+    .orange { background: #ff8c00; }
+    .red { background: #ff3b30; }
 
-.grid {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-}
+    .label {
+        font-size: 12px;
+        opacity: 0.7;
+        margin: 0;
+    }
 
-.line {
-    height: 1px;
-    background: rgba(255,255,255,0.2);
-    margin: 25px 0;
-}
+    .value {
+        font-size: 14px;
+        margin: 2px 0 0 0;
+    }
 
-.bar {
-    position: absolute;
-    bottom: 8px;
-    left: 200px;
-    width: 60%;
-    height: 75%;
-    background: #00d12f;
-    border-radius: 4px;
-    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
-}
+    .graph {
+        flex: 1;
+        position: relative;
+        margin-left: 50px;
+    }
 
-.y-axis {
-    position: absolute;
-    left: -65px;
-    top: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 90%;
-    font-size: 12px;
-    opacity: 0.6;
-}
+    .grid {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    .line {
+        height: 1px;
+        background: rgba(255,255,255,0.2);
+        margin: 25px 0;
+    }
+
+    .bar {
+        position: absolute;
+        bottom: 8px;
+        left: 200px;
+        width: 60%;
+        height: 75%;
+        background: #00d12f;
+        border-radius: 4px;
+        transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+    }
+
+    .y-axis {
+        position: absolute;
+        left: -65px;
+        top: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 90%;
+        font-size: 12px;
+        opacity: 0.6;
+    }
 </style>

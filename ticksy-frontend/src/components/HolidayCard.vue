@@ -2,7 +2,7 @@
     <div class="holiday-card">
         <div class="holiday-header">
             <h3>UPCOMING HOLIDAYS AND TIME OFF</h3>
-            <Calendar :size="26" color="white" stroke-width="2" opacity="0.9" class="calendar-icon" />
+            <Calendar :size="26" color="white" stroke-width="2" opacity="0.9" class="calendar-icon clickable" @click="workSchedules"/>
         </div>
 
         <div class="holiday-list">
@@ -25,6 +25,14 @@
 
 <script setup>
     import { Calendar } from 'lucide-vue-next';
+    import { useRouter } from 'vue-router';
+
+    const router = useRouter();
+    
+    const workSchedules = () => {
+        router.push('/management/work-schedules');
+    }
+
     const props = defineProps({
         holidays: Array,
         welcomeImg: String
@@ -62,6 +70,16 @@
 .calendar-icon:hover {
     transform: scale(1.1);
     opacity: 1;
+}
+
+.clickable {
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.clickable:hover {
+    opacity: 1 !important; 
+    transform: scale(1.1);
 }
 
 .holiday-item {
