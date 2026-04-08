@@ -49,9 +49,13 @@
                         </div>
                         <div class="input-group">
                             <div class="form-label">Password</div>
-                            <button class="pass-btn">Change Password</button>
+                            <button class="pass-btn" type="button" @click="showChangePassModal = true" >Change Password</button>
                         </div>
                     </form>
+                    <ChangePasswordModal
+                        :show="showChangePassModal"
+                        @close="showChangePassModal = false"
+                    />
                 </div>
                 <div class="preferences">
                     <label>Preferences</label>
@@ -97,6 +101,7 @@
     import { useRouter } from "vue-router"
     import DimmedBg from './DimmedBg.vue'
     import { getUserProfile, updateUserProfile } from '../services/userService'
+    import ChangePasswordModal from './ChangePasswordModal.vue'
 
     const router = useRouter()
 
@@ -140,6 +145,8 @@
     const fullName = computed(() => {
         return `${form.value.firstName} ${form.value.middleName} ${form.value.lastName}`.trim()
     })
+
+    const showChangePassModal = ref(false)
 
     async function saveChanges() {
         try {
@@ -206,6 +213,14 @@
             }
         }
     }, { immediate: true })
+
+    watch(() => props.show, (val) => {
+        if (!val) {
+            form.currentPassword = ''
+            form.newPassword = ''
+            form.confirmPassword = ''
+        }
+    })
 </script>
 
 <style scoped>
