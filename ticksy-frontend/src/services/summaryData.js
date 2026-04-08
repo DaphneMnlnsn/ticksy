@@ -114,7 +114,7 @@ export const schedules = ref([
     { id: 3, name: "Part-timers", icon: ChevronsRight }
 ])
 
-export const calendars = ref([
+/*export const calendars = ref([
     { id: 1, name: "Philippines", label: "Imported Calendar", icon: Download },
     { id: 2, name: "United States - Texas", label: "Imported Calendar", icon: Download },
 ])
@@ -131,9 +131,9 @@ export const holidays = ref([
     { name: "Veterans Day", date: "Nov 11, 2026", day: "Wednesday" },
     { name: "Thanksgiving Day", date: "Nov 26, 2026", day: "Thursday" },
     { name: "Christmas Day", date: "Dec 25, 2026", day: "Friday" },
-]);
+]);*/
 
-export const timeOffRequests = ref([
+/*export const timeOffRequests = ref([
     {
         name: "Kiana",
         type: "Sick Leave",
@@ -162,7 +162,7 @@ export const timeOffRequests = ref([
         r_date: "March 10 - 12, 2026",
         status: "Approved"
     }
-])
+])*/
 
 function getTotalHours(clockIn, clockOut) {
     const parseTime = (timeStr) => {
