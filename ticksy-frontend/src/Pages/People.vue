@@ -82,10 +82,10 @@
                                     <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
                                     <div v-if="activeMenu === user.email" class="dropdown">
-                                        <div class="dropdown-item">
-                                            <Edit size="14" />
-                                            Edit
-                                        </div>
+                                        <div class="dropdown-item" @click="openEdit(user)">
+    <Edit size="14" />
+    Edit
+</div>
 
                                         <div class="dropdown-item archive">
                                             <Archive size="14" />
@@ -185,60 +185,25 @@
         </div>
     </div>
 
-    <div v-if="showAddMemberModal" class="modal-overlay">
-        <div class="modal">
+        <EditMemberPanel
+        v-model="showEditModal"
+        :user="selectedUserData"
+        :avatar="sampleIMG"
+        @save="handleSaveEdit"
+        />
 
-            <div class="modal-header">
-                <h2>Add Members</h2>
-                <button class="close-btn" @click="showAddMemberModal = false">✕</button>
-            </div>
+        <AddMemberPanel
+        v-model="showAddMemberModal"
+        :users="allUsers"
+        @save="handleAddMembers"
+        />
 
-            <div class="section">
-                <p class="section-title">Invite by Link</p>
-                <p class="desc">
-                    We recommend letting members create their profile so they can log from their devices.
-                    Send them this invite link to get started!
-                </p>
-
-                <div class="link-box">
-                    <input type="text" value="ticksy.com/join/sample" readonly />
-                    <button class="copy-btn">Copy</button>
-                </div>
-
-                <span class="generate-link">Generate new link</span>
-            </div>
-
-            <div class="section">
-                <p class="section-title">Manually Add Members</p>
-
-            <div class="modal-search-wrapper">
-                <Search v-model="search" />
-            </div>
-
-                <div class="table">
-                    <div class="table-header people">
-                        <span></span>
-                        <span>Name</span>
-                        <span>Email</span>
-                        <span>Contact</span>
-                    </div>
-
-                    <div class="row people" v-for="user in filteredUsers" :key="user.email">
-                        <span><input type="checkbox" /></span>
-                        <span>{{ user.name }}</span>
-                        <span>{{ user.email }}</span>
-                        <span>09123456789</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="cancel" @click="showAddMemberModal = false">Cancel</button>
-                <button class="save">Save</button>
-            </div>
-        </div>
-    </div>
-
+        <EditMemberPanel
+        v-model="showEditModal"
+        :user="selectedUserData"
+        :avatar="sampleIMG"
+        @save="handleSaveEdit"
+    />
 </template>   
 
 <script setup>
@@ -252,8 +217,9 @@
     import Search from '../components/Search.vue'
     import { allUsers } from '../services/summaryData.js'
     import { Edit, Archive, Trash2 } from 'lucide-vue-next'
+    import { User, Mail, Phone } from 'lucide-vue-next'
     import SidePanel from '../components/SidePanel.vue'
-    
+    import EditMemberPanel from '../components/EditMemberPanel.vue'
     
     const activeTab = ref('members')
     const isOpen = ref(true)
@@ -363,6 +329,23 @@
     })
 
     const showAddMemberModal = ref(false)
+
+    const showEditModal = ref(false)
+    const selectedUserData = ref(null)
+
+    function openEdit(user) {
+        selectedUserData.value = user
+        showEditModal.value = true
+    }
+    
+    function handleSaveEdit(updatedUser) {
+        console.log('Updated:', updatedUser)
+    }
+
+    import AddMemberPanel from '../components/AddMemberPanel.vue'
+    function handleAddMembers(selected) {
+        console.log('Members to add:', selected)
+    }
 
 </script>
 
@@ -741,124 +724,115 @@
         }
     }
 
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: rgba(0, 19, 36, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 999;
-        color: white;
+    
+
+    .side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 400px;
+    background: #031e2f;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+    animation: slideIn 0.3s ease forwards;
+    color: white;
+    border-radius: 15px;
     }
 
-    .modal {
-        width: 600px;
-        background: #031e2f;
-        border-radius: 12px;
-        padding: 20px;
+    @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
     }
 
+    .edit-modal {
+        width: 100%;        
+        padding: 0;          
+        background: none;    
+        position: relative;
+        margin-top: 50px;
+    }
 
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+         padding: 10px 20px;
+        margin: 0;  
+        margin-top: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
-    .close-btn {
+    .modal-header{
+        margin: 35px -20px 0 -20px;
+    }
+    .edit-profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 15px 0;
+        padding: 8px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .edit-profile{
+        margin: 35px -20px 0 -20px;
+    }
+
+    .edit-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+
+    .edit-name {
+        font-weight: 600;
+    }
+
+    .edit-sub {
+        font-size: 12px;
+        opacity: 0.6;
+    }
+
+    .input {
+        width: 100%;
+        margin-top: 5px;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background: #0b2a3c;
+        color: white;
+        outline: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-top: 10px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        margin-bottom: 2px;
+        opacity: 0.7;
+        
+    }
+
+    .edit-modal .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 10;
         background: none;
         border: none;
         color: white;
         cursor: pointer;
-    }
-
-    .section {
-        margin-top: 20px;
-    }
-
-    .section-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-
-    .desc {
-        font-size: 12px;
-        opacity: 0.7;
-    }
-
-
-    .link-box {
-        display: flex;
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 6px;
-        overflow: hidden;
-        margin-top: 10px;
-    }
-
-    .link-box input {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: white;
-        padding: 10px;
-    }
-
-    .copy-btn {
-        background: #003867;
-        border: none;
-        color: white;
-        padding: 10px;
-        outline: none;
-    }
-
-    .copy-btn:hover {
-        opacity: 0.85;
-        cursor: pointer;
-    }
-
-    .generate-link {
-        display: block;
-        margin-top: 8px;
-        font-size: 12px;
-        color: #4db8ff;
-        cursor: pointer;
-    }
-
-    .modal .table-header.people,
-    .modal .row.people {
-        display: grid;
-        grid-template-columns: 40px 1fr 1.5fr 1fr;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 20px;
-    }
-
-    .modal .table-header.people {
-        background: transparent !important;
-        font-size: 16px;
-        opacity: 0.8;
-        font-weight: 500;
-    }
-
-    .modal .row.people {
-        border-top: 1px solid rgba(255,255,255,0.08);
-        padding: 12px 20px;
-    }
-
-    .modal .row.people:hover {
-        background: rgba(255,255,255,0.04);
-    }
-
-    .modal .table-header span:first-child,
-    .modal .row.people span:first-child {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .modal-search-wrapper {
-        margin: 10px 0;
+        
     }
 
     .modal-footer {
@@ -866,6 +840,7 @@
         justify-content: flex-end;
         gap: 10px;
         margin-top: 20px;
+        
     }
 
     .cancel {
@@ -889,10 +864,9 @@
         cursor: pointer;
     }
 
-    .modal input[type="checkbox"] {
-        cursor: pointer;
-        transform: scale(1.05);
+    .footer-divider {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        margin: 35px -20px 0 -20px;
     }
-
 
 </style>
