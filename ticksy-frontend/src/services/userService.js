@@ -12,3 +12,7 @@ export function getUserProfile(id) {
 export function updateUserProfile(id, updatedData) {
     return api.put(`/Users/${id}`, updatedData);
 }
+
+export function changePassword(data) {
+    return api.put("/Users/change-pass", data);
+}
