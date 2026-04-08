@@ -1,5 +1,5 @@
 <template>
-    <DimmedBg :show="isScheduleOpen" @close="isScheduleOpen = false" /> 
+    <DimmedBg :show="isScheduleOpen || isRequestOpen" @close="closeAllPanels" />
 
     <div class="dashboard">
         <div class="main-bg"></div>
@@ -30,12 +30,12 @@
                                     @actionClick="handleAddSchedule"
                                 >
                                     <template #header>
-                                        <Search />
+                                        <Search v-model="scheduleSearch" />
                                     </template>
 
                                     <template #body>
                                         <RowItem 
-                                            v-for="item in schedules" 
+                                            v-for="item in filteredSchedules" 
                                             :key="item.id" 
                                             :item="item"
                                             :icon="item.icon"
@@ -158,10 +158,10 @@
                             <div class="container">
                                 <div class="search-row">
                                     <div class="search-box">
-                                        <Search v-model="search" />
+                                        <Search v-model="requestSearch" />
                                     </div>
 
-                                    <button class="create-btn">
+                                    <button class="create-btn" @click="handleAddRequest">
                                         <FilePlus class="create-icon"/>
                                         <span>Create Request</span>
                                     </button>
@@ -184,9 +184,9 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="request in timeOffRequests" :key="request.name">
+                                            <tr v-for="request in filteredRequests" :key="request.id">
                                                 <td>
-                                                    <input type="checkbox" v-model="selectedRequests" :value="request.name" />
+                                                    <input type="checkbox" v-model="selectedRequests" :value="request.id" />
                                                 </td>
                                                 <td>{{ request.name }}</td>
                                                 <td>
@@ -195,7 +195,7 @@
                                                     </span>
                                                 </td>
                                                 <td>{{ request.reason }}</td>
-                                                <td>{{ request.r_date }}</td>
+                                                <td>{{ formatRange(request.r_date) }}</td>
                                                 <td>
                                                     <span :class="['status-badge', getStatusClass(request.status)]">
                                                         {{ request.status }}
@@ -218,15 +218,17 @@
                                     @actionClick="handleAddCalendar"
                                 >
                                     <template #header>
-                                        <Search />
+                                        <Search v-model="calendarSearch"/>
                                     </template>
 
                                     <template #body>
-                                        <RowItem 
-                                            v-for="item in calendars" 
-                                            :key="item.id" 
+                                        <RowItem
+                                            v-for="item in filteredCalendars" 
+                                            :key="item.id"
                                             :item="item"
                                             :icon="item.icon"
+                                            :class="{ active: activeCalendarName === item.name }"
+                                            @click="selectCalendar(item)"
                                         />
                                     </template>
 
@@ -236,8 +238,8 @@
                                 <div class="holiday-container">
                                     <div class="title-group">
                                         <div>
-                                            <span>United States - Texas (Imported Calendar)</span>
-                                            <span class="year-bubble">2026</span>
+                                            <span>{{ activeCalendarName }}</span>
+                                            <span class="year-bubble">{{ new Date().getFullYear().toString() }}</span>
                                         </div>
                                         
                                         <div class="btn-group">
@@ -260,9 +262,9 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr v-for="(holiday, index) in holidays" :key="index">
+                                                <tr v-for="(holiday, index) in selectedCalendar" :key="index">
                                                     <td>{{ holiday.name }}</td>
-                                                    <td>{{ holiday.date }}</td>
+                                                    <td>{{ formatDate(holiday.date) }}</td>
                                                     <td>{{ holiday.day }}</td>
                                                 </tr>
                                             </tbody>
@@ -282,6 +284,11 @@
         :isSidebarCollapsed="!isOpen"
         @close="isScheduleOpen = false"
     />
+    <RequestTimeOffPanel
+        :isOpen="isRequestOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="isRequestOpen = false"
+    />
 </template>   
 
 <script setup lang="ts">
@@ -293,17 +300,21 @@
     import DimmedBg from '../components/DimmedBg.vue'
     import Search from '../components/Search.vue'
     import RowItem from '../components/RowItem.vue'
-    import { calendars, timeOffRequests } from '../services/summaryData'
+    import { calendars } from '../services/summaryData'
     import sampleIMG from '../assets/sample_img.jpg'
-    import { holidays } from '../services/summaryData'
     import { SquarePen, SquarePlus, FilePlus, ChevronsRight } from 'lucide-vue-next'
-    import api from '../services/api'
     import { computed } from 'vue';
-import { getScheduleById, getSchedules } from '../services/schedule'
+    import { useSearch } from '../services/search'
+    import { getScheduleById, getSchedules } from '../services/schedule'
+    import { getRequests } from '../services/timeOff'
+    import { getCalendars } from '../services/calendars'
+    import { getHolidays } from '../services/holidays'
+    import { formatDate, formatDuration, formatFullDateTime, formatRange, formatTime } from '../services/formatting'
+    import RequestTimeOffPanel from '../components/RequestTimeOffPanel.vue'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
-
+    const isRequestOpen = ref(false)
     const isOpen = ref(true)
 
     const selectedRequests = ref([]);
@@ -311,7 +322,7 @@ import { getScheduleById, getSchedules } from '../services/schedule'
 
     const toggleAllRequests = () => {
         if (selectAllRequests.value) {
-            selectedRequests.value = timeOffRequests.value.map(r => r.name); 
+            selectedRequests.value = filteredRequests.value.map(r => r.id); 
         } else {
             selectedRequests.value = []; 
         }
@@ -369,50 +380,9 @@ import { getScheduleById, getSchedules } from '../services/schedule'
     function handleAddSchedule() {
         isScheduleOpen.value = true;
     }
-
-    function closeSchedule() {
-        isScheduleOpen.value = false;
+    function handleAddRequest() {
+        isRequestOpen.value = true;
     }
-
-    const formatTime = (timeString: string | null) => {
-        if (!timeString) return '--:--';
-
-        const [hoursStr, minutesStr] = timeString.split(':');
-        let hours = parseInt(hoursStr);
-        const minutes = minutesStr;
-
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-
-        return `${hours}:${minutes} ${ampm}`;
-    };
-
-    const formatDuration = (timeString: string | null) => {
-        if (!timeString) return '--:--';
-
-        const [hoursStr, minutesStr] = timeString.split(':');
-        let hours = parseInt(hoursStr);
-        const minutes = minutesStr;
-
-        return `${hours}.${minutes}`;
-    };
-
-    const formatFullDateTime = (isoString: string | null) => {
-        if (!isoString) return '--';
-        
-        const date = new Date(isoString);
-        
-        return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
 
     const schedules = ref<{ id: number, name: string, label?: string, icon: any }[]>([]);
     const selectedSchedule = ref<any>(null);
@@ -441,8 +411,51 @@ import { getScheduleById, getSchedules } from '../services/schedule'
         }
     }
 
+    const requests = ref([]);
+
+    async function loadTimeOffRequests() {
+        try {
+            requests.value = await getRequests();
+        } catch (error) {
+            console.error("Failed to load requests:", error);
+        }
+    }
+
+    const calendars = ref([]);
+    const selectedCalendar = ref<any>([]);
+    const activeCalendarName = ref("");
+
+    async function loadCalendars() {
+        try {
+            calendars.value = await getCalendars();
+
+            if (calendars.value.length > 0) {
+                await selectCalendar(calendars.value[0]);
+            }
+        } catch (error) {
+            console.error("Failed to load calendars:", error);
+        }
+    }
+
+    async function selectCalendar(item: any) {
+        try {
+            console.log("Calendar clicked!", item);
+            activeCalendarName.value = item.name;
+            
+            try {
+                selectedCalendar.value = await getHolidays(item.id, new Date().getFullYear().toString());
+            } catch (error) {
+                console.error("Error fetching calendar details:", error);
+            }
+        } catch (error) {
+            console.error("Error fetching calendar details:", error);
+        }
+    }
+
     onMounted(() => {
         loadSchedules();
+        loadTimeOffRequests();
+        loadCalendars();
     });
 
     const totalWeeklyHours = computed(() => {
@@ -483,6 +496,10 @@ import { getScheduleById, getSchedules } from '../services/schedule'
     const scheduledDaysCount = computed(() => {
         return selectedSchedule.value?.days.filter(d => !d.isRestDay).length || 0;
     });
+
+    const { search: scheduleSearch, filtered: filteredSchedules } = useSearch(schedules, ['name']);
+    const { search: requestSearch, filtered: filteredRequests } = useSearch(requests, ['name', 'reason', 'type']);
+    const { search: calendarSearch, filtered: filteredCalendars } = useSearch(calendars, ['name']);
 
 </script>
 
