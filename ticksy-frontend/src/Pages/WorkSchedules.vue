@@ -1,5 +1,5 @@
 <template>
-    <DimmedBg :show="isScheduleOpen || isRequestOpen" @close="closeAllPanels" />
+    <DimmedBg :show="isScheduleOpen || isRequestOpen || isCalendarOpen" @close="closeAllPanels" />
 
     <div class="dashboard">
         <div class="main-bg"></div>
@@ -295,6 +295,11 @@
         @close="isAddBreakOpen = false"
         @save="handleSaveBreak"
     />
+    <AddCalendarPanel
+        :isOpen="isRequestOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="isRequestOpen = false"
+    />
 
 </template>   
 
@@ -318,11 +323,13 @@
     import { getHolidays } from '../services/holidays'
     import { formatDate, formatDuration, formatFullDateTime, formatRange, formatTime } from '../services/formatting'
     import RequestTimeOffPanel from '../components/RequestTimeOffPanel.vue'
+    import AddCalendarPanel from '../components/AddCalendarPanel.vue'
     import AddBreak from '../components/AddBreak.vue'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
     const isRequestOpen = ref(false)
+    const isCalendarOpen = ref(false)
     const isOpen = ref(true)
     const isAddBreakOpen = ref(false)
 
@@ -394,6 +401,9 @@
         isScheduleOpen.value = true;
     }
     function handleAddRequest() {
+        isRequestOpen.value = true;
+    }
+    function handleAddCalendar() {
         isRequestOpen.value = true;
     }
 
