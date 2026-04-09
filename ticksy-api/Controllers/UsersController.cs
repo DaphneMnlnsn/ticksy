@@ -220,7 +220,7 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Password changed successfully." });
     }
 
-    [HttpPut("forgot-pass")] //PENDING TEST
+    [HttpPost("forgot-pass")] //PENDING TEST
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         
@@ -237,7 +237,7 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var resetLink = $"http://localhost:3000/reset-password?token={token}";
+        var resetLink = $"http://localhost:5173/reset-password?token={token}";
 
         var body = $@"
             <h3>Password Reset</h3>

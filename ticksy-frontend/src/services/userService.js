@@ -16,3 +16,13 @@ export function updateUserProfile(id, updatedData) {
 export function changePassword(data) {
     return api.put("/Users/change-pass", data);
 }
+
+export async function forgotPassword(email) {  
+    const res = await api.post("/Users/forgot-pass", { email });  
+    return res.data;  
+}
+
+export async function resetPassword(data) {
+    const res = await api.put("/Users/reset-pass", data)
+    return res.data
+}

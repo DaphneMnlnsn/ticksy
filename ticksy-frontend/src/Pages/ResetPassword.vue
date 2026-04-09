@@ -1,86 +1,116 @@
 <template>
-	<div class="page-wrapper">
-		<div class="page-bg"></div>
+    <div class="page-wrapper">
+        <div class="page-bg"></div>
 
-		<div class="root">
-		
-		<div class="header-section">
-			<img :src="logo" alt="Logo" class="logo" />
-			<h1>Forgot Password</h1>
-			<h5>Enter your email to reset your password.</h5>
-		</div>
+        <div class="root">
+        <div class="header-section">
+            <img :src="logo" alt="Logo" class="logo" />
+            <h1>Reset Password</h1>
+            <h5>Enter your new password.</h5>
+        </div>
 
-		<div class="login-container">
-			<form @submit.prevent="handleReset">
+        <div class="login-container">
+            <form @submit.prevent="handleReset">
 
-			<div class="input-group">
-				<Mail class="icon" />
-				<input
-				type="email"
-				v-model="email"
-				placeholder="Enter your email"
-				required
-				/>
-			</div>
+            <div class="input-group">
+                <input
+                type="password"
+                v-model="newPassword"
+                placeholder="New Password"
+                required
+                />
+            </div>
 
-			<button type="submit">Send Reset Link</button>
+            <div class="input-group">
+                <input
+                type="password"
+                v-model="confirmPassword"
+                placeholder="Confirm Password"
+                required
+                />
+            </div>
 
-			<div class="links">
-				<router-link to="/login">Back to Login</router-link>
-			</div>
+            <button type="submit" :disabled="isLoading">
+                {{ isLoading ? "Updating..." : "Reset Password" }}
+            </button>
 
-			</form>
-		</div>
-		</div>
+            <div class="links">
+                <router-link to="/login">Back to Login</router-link>
+            </div>
+            </form>
+        </div>
+        </div>
+
         <Toast
-            :message="toastMessage"
-            :type="toastType"
-            :icon="toastIcon"
-            @finished="toastMessage = ''"
+        :message="toastMessage"
+        :type="toastType"
+        :icon="toastIcon"
+        @finished="toastMessage = ''"
         />
-	</div>
+    </div>
 </template>
 
 <script setup>
-	import { ref } from "vue"
-	import { Mail } from "lucide-vue-next"
-	import { useRouter, useRoute } from "vue-router"
-	import logo from "../assets/ticksy_logo.png"
-    import { forgotPassword } from "../services/userService"
+    import { ref } from "vue"
+    import { useRouter, useRoute } from "vue-router"
+    import logo from "../assets/ticksy_logo.png"
     import Toast from "../components/Toast.vue"
     import { CheckCircle, XCircle } from "lucide-vue-next"
+    import { resetPassword } from "../services/userService" 
 
-	const router = useRouter()
+    const router = useRouter()
     const route = useRoute()
-    const token = route.query.token
-	const email = ref("")
+    const token = route.query.token || ""
+
+    const newPassword = ref("")
+    const confirmPassword = ref("")
+    const isLoading = ref(false)
+
     const toastMessage = ref("")
     const toastType = ref("success")
     const toastIcon = ref(null)
 
-	async function handleReset() {
+    async function handleReset() {
+        if (newPassword.value !== confirmPassword.value) {
+            toastMessage.value = ""
+            setTimeout(() => {
+                toastMessage.value = "Passwords do not match."
+                toastType.value = "error"
+                toastIcon.value = XCircle
+            }, 10)
+            return
+        }
+
+        isLoading.value = true
+
         try {
-            const data = await forgotPassword(email.value)
+            await resetPassword({
+                passwordResetToken: token,
+                newPassword: newPassword.value
+            })
 
             toastMessage.value = ""
             setTimeout(() => {
-                toastMessage.value = data.message
+                toastMessage.value = "Password reset successful!"
                 toastType.value = "success"
                 toastIcon.value = CheckCircle
             }, 10)
 
+            setTimeout(() => {
+                router.push("/login")
+            }, 2000)
         } catch (error) {
             console.error(error)
-
             toastMessage.value = ""
             setTimeout(() => {
-                toastMessage.value = "Something went wrong."
+                toastMessage.value = "Failed to reset password."
                 toastType.value = "error"
                 toastIcon.value = XCircle
             }, 10)
+        } finally {
+            isLoading.value = false
         }
     }
-
 </script>
 
 <style scoped>
