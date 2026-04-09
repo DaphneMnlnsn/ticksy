@@ -2,9 +2,17 @@ import api from "./api";
 import { ChevronsRight, Download } from 'lucide-vue-next'
 import { ref } from "vue";
 
-export async function createCalendar(payload) {
-    const res = await api.post("/Calendars/create", payload);
+export async function createCalendar(payload, country = null) {
+    const config = country ? { params: { country } } : {};
+    
+    const res = await api.post("/Calendars/create", payload, config);
     return res.data;
+}
+
+export async function getSupportedCountries() {
+    const response = await fetch('https://date.nager.at/api/v3/AvailableCountries');
+    if (!response.ok) throw new Error('Failed to fetch countries');
+    return await response.json();
 }
 
 export async function getCalendars() {

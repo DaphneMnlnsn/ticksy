@@ -1,7 +1,7 @@
 <template>
-    <transition name="slide-workschedule">
+    <transition name="slide-calendar">
         <div v-if="isOpen" 
-            class="request-panel"
+            class="calendar-panel"
             :style="{ borderright: isSidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)' }"
         >   
             <transition name="fade">
@@ -11,172 +11,101 @@
                 </div>
             </transition>
 
-            <div class="request-header">
-                <h3>Request Time Off</h3>
+            <div class="calendar-header">
+                <h3>Add New Calendar</h3>
                 <button class="icon-btn" @click="emit('close')"><X/></button>
             </div>
             
-            <div class="request-content">
-
+            <div class="calendar-content">
                 <div class="input-group">
-                    <label class="form-label">Type</label>
-                    <select v-model="selectedPolicy" class="form-select">
-                        <option disabled value="">Select a leave type</option>
-                        
-                        <option v-for="policy in policies" :key="policy.id" :value="policy.name">
-                            {{ policy.name }}
-                        </option>
-                    </select>
+                    <div class="label-header">
+                        <label class="form-label">Calendar name</label>
+                        <span v-if="errors.name" class="error-msg">*Required</span>
+                    </div>
+                    <input type="text" v-model="calendarName" placeholder="Calendar name" />
+                    <div class="radio-group">
+                        <input type="checkbox" v-model="autoClockIn" /> 
+                        <div class="form-label" >Make default?</div>
+                    </div>
                 </div>
 
                 <div class="input-group">
-                    <label class="form-label">Reason</label>
-                    <div class="textarea-field">
-                        <textarea placeholder="Add a Note" v-model="note"></textarea>
-                    </div>
-                    <span v-if="errors.name" class="error-msg">*Required</span>
-                </div>
-
-                <div class="date-section">
-                    <div class="date-header">
-                        <label class="form-label">Date</label>
-                        <div class="same-day-toggle">
-                            <input type="checkbox" id="sameDay" v-model="isSameDay" />
-                            <label for="sameDay">same day</label>
-                        </div>
-                    </div>
-
-                    <div class="time-row">
-                        <div v-if="scheduleType === 'Fixed'" class="duration-input">
-                            <input 
-                                v-if="isSameDay" 
-                                type="date" 
-                                v-model="startDate" 
-                                @change="endDate = startDate"
-                                class="time-box full-width" 
-                            />
-
-                            <template v-else>
-                                <input type="date" v-model="startDate" class="time-box" />
-                                <MoveRight :size="18" class="arrow-icon" />
-                                <input type="date" v-model="endDate" class="time-box" />
-                            </template>
-                        </div>
+                    <div class="input-header">
+                        <label class="form-label">Holidays</label>
+                        <select v-model="form.region" class="form-select">
+                            <option value="" disabled selected>Select a region</option>
+                            <option v-for="c in countries" :key="c.countryCode" :value="c.countryCode">
+                                {{ c.name }}
+                            </option>
+                        </select>
                     </div>
                 </div>
             </div>
 
             <div class="footer-actions">
-                <button class="btn-cancel" @click="emit('close')">Cancel</button>
-                <button class="btn-save" @click="saveSchedule">Save</button>
+                <button class="btn-save" @click="saveCalendar">Save</button>
             </div>
         </div>
     </transition>
 </template>
 
 <script setup>
-    import { ref, watch, onMounted } from "vue";
-    import { MoveRight, X, CheckCircle } from "lucide-vue-next";
-    import { createRequest, getPolicies } from "../services/timeOff";
-
-    const policies = ref([]);
-    const selectedPolicy = ref("");
-
-    onMounted(async () => {
-        try {
-            const data = await getPolicies();
-            policies.value = data;
-            
-            if (data.length > 0) {
-                selectedPolicy.value = data[0].name;
-            }
-        } catch (err) {
-            console.error("Failed to fetch policies:", err);
-        }
-    });
+    import { ref, onMounted } from "vue";
+    import { X, CheckCircle } from "lucide-vue-next";
+    import { createCalendar } from "../services/calendars"; 
+    import { getSupportedCountries } from "../services/calendars";
 
     const props = defineProps({
         isOpen: Boolean,
         isSidebarCollapsed: Boolean
     });
+
     const emit = defineEmits(['close', 'setup-finished']);
-    const formatTime = (time) => time ? `${time}:00` : null;
 
-    const scheduleName = ref('');
-    const scheduleType = ref('Fixed');
-    const errors = ref({ name: false, days: false });
-    const isTouched = ref(false);
+    const countries = ref([]);
+    const calendarName = ref('');
+    const autoClockIn = ref(false);
     const showToast = ref(false);
-
-    const dayInitials = ['M', 'T', 'W', 'TH', 'F', 'S', 'S'];
-    const dayMap = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-    const scheduleData = ref({
-        'Monday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Tuesday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Wednesday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Thursday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Friday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Saturday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
-        'Sunday': { selected: false, start: '09:00', end: '17:00', hours: 0, minutes: 0 },
+    const form = ref({
+        region: ''
     });
+    const errors = ref({ name: false });
 
-    const weeklyTotal = ref({ hours: 40, minutes: 0 });
-
-    const isSameDay = ref(false);
-    const startDate = ref('');
-    const endDate = ref('');
-
-    watch(isSameDay, (val) => {
-        if (val) endDate.value = startDate.value;
-    });
-
-    watch(scheduleName, (newName) => {
-        if (newName.trim().length === 0) {
-            errors.value.name = true;
-        } else {
-            errors.value.name = false;
+    onMounted(async () => {
+        try {
+            countries.value = await getSupportedCountries();
+        } catch (err) {
+            console.error("Error loading countries:", err);
         }
-    })
+    });
 
-    function toggleDay(index) {
-        const dayName = dayMap[index];
-        scheduleData.value[dayName].selected = !scheduleData.value[dayName].selected;
-    }
-
-    const note = ref('');
-    const timezone = ref('');
-
-    async function saveSchedule() {
-        errors.value.name = !startDate.value;
-        if (!startDate.value || (!isSameDay.value && !endDate.value)) {
-            alert("Please select dates.");
+    async function saveCalendar() {
+        if (!calendarName.value.trim()) {
+            errors.value.name = true;
             return;
         }
 
         try {
             const payload = {
-                leaveType: selectedPolicy.value,
-                startDate: startDate.value,
-                endDate: isSameDay.value ? startDate.value : endDate.value,
-                reason: note.value
+                name: calendarName.value,
+                source: form.value.region ? 2 : 1 
             };
 
-            const result = await createRequest(payload);
+            await createCalendar(payload, form.value.region);
 
             showToast.value = true;
+            
             setTimeout(() => {
                 showToast.value = false;
                 emit('setup-finished');
                 emit('close');
-                startDate.value = '';
-                endDate.value = '';
-                note.value = '';
+                calendarName.value = '';
+                form.value.region = '';
             }, 2000);
 
         } catch (err) {
             console.error("Save Error:", err);
-            const errorMsg = err.response?.data || "Failed to save leave request";
+            const errorMsg = err.response?.data || "Failed to save calendar";
             alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
         }
     }
@@ -184,7 +113,7 @@
 
 <style scoped>
 
-    .request-panel {
+    .calendar-panel {
         position: fixed;
         top: 0;
         right: 0;
@@ -198,7 +127,7 @@
         box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
     }
 
-    .request-header {
+    .calendar-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -206,7 +135,7 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .request-header h3 {
+    .calendar-header h3 {
         font-size: 1.2rem;
         font-weight: 500;
         margin-left: 30px;
@@ -223,47 +152,45 @@
         outline: none;
     }
 
-    .request-content {
+    .calendar-content {
         flex: 1;
         overflow-y: auto;
         padding: 24px;
     }
 
-    .request-content::-webkit-scrollbar {
+    .calendar-content::-webkit-scrollbar {
         width: 8px;
     }
 
-    .request-content::-webkit-scrollbar-thumb {
+    .calendar-content::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.1); 
         border-radius: 10px; 
         border: 2px solid transparent; 
         background-clip: content-box; 
     }
 
-    .request-content::-webkit-scrollbar-thumb:hover {
+    .calendar-content::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.25); 
     }
 
 
-    .request-content::-webkit-scrollbar-track {
+    .calendar-content::-webkit-scrollbar-track {
         background: transparent; 
-    }
-
-    .form-select {
-        background-color: #00386780;
-        padding: 12px;
-        font-size: 12px;
-        border-radius: 5px;
-        width: 100%;
-        margin-bottom: 5px;
-
-        border: none;
-        outline: none;
-        box-shadow: none;
     }
 
     .input-group {
         margin-bottom: 24px;
+    }
+    .radio-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+    .radio-group input {
+        width: 5%;
+        accent-color: #003867;
     }
 
     .form-label {
@@ -283,7 +210,7 @@
         outline: none;
     }
 
-    .request-type, .day-picker {
+    .calendar-type, .day-picker {
         display: flex;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -293,7 +220,7 @@
         transition: background 0.2s ease;
     }
 
-    .request-type button, .day-btn {
+    .calendar-type button, .day-btn {
         flex: 1;
         background: transparent;
         border: none;
@@ -345,20 +272,6 @@
         outline: none;
     }
 
-    .textarea-field textarea {
-        width: 100%;
-        font-size: 14px;
-        height: 140px;
-        background: #00233d;
-        border: none;
-        border-radius: 6px;
-        padding: 16px;
-        color: white;
-        resize: none;
-        outline: none;
-        font-family: inter;
-    }
-
     .arrow-icon {
         margin: 0 5px -5px 5px;
     }
@@ -380,6 +293,24 @@
         font-weight: 500;
         letter-spacing: 0.3px;
         animation: errorShake 0.4s ease-in-out;
+    }
+
+    .form-select {
+        background-color: #00386780;
+        padding: 12px;
+        font-size: 12px;
+        border-radius: 5px;
+        width: 100%;
+        margin-bottom: 5px;
+
+        border: none;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .form-select option {
+        background: #001527;
+        color: white;
     }
 
     @keyframes errorShake {
@@ -426,13 +357,13 @@
         opacity: 0.8;
     }
 
-    .slide-workschedule-enter-active,
-    .slide-workschedule-leave-active {
+    .slide-calendar-enter-active,
+    .slide-calendar-leave-active {
         transition: transform 0.3s ease;
     }
 
-    .slide-workschedule-enter-from,
-    .slide-workschedule-leave-to {
+    .slide-calendar-enter-from,
+    .slide-calendar-leave-to {
         transform: translateX(100%);
     }
 
@@ -480,23 +411,6 @@
         margin-top: 10px;
     }
 
-    .duration-input.large {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .duration-input {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-    }
-
-    .time-box.full-width {
-        flex: 1;
-    }
-
     .same-day-toggle {
         display: flex;
         align-items: center;
@@ -504,6 +418,12 @@
         font-size: 0.85rem;
         color: var(--text-secondary);
         cursor: pointer;
+    }
+
+    .duration-input.large {
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
     .duration-input.large .time-box {

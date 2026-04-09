@@ -20,20 +20,69 @@ public class CalendarsController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPost("create")]
-    public async Task<IActionResult> CreateCalendar([FromBody] CalendarListDto dto)
+    public async Task<IActionResult> CreateCalendar([FromBody] CalendarListDto dto, [FromQuery] string? country = null)
     {
-                
+        if (await _context.HolidayCalendars.AnyAsync(c => 
+            c.Name.ToLower() == dto.Name.ToLower()))
+            return BadRequest("A calendar with this name already exists.");
+
         var calendar = new HolidayCalendar
         {
-            Name =  dto.Name,
+            Name = dto.Name,
             Source = dto.Source,
+            ExternalCalendarId = country
         };
 
-        _context.HolidayCalendars.Add(calendar);
+        if (!string.IsNullOrEmpty(country))
+        {
+            calendar.Source = Holiday.HolidaySource.Imported;
+        }
 
+        _context.HolidayCalendars.Add(calendar);
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Calendar created successfully." });
+        if (!string.IsNullOrEmpty(country))
+        {
+            int currentYear = DateTime.UtcNow.Year;
+            await ExecuteHolidayImport(calendar.Id, currentYear, country);
+        }
+
+        return Ok(new { 
+            message = "Calendar created successfully.", 
+            id = calendar.Id,
+            calendar = calendar.Name
+        });
+    }
+
+    private async Task<int> ExecuteHolidayImport(int calendarId, int year, string country)
+    {
+        var url = $"https://date.nager.at/api/v3/PublicHolidays/{year}/{country}";
+        var response = await _httpClient.GetAsync(url);
+        if (!response.IsSuccessStatusCode) return 0;
+
+        var content = await response.Content.ReadAsStringAsync();
+        var externalHolidays = System.Text.Json.JsonSerializer.Deserialize<List<ExternalHolidayDto>>(content, 
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (externalHolidays == null) return 0;
+
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var newHolidays = externalHolidays.Select(eh => new Holiday
+        {
+            Name = eh.LocalName ?? eh.Name,
+            Date = DateOnly.FromDateTime(eh.Date),
+            Type = Holiday.HolidayType.Imported,
+            CalendarId = calendarId,
+            CreatedBy = userId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }).ToList();
+
+        _context.Holidays.AddRange(newHolidays);
+        await _context.SaveChangesAsync();
+        
+        return newHolidays.Count;
     }
 
     [Authorize]
@@ -53,7 +102,7 @@ public class CalendarsController : ControllerBase
     }
 
     [Authorize(Roles = "Admin")]
-    [HttpPost("{id}/import")]
+    [HttpPost("import/{id}")]
     public async Task<IActionResult> ImportHolidays(int id, [FromQuery] int year, [FromQuery] string country)
     {
         var calendar = await _context.HolidayCalendars.FindAsync(id);
