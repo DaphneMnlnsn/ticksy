@@ -63,7 +63,7 @@
                 <img :src="user.avatar || sampleIMG" class="avatar" @error="handleImageError" />
 
                 <span :class="{ 'text-hidden': !props.isOpen }">
-                    {{ user.name }}
+                    {{ user.firstName }}
                 </span>
 
                 <component 
@@ -443,6 +443,10 @@
         width: 100%;
         border-top: 2px solid white;
         padding-top: 25px;
+    }
+
+    .profile-link span {
+        font-weight: 600; 
     }
 
     .avatar {

@@ -7,6 +7,7 @@ import ReportsAnalytics from '../Pages/ReportsAnalytics.vue'
 import Timesheets from '../Pages/Timesheets.vue'
 import People from '../Pages/People.vue'
 import WorkSchedules from '../Pages/WorkSchedules.vue'
+import ResetPassword from '../Pages/ResetPassword.vue'
 
 const routes = [
     {
@@ -17,13 +18,17 @@ const routes = [
         path: '/dashboard',
         component: Dashboard
     },
-     {
+    {
         path: '/login',
         component: LoginPage
     },
     {
         path: '/forgot-password', 
         component: ForgotPassword
+    },
+    {
+        path: "/reset-password",
+        component: ResetPassword
     },
     {
         path: '/reports-and-analytics', 

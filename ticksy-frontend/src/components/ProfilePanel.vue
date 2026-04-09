@@ -124,12 +124,7 @@
         isSidebarCollapsed: Boolean
     })
 
-    const timezones = [
-        ' ',
-        'Asia/Manila',
-        'UTC',
-        'America/New_York'
-    ]
+    const timezones = Intl.supportedValuesOf('timeZone');
 
     const form = ref({
         name: '',
