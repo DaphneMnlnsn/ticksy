@@ -8,15 +8,12 @@ import Timesheets from '../Pages/Timesheets.vue'
 import People from '../Pages/People.vue'
 import WorkSchedules from '../Pages/WorkSchedules.vue'
 import ResetPassword from '../Pages/ResetPassword.vue'
+import { isAuthenticated } from '../services/auth'
 
 const routes = [
     {
         path: '/create-account',
         component: CreateAccount
-    },
-    {
-        path: '/dashboard',
-        component: Dashboard
     },
     {
         path: '/login',
@@ -30,22 +27,41 @@ const routes = [
         path: "/reset-password",
         component: ResetPassword
     },
+
     {
-        path: '/reports-and-analytics', 
-        component: ReportsAnalytics
+        path: '/dashboard',
+        component: Dashboard,
+        meta: { requiresAuth: true }, 
+        roles: ['Admin','User'] 
     },
     {
         path: '/timesheets', 
-        component: Timesheets
-    },
-    {
-        path: '/management/people', 
-        component: People
+        component: Timesheets,
+        meta: { requiresAuth: true }, 
+        roles: ['Admin','User'] 
     },
     {
         path: '/management/work-schedules', 
-        component: WorkSchedules
+        component: WorkSchedules,
+        meta: { requiresAuth: true }, 
+        roles: ['Admin','User'] 
     },
+
+    // Admin-only !!!
+    {
+        path: '/reports-and-analytics', 
+        component: ReportsAnalytics,
+        meta: { requiresAuth: true }, 
+        roles: ['Admin'] 
+    },
+    {
+        path: '/management/people', 
+        component: People,
+        meta: { requiresAuth: true }, 
+        roles: ['Admin'] 
+    },
+
+    // Redirect
     {
         path: '/',
         redirect: '/login'
@@ -56,5 +72,20 @@ const router = createRouter({
     history: createWebHistory(),
     routes
 })
+
+router.beforeEach((to) => {
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('role');
+
+    if (to.meta.requiresAuth && !token) return '/login';
+
+    if ((to.path === '/login' || to.path === '/create-account') && token) return '/dashboard';
+
+    if (to.roles && !to.roles.includes(userRole)) {
+        return '/dashboard';
+    }
+
+    return true; 
+});
 
 export default router
