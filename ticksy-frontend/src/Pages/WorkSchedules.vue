@@ -122,7 +122,7 @@
                                                         <span>{{ breakItem.duration }} minutes</span>
                                                     </div>
                                                     <div class="btn-row">
-                                                        <button class="add-btn">+ Add Break</button>
+                                                        <button class="add-btn" @click="isAddBreakOpen = true">+ Add Break</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -289,6 +289,13 @@
         :isSidebarCollapsed="!isOpen"
         @close="isRequestOpen = false"
     />
+    <AddBreak
+        :isOpen="isAddBreakOpen"
+        :isSidebarCollapsed="!isospin"
+        @close="isAddBreakOpen = false"
+        @save="handleSaveBreak"
+    />
+
 </template>   
 
 <script setup lang="ts">
@@ -311,14 +318,20 @@
     import { getHolidays } from '../services/holidays'
     import { formatDate, formatDuration, formatFullDateTime, formatRange, formatTime } from '../services/formatting'
     import RequestTimeOffPanel from '../components/RequestTimeOffPanel.vue'
+    import AddBreak from '../components/AddBreak.vue'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
     const isRequestOpen = ref(false)
     const isOpen = ref(true)
+    const isAddBreakOpen = ref(false)
 
     const selectedRequests = ref([]);
     const selectAllRequests = ref(false);
+
+    const handleSaveBreak = (breakData) => {
+        console.log("New break received:", breakData);
+    };
 
     const toggleAllRequests = () => {
         if (selectAllRequests.value) {
