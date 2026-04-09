@@ -191,7 +191,12 @@
 
     function handleLogout () {
         if (confirm("Are you sure you want to logout?")) {
-            router.push('/')
+            localStorage.removeItem("token");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("role");
+            localStorage.clear();
+
+            router.push('/login');
         }
     }
 

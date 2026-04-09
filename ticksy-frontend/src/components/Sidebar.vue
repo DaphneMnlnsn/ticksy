@@ -12,46 +12,29 @@
 
         <nav class="sidebar-nav">
             <ul>
-                <li v-for="item in menuItems" :key="item.name">
-
-                    <div 
-                        v-if="item.children" 
-                        class="menu-link" 
-                        @click="toggleDropdown(item)"
-                    >
+                <li v-for="item in filteredMenuItems" :key="item.name">
+                    <div v-if="item.children" class="menu-link" @click="toggleDropdown(item)">
                         <component 
                             :is="CircleChevronDown"
                             class="icon arrow"
                             :class="{ 'rotated': manuallyOpened.includes(item.name) }"
                         />
                         <component :is="item.icon" class="icon" />
-                        <span :class="{ 'text-hidden': !props.isOpen }">
-                            {{ item.name }}
-                        </span>
+                        <span :class="{ 'text-hidden': !props.isOpen }">{{ item.name }}</span>
                     </div>
 
-                    <ul 
-                        v-if="item.children && props.isOpen"
-                        :class="['submenu', { open: manuallyOpened.includes(item.name) }]"
-                    >
+                    <ul v-if="item.children && props.isOpen" :class="['submenu', { open: manuallyOpened.includes(item.name) }]">
                         <li v-for="child in item.children" :key="child.name">
                             <router-link :to="child.path" class="submenu-link" :class="{ active: isActive(child.path) }">
-                            <component :is="child.icon" class="icon submenu-icon" />
-                            <span :class="{ 'text-hidden': !props.isOpen }">{{ child.name }}</span>
+                                <component :is="child.icon" class="icon submenu-icon" />
+                                <span :class="{ 'text-hidden': !props.isOpen }">{{ child.name }}</span>
                             </router-link>
                         </li>
                     </ul>
 
-                    <router-link 
-                        v-else-if="!item.children" 
-                        :to="item.path" 
-                        class="menu-link"
-                        :class="{ active: isActive(item.path) }"
-                    >
+                    <router-link v-else-if="!item.children" :to="item.path" class="menu-link" :class="{ active: isActive(item.path) }">
                         <component :is="item.icon" class="icon" />
-                        <span :class="{ 'text-hidden': !props.isOpen }">
-                            {{ item.name }}
-                        </span>
+                        <span :class="{ 'text-hidden': !props.isOpen }">{{ item.name }}</span>
                     </router-link>
 
                 </li>
@@ -94,65 +77,64 @@
 </template>
 
 <script setup>
-    import { onMounted, ref, defineProps, watchEffect } from 'vue'
+    import { ref, defineProps, computed, onMounted } from 'vue'
+    import { useRoute } from 'vue-router'
+    import { getUserProfile } from '../services/userService'
+    import ProfilePanel from './ProfilePanel.vue'
     import logo from "../assets/ticksy_logo_white.png"
     import sampleIMG from '../assets/sample_img.jpg'
-    import { LayoutDashboard, ClipboardClock, FileChartLine, 
-        CircleChevronDown, Users, SquareChartGantt, 
-        ChevronRight, ArrowRightFromLine, ArrowLeftFromLine 
-    } from 'lucide-vue-next';
-    import { useRoute } from 'vue-router'
-    import ProfilePanel from './ProfilePanel.vue'
-    import { getUserProfile } from '../services/userService'
+    import { LayoutDashboard, ClipboardClock, FileChartLine, CircleChevronDown, Users, SquareChartGantt, ChevronRight, ArrowRightFromLine, ArrowLeftFromLine } from 'lucide-vue-next'
+
+    const props = defineProps({
+    isOpen: { type: Boolean, default: true }
+    })
+
+    const savedUser = JSON.parse(localStorage.getItem("user") || "{}")
+
+    const user = ref({
+        firstName: savedUser.firstName || '',
+        role: savedUser.role || localStorage.getItem('role') || 'User',
+        avatar: savedUser.avatar || ''
+    })
 
     const route = useRoute()
     const manuallyOpened = ref([])
     const isProfileOpen = ref(false)
 
-    const props = defineProps({
-        menuItems: {
-            type: Array,
-            default: () => [
-                { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-                { name: 'Timesheets', path: '/timesheets', icon: ClipboardClock },
-                { name: 'Reports and Analytics', path: '/reports-and-analytics', icon: FileChartLine },
-                { name: 'Management',
-                    children: [
-                        {name: 'People', icon: Users, path: '/management/people' },
-                        {name: 'Work Schedules', icon: SquareChartGantt, path: '/management/work-schedules' }
-                    ]    
-                }
-            ]
-        },
-        isOpen: {
-            type: Boolean,
-            default: true
-        }
-    })
+    const menuItems = [
+        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Admin','User'] },
+        { name: 'Timesheets', path: '/timesheets', icon: ClipboardClock, roles: ['Admin','User'] },
+        { name: 'Reports and Analytics', path: '/reports-and-analytics', icon: FileChartLine, roles: ['Admin'] },
+        { name: 'Management', roles: ['Admin'], children: [
+            { name: 'People', icon: Users, path: '/management/people', roles: ['Admin'] },
+            { name: 'Work Schedules', icon: SquareChartGantt, path: '/management/work-schedules', roles: ['Admin','User'] }
+        ]}
+    ]
 
-    const user = ref({
-        name: '',
-        email: '',
-        role: '',
-        avatar: ''
+    const filteredMenuItems = computed(() => {
+    return menuItems
+        .map(item => {
+        const newItem = { ...item }
+        if (newItem.children) {
+            newItem.children = newItem.children.filter(c => c.roles.includes(user.value.role))
+            return newItem.children.length || newItem.roles.includes(user.value.role) ? newItem : null
+        }
+        return newItem.roles.includes(user.value.role) ? newItem : null
+        })
+        .filter(Boolean)
     })
 
     function toggleDropdown(item) {
         const index = manuallyOpened.value.indexOf(item.name)
-        if (index === -1) manuallyOpened.value.push(item.name)
-        else manuallyOpened.value.splice(index, 1)
-    }
-
-    function isDropdownOpen(item) {
-        return props.isOpen || manuallyOpened.value.includes(item.name)
-    }
-
-    function openProfileModal() {
-        isProfileOpen.value = !isProfileOpen.value
+        index === -1 ? manuallyOpened.value.push(item.name) : manuallyOpened.value.splice(index, 1)
     }
 
     function isActive(path) {
         return route.path === path
+    }
+
+    function openProfileModal() {
+        isProfileOpen.value = !isProfileOpen.value
     }
 
     function handleImageError(e) {
@@ -160,13 +142,20 @@
     }
 
     onMounted(async () => {
+        const cached = localStorage.getItem("user")
+
+        if (cached) {
+            user.value = JSON.parse(cached)
+        }
+
         try {
             const userId = localStorage.getItem('userId')
-
+            if (!userId) return
             const res = await getUserProfile(userId)
+
             const data = res.data
 
-            user.value = {
+            const freshUser = {
                 firstName: data.firstName,
                 middleName: data.middleName,
                 lastName: data.lastName,
@@ -174,26 +163,26 @@
                 email: data.email,
                 role: data.role,
                 avatar: data.avatarUrl,
-                phone: data.phone,           
+                phone: data.phone,
                 timezone: data.timeZone
             }
 
-        } catch (err) {
-            console.error('Failed to fetch user:', err)
-        }
-    })
+            user.value = freshUser
+            localStorage.setItem("user", JSON.stringify(freshUser))
 
-    onMounted(() => {
-        props.menuItems.forEach(item => {
+        } catch (err) {
+            console.error(err)
+        }
+
+        filteredMenuItems.value.forEach(item => {
             if (item.children) {
-                const childMatch = item.children.some(child => child.path === route.path)
-                if (childMatch && !manuallyOpened.value.includes(item.name)) {
+                const match = item.children.some(c => c.path === route.path)
+                if (match && !manuallyOpened.value.includes(item.name)) {
                     manuallyOpened.value.push(item.name)
                 }
             }
         })
     })
-
 </script>
 
 <style scoped>
