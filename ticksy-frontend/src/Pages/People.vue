@@ -83,9 +83,9 @@
 
                                     <div v-if="activeMenu === user.email" class="dropdown">
                                         <div class="dropdown-item" @click="openEdit(user)">
-    <Edit size="14" />
-    Edit
-</div>
+                                    <Edit size="14" />
+                                    Edit
+                                </div>
 
                                         <div class="dropdown-item archive">
                                             <Archive size="14" />
@@ -106,12 +106,13 @@
                                     </template>
 
                                     <template #body>
-                                        <div 
+                                     <div 
                                             v-for="team in filteredTeams"
                                             :key="team.id"
                                             class="team-item"
                                             :class="{ active: selectedTeam === team.id }"
                                             @click="selectedTeam = team.id"
+                                            
                                         >
                                             <div class="team-info">
                                                 <div class="team-name">{{ team.name }}</div>
@@ -165,10 +166,10 @@
                                         <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
                                         <div v-if="activeMenu === user.email" class="dropdown">
-                                            <div class="dropdown-item">
-                                                <Edit size="14" />
-                                                Edit
-                                            </div>
+                                            <div class="dropdown-item" @click="openEditTeam(user); activeMenu = null">
+                                            <Edit size="14" />
+                                            Edit
+                                        </div>
 
                                             <div class="dropdown-item archive">
                                                 <Archive size="14" />
@@ -186,24 +187,25 @@
     </div>
 
         <EditMemberPanel
-        v-model="showEditModal"
-        :user="selectedUserData"
-        :avatar="sampleIMG"
-        @save="handleSaveEdit"
+            v-model="showEditModal"
+            :user="selectedUserData"
+            :avatar="sampleIMG"
+            @save="handleSaveEdit"
         />
 
         <AddMemberPanel
-        v-model="showAddMemberModal"
-        :users="allUsers"
-        @save="handleAddMembers"
+            v-model="showAddMemberModal"
+            :users="allUsers"
+            @save="handleAddMembers"
         />
 
-        <EditMemberPanel
-        v-model="showEditModal"
-        :user="selectedUserData"
-        :avatar="sampleIMG"
-        @save="handleSaveEdit"
-    />
+       <EditTeamsPanel
+            v-model="showEditTeamModal"
+            :team="selectedTeamData"
+            :avatar="sampleIMG"
+            @save="handleSaveTeam"
+        />
+   
 </template>   
 
 <script setup>
@@ -220,6 +222,9 @@
     import { User, Mail, Phone } from 'lucide-vue-next'
     import SidePanel from '../components/SidePanel.vue'
     import EditMemberPanel from '../components/EditMemberPanel.vue'
+    import EditTeamsPanel from '../components/EditTeamsPanel.vue'
+
+   
     
     const activeTab = ref('members')
     const isOpen = ref(true)
@@ -343,8 +348,31 @@
     }
 
     import AddMemberPanel from '../components/AddMemberPanel.vue'
-    function handleAddMembers(selected) {
-        console.log('Members to add:', selected)
+        function handleAddMembers(selected) {
+            console.log('Members to add:', selected)
+    }
+
+    const props = defineProps(['modelValue', 'team'])
+    const emit = defineEmits(['update:modelValue', 'save'])
+    const showEditTeamModal = ref(false)
+    const selectedTeamData = ref(null)
+
+    function openEditTeam(user) {
+        selectedTeamData.value = { ...user }
+        showEditTeamModal.value = true
+    }
+
+    function handleSaveTeam(updatedUser) {
+
+    const team = teams.value.find(t => t.id === selectedTeam.value)
+
+    if (team) {
+        const index = team.users.findIndex(u => u.email === updatedUser.email)
+
+        if (index !== -1) {
+        team.users[index] = updatedUser
+        }
+    }
     }
 
 </script>
