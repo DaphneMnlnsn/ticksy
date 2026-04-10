@@ -1,10 +1,10 @@
 <template>
-    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+    <DimmedBg :show="isOpen" @close="emit('close')"></DimmedBg>
 
-    <transition name="slide-addBreak">
+    <transition name="slide-addHoliday">
         <div v-if="isOpen" 
-            class="addBreak-panel"
-            :style="{ borderright: isSidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)' }"
+            class="addHoliday-panel"
+            :style="{ borderRight: isSidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)' }"
         >   
             <transition name="fade">
                 <div v-if="showToast" class="success-toast">
@@ -13,48 +13,52 @@
                 </div>
             </transition>
 
-            <div class="addBreak-header">
-                <h3>Add Break Time</h3>
+            <div class="addHoliday-header">
+                <h3>Add Holiday</h3>
                 <button class="icon-btn" @click="emit('close')"><X/></button>
             </div>
             
-            <div class="addBreak-content">
+            <div class="addHoliday-content">
                 <div class="input-group">
                     <div class="label-header">
-                        <label class="form-label">Day of the Week</label>
-                        <span v-if="errors.days" class="error-msg">*Select at least one day</span>
+                        <label class="form-label">Holiday Name</label>
+                        <span v-if="errors.name" class="error-msg">*Required</span>
                     </div>
-                    <div class="day-picker">
-                        <button v-for="(initial, index) in dayInitials"
-                            :key="index" class="day-btn"
-                            :class="{ active: selectedDays.includes(dayMap[index])}"
-                            @click="toggleDay(dayMap[index])"
-                        > {{ initial }} </button>
+                    <input type="text" v-model="breakName" placeholder="Enter holiday name"/> 
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">Date</label>
+                    <div class="time-row">
+                        <input 
+                            type="date" 
+                            v-model="holidayDate" 
+                            class="time-box full-width" 
+                        />
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <div class="label-header">
-                        <label class="form-label">Break Name</label>
-                        <span v-if="errors.name" class="error-msg">*Required</span>
-                    </div>
-                    <input type="text" v-model="breakName"/> 
-                </div>
-                
-                <div class="duration-container">
-                    <label class="form-label">Duration</label>
-                    <div class="duration-input large">
-                        <input type="number" v-model="duration.hours" min="0" max="23" class="time-box small" />
-                        <span class="unit-label"> h</span>
-                        <input type="number" v-model="duration.minutes" min="0" max="59" class="time-box small" />
-                        <span class="unit-label"> m</span>
+                    <label class="form-label">Type</label>
+                    <div class="holiday-type">
+                        <button 
+                            v-for="type in ['Public', 'Company-Specific']"
+                            :key="type" 
+                            type="button"
+                            :class="{ active: scheduleType === type }"
+                            @click="scheduleType = type"
+                        > 
+                            {{ type }} 
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="footer-actions">
                 <button class="btn-cancel" @click="emit('close')">Cancel</button>
-                <button class="btn-save" @click="handleSave">Save</button>
+                <button class="btn-save" @click="handleSave" :disabled="isSaving">
+                    {{ isSaving ? 'Saving...' : 'Save' }}
+                </button>
             </div>
         </div>
     </transition>
@@ -64,88 +68,83 @@
     import { ref, watch } from "vue";
     import { X, CheckCircle } from "lucide-vue-next";
     import DimmedBg from "./DimmedBg.vue";
-    import { addBreak } from "../services/schedule";
+    import { createHoliday } from "../services/holidays";
 
     const props = defineProps({
         isOpen: Boolean,
         isSidebarCollapsed: Boolean,
-        scheduleId: [Number, String]
+        calendarId: Number
     });
-    
-    const emit = defineEmits(['close', 'setup-finished']);
-
-    const showToast = ref(false);
-    const isSaving = ref(false);
-    const selectedDays = ref([]);
-    const breakName = ref('');
-    const duration = ref({ hours: 0, minutes: 30 });
-
-    const dayInitials = ['M', 'T', 'W', 'TH', 'F', 'S', 'S'];
-    const dayMap = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const errors = ref({ name: false, days: false });
-
-    const formatDuration = () => {
-        const h = String(duration.value.hours).padStart(2, '0');
-        const m = String(duration.value.minutes).padStart(2, '0');
-        return `${h}:${m}:00`; 
-    };
 
     const handleSave = async () => {
         if (isSaving.value) return;
-
-        errors.value.name = !breakName.value.trim();
-        errors.value.days = selectedDays.value.length === 0;
-        if (errors.value.name || errors.value.days) return;
+        if (!breakName.value.trim()) {
+            errors.value.name = true;
+            return;
+        }
 
         isSaving.value = true;
 
-        try {
-            const payload = {
-                scheduleId: props.scheduleId,
-                breakName: breakName.value,
-                days: selectedDays.value,
-                breakDuration: formatDuration()
-            };
+        const typeMapping = {
+            'Public': 'Public',
+            'Company-Specific': 'CompanySpecific'
+        };
 
-            await addBreak(payload);
+        const payload = {
+            Name: breakName.value.trim(),
+            Date: holidayDate.value,
+            Type: typeMapping[scheduleType.value],
+            CalendarId: props.calendarId || 1
+        };
+
+        try {
+            const result = await createHoliday(payload);
+            emit('save', result);
 
             showToast.value = true;
-            
             setTimeout(() => {
                 showToast.value = false;
                 resetForm();
-                emit('setup-finished');
                 emit('close');
-            }, 2000);
+            }, 1500);
 
-        } catch (err) {
+        } catch (error) {
+            console.error("Failed to create holiday:", error.response?.data || error);
+            alert("Could not save holiday. Check console for details.");
+        } finally {
             isSaving.value = false;
-            const msg = err.response?.data || "Error adding break";
-            alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
         }
     };
+    
+    const emit = defineEmits(['close', 'save']);
+
+    const breakName = ref('');
+    const holidayDate = ref(new Date().toISOString().substr(0, 10));
+    const scheduleType = ref('Public');
+    
+    const showToast = ref(false);
+    const isSaving = ref(false);
+
+    const errors = ref({
+        name: false
+    });
+
+    watch(breakName, (val) => {
+        if (val.trim()) errors.value.name = false;
+    });
 
     const resetForm = () => {
         breakName.value = "";
-        selectedDays.value = [];
-        duration.value = { hours: 0, minutes: 30 };
+        holidayDate.value = new Date().toISOString().substr(0, 10);
+        scheduleType.value = "Public";
         isSaving.value = false;
-    };
-
-    const toggleDay = (day) => {
-        const index = selectedDays.value.indexOf(day);
-        if (index > -1) {
-            selectedDays.value.splice(index, 1);
-        } else {
-            selectedDays.value.push(day);
-            errors.value.days = false;
-        }
+        errors.value.name = false;
     };
 </script>
 
 <style scoped>
 
-    .addBreak-panel {
+    .addHoliday-panel {
         position: fixed;
         top: 0;
         right: 0;
@@ -159,7 +158,7 @@
         box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
     }
 
-    .addBreak-header {
+    .addHoliday-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -167,7 +166,7 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .addBreak-header h3 {
+    .addHoliday-header h3 {
         font-size: 1.2rem;
         font-weight: 500;
         margin-left: 30px;
@@ -184,29 +183,29 @@
         outline: none;
     }
 
-    .addBreak-content {
+    .addHoliday-content {
         flex: 1;
         overflow-y: auto;
         padding: 24px;
     }
 
-    .addBreak-content::-webkit-scrollbar {
+    .addHoliday-content::-webkit-scrollbar {
         width: 8px;
     }
 
-    .addBreak-content::-webkit-scrollbar-thumb {
+    .addHoliday-content::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.1); 
         border-radius: 10px; 
         border: 2px solid transparent; 
         background-clip: content-box; 
     }
 
-    .addBreak-content::-webkit-scrollbar-thumb:hover {
+    .addHoliday-content::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.25); 
     }
 
 
-    .addBreak-content::-webkit-scrollbar-track {
+    .addHoliday-content::-webkit-scrollbar-track {
         background: transparent; 
     }
 
@@ -322,13 +321,13 @@
         opacity: 0.8;
     }
 
-    .slide-addBreak-enter-active,
-    .slide-addBreak-leave-active {
+    .slide-addHoliday-enter-active,
+    .slide-addHoliday-leave-active {
         transition: transform 0.3s ease;
     }
 
-    .slide-addBreak-enter-from,
-    .slide-addBreak-leave-to {
+    .slide-addHoliday-enter-from,
+    .slide-addHoliday-leave-to {
         transform: translateX(100%);
     }
 
@@ -421,5 +420,112 @@
         outline: none;
         border-color: #3b82f6;
         background: #002a4d;
+    }
+
+    .holiday-type, .day-picker {
+        display: flex;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        overflow: hidden;
+        gap: 0;
+        transition: background 0.2s ease;
+    }
+
+    .holiday-type button, .day-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: white;
+        padding: 10px 0;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s ease;
+        margin: 2px;  
+        border-radius: 7px;
+    }
+
+    .duration-input.large {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .duration-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .time-box.full-width {
+        flex: 1;
+    }
+
+    .same-day-toggle {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+
+    .duration-input.large .time-box {
+        width: 65px;
+        height: 40px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: center;
+        background: #001e36; 
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: white;
+    }
+
+    .duration-input.large .time-box:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #002a4d;
+    }
+
+    .duration-inputs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: white;
+    }
+
+    .time-box.small {
+        width: 50px;
+        text-align: center;
+        background: #001a33;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .time-inputs {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .time-box {
+        background: #001a33;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        outline: none;
+    }
+
+    .time-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid transparent;
     }
 </style>

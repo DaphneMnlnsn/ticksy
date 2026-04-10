@@ -1,5 +1,5 @@
 <template>
-    <DimmedBg :show="isScheduleOpen || isRequestOpen || isCalendarOpen" @close="closeAllPanels" />
+    <DimmedBg :show="isScheduleOpen || isRequestOpen || isCalendarOpen || isAddBreakOpen || isHolidayOpen" @close="closeAllPanels" />
 
     <div class="dashboard">
         <div class="main-bg"></div>
@@ -117,9 +117,14 @@
                                             <div class="divider-right">
                                                 <div class="card-title2">BREAKS</div>
                                                 <div class="schedule">
-                                                    <div v-for="breakItem in selectedSchedule.breaks" :key="breakItem.id" class="row">
-                                                        <span>{{ breakItem.name }}</span>
-                                                        <span>{{ breakItem.duration }} minutes</span>
+                                                    <div v-for="(info, name) in groupedBreaks" :key="name" class="break-group">
+                                                        <div class="break-days">
+                                                            {{ info.days.join(', ') }}
+                                                        </div>
+                                                        <div class="row">
+                                                            <span class="break-name">{{ name }}</span>
+                                                            <span>{{ formatDuration(info.duration) }} hr/s</span>
+                                                        </div>
                                                     </div>
                                                     <div class="btn-row">
                                                         <button class="add-btn" @click="isAddBreakOpen = true">+ Add Break</button>
@@ -244,7 +249,7 @@
                                         
                                         <div class="btn-group">
                                             <SquarePen class="icon" />
-                                            <SquarePlus class="icon" />
+                                            <SquarePlus class="icon" @click="handleAddHoliday" />
                                         </div>
                                     </div>
                                     <div class="holiday-table-wrapper">
@@ -292,13 +297,19 @@
     <AddBreak
         :isOpen="isAddBreakOpen"
         :isSidebarCollapsed="!isospin"
+        :scheduleId=activeScheduleId
         @close="isAddBreakOpen = false"
-        @save="handleSaveBreak"
     />
     <AddCalendarPanel
-        :isOpen="isRequestOpen"
+        :isOpen="isCalendarOpen"
         :isSidebarCollapsed="!isOpen"
-        @close="isRequestOpen = false"
+        @close="isCalendarOpen = false"
+    />
+    <AddHolidayPanel
+        :isOpen="isHolidayOpen"
+        :isSidebarCollapsed="!isOpen"
+        :calendarId="activeCalendarId"
+        @close="isHolidayOpen = false"
     />
 
 </template>   
@@ -325,20 +336,18 @@
     import RequestTimeOffPanel from '../components/RequestTimeOffPanel.vue'
     import AddCalendarPanel from '../components/AddCalendarPanel.vue'
     import AddBreak from '../components/AddBreak.vue'
+    import AddHolidayPanel from '../components/AddHolidayPanel.vue'
 
     const activeTab = ref ('Schedules')
     const isScheduleOpen = ref(false)
     const isRequestOpen = ref(false)
     const isCalendarOpen = ref(false)
+    const isHolidayOpen = ref(false)
     const isOpen = ref(true)
     const isAddBreakOpen = ref(false)
 
     const selectedRequests = ref([]);
     const selectAllRequests = ref(false);
-
-    const handleSaveBreak = (breakData) => {
-        console.log("New break received:", breakData);
-    };
 
     const toggleAllRequests = () => {
         if (selectAllRequests.value) {
@@ -404,7 +413,10 @@
         isRequestOpen.value = true;
     }
     function handleAddCalendar() {
-        isRequestOpen.value = true;
+        isCalendarOpen.value = true;
+    }
+    function handleAddHoliday() {
+        isHolidayOpen.value = true;
     }
 
     const schedules = ref<{ id: number, name: string, label?: string, icon: any }[]>([]);
@@ -423,8 +435,33 @@
         }
     }
 
+    const groupedBreaks = computed(() => {
+        if (!selectedSchedule.value?.days) return {}; 
+        
+        const summary = {};
+        
+        selectedSchedule.value.days.forEach(day => {
+            if (day.breaks) {
+                day.breaks.forEach(b => {
+                    if (!summary[b.breakName]) {
+                        summary[b.breakName] = { 
+                            duration: b.breakDuration, 
+                            days: [] 
+                        };
+                    }
+                    summary[b.breakName].days.push(day.day.substring(0, 3));
+                });
+            }
+        });
+        
+        return summary;
+    });
+
+    const activeScheduleId = ref<number | null>(null);
+
     async function selectSchedule(id: number) {
         isLoadingDetails.value = true;
+        activeScheduleId.value = id;
         try {
             selectedSchedule.value = await getScheduleById(id);
         } catch (error) {
@@ -447,6 +484,7 @@
     const calendars = ref([]);
     const selectedCalendar = ref<any>([]);
     const activeCalendarName = ref("");
+    const activeCalendarId = ref<number | null>(null);
 
     async function loadCalendars() {
         try {
@@ -464,6 +502,7 @@
         try {
             console.log("Calendar clicked!", item);
             activeCalendarName.value = item.name;
+            activeCalendarId.value = item.id;
             
             try {
                 selectedCalendar.value = await getHolidays(item.id, new Date().getFullYear().toString());
@@ -785,6 +824,8 @@
     .schedule {
         display: flex;
         flex-direction: column;
+        height: 85%;
+        position: relative;
         gap: 6px;
     }
 
@@ -1021,6 +1062,34 @@
     .schedule-item:hover:not(.active) {
         background: rgba(255, 255, 255, 0.01);
         color: #ffffff;
+    }
+
+    .break-group {
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .break-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .break-days {
+        margin-top: -1%;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9ca3af;
+        padding: 2px 0px;
+        border-radius: 4px;
+        width: fit-content;
+    }
+
+    .btn-row {
+        margin-top: auto;
+        padding-top: 15px;
+        background: transparent; 
     }
 
     @keyframes fadeIn {

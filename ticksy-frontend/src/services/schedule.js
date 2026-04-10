@@ -46,3 +46,8 @@ export async function deleteSchedule(id) {
     const res = await api.delete(`/Schedules/${id}`);
     return res.data;
 }
+
+export async function addBreak(payload) {
+    const res = await api.post("/Schedules/add-break", payload);
+    return res.data;
+}
