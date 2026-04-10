@@ -46,6 +46,7 @@ public class HolidaysController : ControllerBase
     {
         var holidays = await _context.Holidays
             .Where(h => h.CalendarId == calendarId && h.Date.Year == year && h.DeletedAt == null)
+            .OrderBy(h => h.Date)
             .Select(h => new HolidayListDto
             {
                 Id = h.Id,
