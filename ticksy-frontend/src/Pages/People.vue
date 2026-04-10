@@ -99,7 +99,10 @@
                         <div v-else class="teams-layout">
 
                             <div class="teams-left">
-                                <SidePanel buttonText="+ Add Team">
+                                <SidePanel 
+                                    buttonText="+ Add Team"
+                                       @click="showAddTeamModal = true" 
+                                >
                                     
                                     <template #header>
                                         <Search v-model="teamSearch" />
@@ -107,11 +110,11 @@
 
                                     <template #body>
                                      <div 
-                                            v-for="team in filteredTeams"
-                                            :key="team.id"
-                                            class="team-item"
-                                            :class="{ active: selectedTeam === team.id }"
-                                            @click="selectedTeam = team.id"
+                                             v-for="team in filteredTeams"
+                                                :key="team.id"
+                                                class="team-item"
+                                                :class="{ active: selectedTeam === team.id }"
+                                                @click.stop="selectTeam(team.id)"  
                                             
                                         >
                                             <div class="team-info">
@@ -205,6 +208,12 @@
             :avatar="sampleIMG"
             @save="handleSaveTeam"
         />
+
+        <AddTeamPanel
+            v-model="showAddTeamModal"
+            :avatar="sampleIMG"
+            @save="handleAddTeam"
+        />
    
 </template>   
 
@@ -223,8 +232,8 @@
     import SidePanel from '../components/SidePanel.vue'
     import EditMemberPanel from '../components/EditMemberPanel.vue'
     import EditTeamsPanel from '../components/EditTeamsPanel.vue'
-
-   
+    import AddTeamPanel from '../components/AddTeamPanel.vue' 
+    
     
     const activeTab = ref('members')
     const isOpen = ref(true)
@@ -373,6 +382,25 @@
         team.users[index] = updatedUser
         }
     }
+    }
+
+    const showAddTeamModal = ref(false)
+    function handleAddTeam(team) {
+        console.log('New Team:', team)
+
+    teams.value.push({
+        id: Date.now(),
+        name: team.name,
+        users: team.members || [],
+    })
+    }
+
+    function selectTeam(id) {
+    selectedTeam.value = id
+    // optional reset states para iwas bugs
+    selectedTeamUsers.value = []
+    selectAllTeams.value = false
+    
     }
 
 </script>
