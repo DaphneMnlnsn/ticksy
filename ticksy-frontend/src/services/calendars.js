@@ -23,7 +23,9 @@ export async function getCalendars() {
     return res.data.map((item, index) => ({
         id: item.id,
         name: item.name,
-        label: item.source,
+        source: item.source,
+        isDefault: item.isDefault,
+        label: item.isDefault ? "Default" : undefined,
         icon: ChevronsRight
     }));
 }
@@ -31,6 +33,11 @@ export async function getCalendars() {
 export async function importHolidays() {
     const res = await api.get(`/Calendars/${id}/import`);
     return res.data; 
+}
+
+export async function updateCalendar(id, payload) {
+    const res = await api.put(`/Calendars/${id}`, payload);
+    return res.data;
 }
 
 export async function deleteCalendar(id) {

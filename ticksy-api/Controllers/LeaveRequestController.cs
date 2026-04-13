@@ -92,6 +92,7 @@ public class LeaveRequestController : ControllerBase
                 pl.Reason,
                 pl.Status
             })
+            .OrderBy(pl => pl.Id)
             .ToListAsync();
 
         var result = requests.Select(pl => new LeaveRequestListDto

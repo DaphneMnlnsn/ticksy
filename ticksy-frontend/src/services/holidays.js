@@ -24,8 +24,8 @@ export async function getHolidays(id, year) {
     });
 }
 
-export async function updateHoliday(id) {
-    const res = await api.put(`/Holidays/${id}`);
+export async function updateHoliday(id, payload) {
+    const res = await api.put(`/Holidays/${id}`, payload);
     return res.data;
 }
 
