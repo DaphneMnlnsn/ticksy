@@ -14,7 +14,7 @@
             </transition>
 
             <div class="addHoliday-header">
-                <h3>Add Holiday</h3>
+                <h3>Edit Holiday</h3>
                 <button class="icon-btn" @click="emit('close')"><X/></button>
             </div>
             
@@ -68,11 +68,12 @@
     import { ref, watch } from "vue";
     import { X, CheckCircle } from "lucide-vue-next";
     import DimmedBg from "./DimmedBg.vue";
-    import { createHoliday } from "../services/holidays";
+    import { updateHoliday } from "../services/holidays";
 
     const props = defineProps({
         isOpen: Boolean,
         isSidebarCollapsed: Boolean,
+        holiday: Object,
         calendarId: Number
     });
 
@@ -94,11 +95,10 @@
             Name: holidayName.value.trim(),
             Date: holidayDate.value,
             Type: typeMapping[holidayType.value],
-            CalendarId: props.calendarId || 1
         };
 
         try {
-            const result = await createHoliday(payload);
+            const result = await updateHoliday(props.holiday.id, payload);
             emit('save', result);
 
             showToast.value = true;
@@ -109,7 +109,7 @@
             }, 1500);
 
         } catch (error) {
-            console.error("Failed to create holiday:", error.response?.data || error);
+            console.error("Failed to update holiday:", error.response?.data || error);
             alert("Could not save holiday. Check console for details.");
         } finally {
             isSaving.value = false;
@@ -140,6 +140,24 @@
         isSaving.value = false;
         errors.value.name = false;
     };
+
+    watch(() => props.isOpen, (newVal) => {
+        if (newVal && props.holiday) {
+            holidayName.value = props.holiday.name || "";
+            
+            if (props.holiday.date) {
+                holidayDate.value = new Date(props.holiday.date).toISOString().split('T')[0];
+            }
+            
+            const reverseMapping = {
+                'Public': 'Public',
+                'CompanySpecific': 'Company-Specific'
+            };
+            holidayType.value = reverseMapping[props.holiday.type] || 'Public';
+        } else if (!newVal) {
+            resetForm();
+        }
+    }, { immediate: true });
 </script>
 
 <style scoped>

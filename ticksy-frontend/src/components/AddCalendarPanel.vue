@@ -24,8 +24,8 @@
                     </div>
                     <input type="text" v-model="calendarName" placeholder="Calendar name" />
                     <div class="radio-group">
-                        <input type="checkbox" v-model="autoClockIn" /> 
-                        <div class="form-label" >Make default?</div>
+                        <input type="checkbox" v-model="form.isDefault" /> 
+                        <div class="form-label">Make default?</div>
                     </div>
                 </div>
 
@@ -88,7 +88,8 @@
         try {
             const payload = {
                 name: calendarName.value,
-                source: form.value.region ? 2 : 1 
+                source: form.value.region ? 2 : 1,
+                isDefault: form.value.isDefault
             };
 
             await createCalendar(payload, form.value.region);

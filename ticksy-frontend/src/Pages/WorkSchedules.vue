@@ -12,6 +12,34 @@
                     :showTimer="false"
                 />
 
+                <transition name="fade">
+                    <div v-if="showToast" class="success-toast">
+                        <CheckCircle :size="18" />
+                        <span>Saved successfully!</span>
+                    </div>
+                </transition>
+
+                <transition name="fade">
+                    <div v-if="showDeleteToast" class="delete-toast">
+                        <CheckCircle :size="18" />
+                        <span>Deleted successfully!</span>
+                    </div>
+                </transition>
+
+                <transition name="fade">
+                    <div v-if="showApproveToast" class="success-toast">
+                        <CheckCircle :size="18" />
+                        <span>Approved successfully!</span>
+                    </div>
+                </transition>
+
+                <transition name="fade">
+                    <div v-if="showRejectToast" class="delete-toast">
+                        <CheckCircle :size="18" />
+                        <span>Rejected successfully!</span>
+                    </div>
+                </transition>
+
                 <div class="cards">
                     <div class="tabs">
                         <button  v-for="tab in ['Schedules', 'Time Off', 'Holidays']" 
@@ -185,7 +213,17 @@
                                                 <th><div class="table-header">Reason</div></th>
                                                 <th><div class="table-header">Requested Dates</div></th>
                                                 <th><div class="table-header">Status</div></th>
-                                                <th><div class="table-header"></div></th>
+                                                <th><div class="table-header">
+                                                    <template v-if="selectedRequests.length > 0">
+                                                        <div class="dropdown-item-multiple approve" @click="bulkApprove" title="Approve Selected">
+                                                            <CircleCheck size="18" />
+                                                        </div>
+
+                                                        <div class="dropdown-item-multiple reject" @click="bulkReject" title="Reject Selected">
+                                                            <CircleX size="18" />
+                                                        </div>
+                                                    </template>
+                                                </div></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -206,7 +244,23 @@
                                                         {{ request.status }}
                                                     </span>
                                                 </td>
-                                                <td><span class="dots" @click="toggleMenu(user.email)">•••</span></td>
+                                                <td>
+                                                    <div class="actions" @click.stop>
+                                                        <span class="dots" @click="toggleMenu(request.id)">•••</span>
+
+                                                        <div v-if="activeMenu === request.id" class="dropdown">
+                                                            <div class="dropdown-item approve" @click="handleApproveRequest(request.id)">
+                                                                <CircleCheck size="16" />
+                                                                Approve
+                                                            </div>
+
+                                                            <div class="dropdown-item reject" @click="handleRejectRequest(request.id)">
+                                                                <CircleX size="16" />
+                                                                Reject
+                                                            </div>  
+                                                        </div>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -243,27 +297,50 @@
                                 <div class="holiday-container">
                                     <div class="title-group">
                                         <div>
-                                            <span>{{ activeCalendarName }}</span>
+                                            <template v-if="!isEditing">
+                                                <span>{{ activeCalendarName }}</span>
+                                            </template>
+                                            <template v-else>
+                                                <input v-model="activeCalendarName" type="text" class="edit-input" />
+                                                <div class="edit-actions">
+                                                    <div class="default-toggle" 
+                                                        @click="activeCalendarIsDefault = !activeCalendarIsDefault"
+                                                        :title="activeCalendarIsDefault ? 'System Default' : 'Set as Default'">
+                                                        <Star :class="['icon', { 'star-active': activeCalendarIsDefault }]" 
+                                                            :fill="activeCalendarIsDefault ? 'currentColor' : 'transparent'" />
+                                                    </div>
+                                                    <Check class="icon save-icon" @click="handleSaveCalendar" />
+                                                    <Trash2 class="icon delete-icon" @click="handleDeleteCalendar" />
+                                                </div>
+                                            </template>
+                                            
                                             <span class="year-bubble">{{ new Date().getFullYear().toString() }}</span>
                                         </div>
                                         
                                         <div class="btn-group">
-                                            <SquarePen class="icon" />
+                                            <SquarePen 
+                                                class="icon" 
+                                                :class="{ 'active-edit': isEditing }" 
+                                                @click="toggleEdit" 
+                                            />
                                             <SquarePlus class="icon" @click="handleAddHoliday" />
                                         </div>
                                     </div>
+
                                     <div class="holiday-table-wrapper">
                                         <table class="holiday-table">
                                             <colgroup>
-                                                <col style="width: 55%;" />
-                                                <col style="width: 23%;" />
-                                                <col style="width: 22%;" />
+                                                <col :style="{ width: isEditing ? '40%' : '55%' }" />
+                                                <col style="width: 20%;" />
+                                                <col style="width: 20%;" />
+                                                <col v-if="isEditing" style="width: 15%;" />
                                             </colgroup>
                                             <thead>
                                                 <tr>
                                                     <th><div class="table-header">Name</div></th>
-                                                    <th><div class="table-header"><span>Date</span></div></th>
-                                                    <th><div class="table-header"><span>Day</span></div></th>
+                                                    <th><div class="table-header">Date</div></th>
+                                                    <th><div class="table-header">Day</div></th>
+                                                    <th v-if="isEditing"><div class="table-header">Actions</div></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -271,6 +348,12 @@
                                                     <td>{{ holiday.name }}</td>
                                                     <td>{{ formatDate(holiday.date) }}</td>
                                                     <td>{{ holiday.day }}</td>
+                                                    <td v-if="isEditing">
+                                                        <div class="action-cell">
+                                                            <Pencil class="small-icon" @click="handleEditHoliday(holiday)" />
+                                                            <Trash2 class="small-icon delete-text" @click="handleDeleteHoliday(holiday.id)" />
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -311,12 +394,19 @@
         :calendarId="activeCalendarId"
         @close="isHolidayOpen = false"
     />
+    <EditHolidayPanel
+        :isOpen="isEditHolidayOpen"
+        :isSidebarCollapsed="!isOpen"
+        :holiday="holiday"
+        :calendarId="activeCalendarId"
+        @close="isEditHolidayOpen = false"
+    />
 
 </template>   
 
 <script setup lang="ts">
     import Header from '../components/Header.vue'
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, onUnmounted } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import SidePanel from '../components/SidePanel.vue'
     import SchedulePanel from '../components/SchedulePanel.vue'
@@ -325,20 +415,25 @@
     import RowItem from '../components/RowItem.vue'
     import { calendars } from '../services/summaryData'
     import sampleIMG from '../assets/sample_img.jpg'
-    import { SquarePen, SquarePlus, FilePlus, ChevronsRight } from 'lucide-vue-next'
+    import { SquarePen, SquarePlus, FilePlus, ChevronsRight, DeleteIcon, Trash2, Pencil, Check, CheckCircle, Star, CircleCheck, CircleX } from 'lucide-vue-next'
     import { computed } from 'vue';
     import { useSearch } from '../services/search'
     import { getScheduleById, getSchedules } from '../services/schedule'
-    import { getRequests } from '../services/timeOff'
-    import { getCalendars } from '../services/calendars'
-    import { getHolidays } from '../services/holidays'
+    import { approveRequest, getRequests, rejectRequest } from '../services/timeOff'
+    import { deleteCalendar, getCalendars, updateCalendar } from '../services/calendars'
+    import { deleteHoliday, getHolidays } from '../services/holidays'
     import { formatDate, formatDuration, formatFullDateTime, formatRange, formatTime } from '../services/formatting'
     import RequestTimeOffPanel from '../components/RequestTimeOffPanel.vue'
     import AddCalendarPanel from '../components/AddCalendarPanel.vue'
     import AddBreak from '../components/AddBreak.vue'
     import AddHolidayPanel from '../components/AddHolidayPanel.vue'
+    import EditHolidayPanel from '../components/EditHolidayPanel.vue'
 
     const activeTab = ref ('Schedules')
+    const showToast = ref(false)
+    const showDeleteToast = ref(false)
+    const showApproveToast = ref(false)
+    const showRejectToast = ref(false)
     const isScheduleOpen = ref(false)
     const isRequestOpen = ref(false)
     const isCalendarOpen = ref(false)
@@ -346,8 +441,8 @@
     const isOpen = ref(true)
     const isAddBreakOpen = ref(false)
 
-    const selectedRequests = ref([]);
-    const selectAllRequests = ref(false);
+    const selectedRequests = ref([])
+    const selectAllRequests = ref(false)
 
     const toggleAllRequests = () => {
         if (selectAllRequests.value) {
@@ -481,10 +576,105 @@
         }
     }
 
+    const activeMenu = ref(null)
+
+    function toggleMenu(email) {
+        activeMenu.value = activeMenu.value === email ? null : email
+    }
+    
+    function handleClickOutside() {
+        activeMenu.value = null
+    }
+
+    onMounted(() => {
+        document.addEventListener('click', handleClickOutside)
+    })
+
+    onUnmounted(() => {
+        document.removeEventListener('click', handleClickOutside)
+    })
+
+    async function bulkApprove() {
+        if (selectedRequests.value.length === 0) return;
+
+        if (!confirm(`Are you sure you want to approve ${selectedRequests.value.length} items?`)) return;
+
+        try {
+            await Promise.all(selectedRequests.value.map(id => approveRequest(id)));
+
+            showApproveToast.value = true;
+            setTimeout(() => showApproveToast.value = false, 2000);
+
+            selectedRequests.value = [];
+            selectAllRequests.value = false;
+            
+            await getRequests(); 
+
+        } catch (err) {
+            console.error("Bulk Approve Error:", err);
+            alert("Some requests failed to approve.");
+        }
+    }
+
+    async function bulkReject() {
+        if (selectedRequests.value.length === 0) return;
+
+        if (!confirm(`Reject ${selectedRequests.value.length} items?`)) return;
+
+        try {
+            await Promise.all(selectedRequests.value.map(id => rejectRequest(id)));
+
+            showRejectToast.value = true;
+            setTimeout(() => showRejectToast.value = false, 2000);
+
+            selectedRequests.value = [];
+            selectAllRequests.value = false;
+
+            await getRequests();
+        } catch (err) {
+            console.error("Bulk Reject Error:", err);
+        }
+    }
+
+    async function handleApproveRequest(id) {
+        try {
+            await approveRequest(id);
+
+            showApproveToast.value = true;
+            
+            setTimeout(() => {
+                showApproveToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Approve Error:", err);
+            const errorMsg = err.response?.data || "Failed to approve request";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    }
+
+    async function handleRejectRequest(id) {
+        try {
+            await rejectRequest(id);
+
+            showRejectToast.value = true;
+            
+            setTimeout(() => {
+                showRejectToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Approve Error:", err);
+            const errorMsg = err.response?.data || "Failed to reject request";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    }
+
     const calendars = ref([]);
     const selectedCalendar = ref<any>([]);
     const activeCalendarName = ref("");
     const activeCalendarId = ref<number | null>(null);
+    const activeCalendarIsDefault = ref(false);
 
     async function loadCalendars() {
         try {
@@ -503,6 +693,7 @@
             console.log("Calendar clicked!", item);
             activeCalendarName.value = item.name;
             activeCalendarId.value = item.id;
+            activeCalendarIsDefault.value = item.isDefault;
             
             try {
                 selectedCalendar.value = await getHolidays(item.id, new Date().getFullYear().toString());
@@ -513,6 +704,89 @@
             console.error("Error fetching calendar details:", error);
         }
     }
+
+    const isEditing = ref(false)
+
+    const toggleEdit = () => {
+        isEditing.value = !isEditing.value;
+        if (isEditing.value) {
+            activeCalendarIsDefault.value = activeCalendar.value.isDefault;
+        }
+    };
+
+    async function handleSaveCalendar() {
+        if (!activeCalendarName.value.trim()) {
+            errors.value.name = true;
+            return;
+        }
+
+        try {
+            const payload = {
+                name: activeCalendarName.value,
+                isDefault: activeCalendarIsDefault.value
+            };
+
+            await updateCalendar(activeCalendarId.value, payload);
+
+            isEditing.value = false;
+            showToast.value = true;
+            
+            setTimeout(() => {
+                showToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Save Error:", err);
+            const errorMsg = err.response?.data || "Failed to save calendar";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    }
+
+    async function handleDeleteCalendar() {
+        try {
+
+            await deleteCalendar(activeCalendarId.value);
+
+            showDeleteToast.value = true;
+            
+            setTimeout(() => {
+                showDeleteToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Delete Error:", err);
+            const errorMsg = err.response?.data || "Failed to delete calendar";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    };
+    
+    const holiday = ref<any>(null);
+    const isEditHolidayOpen = ref(false);
+
+    const handleEditHoliday = (selectedHoliday: any) => {
+        holiday.value = selectedHoliday;
+        isEditHolidayOpen.value = true;
+    };
+
+    async function handleDeleteHoliday(index) {
+        try {
+
+            await deleteHoliday(index);
+
+            selectedCalendar.value = selectedCalendar.value.filter(h => h.id !== id);
+
+            showDeleteToast.value = true;
+            
+            setTimeout(() => {
+                showDeleteToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Delete Error:", err);
+            const errorMsg = err.response?.data || "Failed to delete holiday";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    };
 
     onMounted(() => {
         loadSchedules();
@@ -1090,6 +1364,204 @@
         margin-top: auto;
         padding-top: 15px;
         background: transparent; 
+    }
+
+    input[type="text"] {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 12px;
+        border-radius: 6px;
+        color: white;
+        outline: none;
+    }
+
+    .delete-icon {
+        color: #ef4444;
+        margin-left: 8px;
+        margin-bottom: -1.9%;
+        cursor: pointer;
+    }
+
+    .active-edit {
+        color: #3b82f6;
+    }
+
+    .action-cell {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .edit-input {
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 1rem;
+        font-weight: 600;
+        width: 200px;
+    }
+
+    .default-toggle {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        margin-right: 10px;
+        transition: transform 0.2s ease;
+    }
+    
+    .star-active {
+        color: #eab308;
+    }
+
+    .edit-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 1px;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    .save-icon {
+        color: #22c55e;
+        cursor: pointer;
+    }
+
+    .delete-icon {
+        color: #ef4444;
+        cursor: pointer;
+    }
+
+    .small-icon {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+
+    .small-icon:hover {
+        opacity: 1;
+    }
+
+    .delete-text {
+        color: #ef4444;
+    }
+
+    .success-toast {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #06d6a0;
+        color: #001324;
+        padding: 10px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+        z-index: 9999;
+    }
+
+    .delete-toast {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #d60606;
+        color: #d8dee3;
+        padding: 10px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(214, 6, 6, 0.3);
+        z-index: 9999;
+    }
+
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .fade-enter-from, .fade-leave-to {
+        opacity: 0;
+        transform: translate(-50%, -10px);
+    }
+
+    .actions {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .dots {
+        cursor: pointer;
+        font-size: 10px;
+        opacity: 0.7;
+    }
+
+    .dots:hover {
+        opacity: 1;
+    }
+
+    .dropdown {
+        position: absolute;
+        right: 0;
+        top: 22px;
+        width: 140px;
+        background: #061a2b; 
+        border-radius: 12px;
+        padding: 6px;
+        z-index: 100;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    .dropdown-item-multiple {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 1px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .dropdown-item-multiple:hover {
+        background: none;
+    }
+
+    .approve {
+        color: #22c55e;
+    }
+
+    .reject {
+        color: #ff4d4d;
+    }
+    
+    .dropdown {
+        animation: fadeIn 0.12s ease;
+    }
+
+    .timeoff-table th:nth-child(3),
+    .timeoff-table td:nth-child(3) {
+        width: 1%;
+        white-space: nowrap;
     }
 
     @keyframes fadeIn {

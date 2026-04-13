@@ -129,6 +129,7 @@ public class SchedulesController : ControllerBase
                 Id = sd.Id,
                 ScheduleName = sd.ScheduleName
             })
+            .OrderBy(sd => sd.Id)
             .ToListAsync();
 
         return Ok(schedules);

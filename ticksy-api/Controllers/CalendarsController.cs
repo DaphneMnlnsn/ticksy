@@ -26,10 +26,22 @@ public class CalendarsController : ControllerBase
             c.Name.ToLower() == dto.Name.ToLower()))
             return BadRequest("A calendar with this name already exists.");
 
+        if (dto.IsDefault)
+        {
+            var existingDefault = await _context.HolidayCalendars
+                .FirstOrDefaultAsync(c => c.IsDefault);
+            
+            if (existingDefault != null)
+            {
+                existingDefault.IsDefault = false;
+            }
+        }
+        
         var calendar = new HolidayCalendar
         {
             Name = dto.Name,
             Source = dto.Source,
+            IsDefault = dto.IsDefault,
             ExternalCalendarId = country
         };
 
@@ -52,6 +64,32 @@ public class CalendarsController : ControllerBase
             id = calendar.Id,
             calendar = calendar.Name
         });
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCalendar(int id, [FromBody] CalendarUpdateDto dto)
+    {
+        var calendar = await _context.HolidayCalendars.FindAsync(id);
+        if (calendar == null) return NotFound();
+
+        if (!string.IsNullOrWhiteSpace(dto.Name)) calendar.Name = dto.Name;
+
+        if (dto.IsDefault) 
+        {
+            var currentDefault = await _context.HolidayCalendars
+                .FirstOrDefaultAsync(c => c.IsDefault && c.Id != id);
+                
+            if (currentDefault != null)
+            {
+                currentDefault.IsDefault = false;
+            }
+
+            calendar.IsDefault = true;
+        }
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Calendar updated successfully."});
     }
 
     private async Task<int> ExecuteHolidayImport(int calendarId, int year, string country)
@@ -90,11 +128,14 @@ public class CalendarsController : ControllerBase
     public async Task<IActionResult> GetCalendars()
     {
         var calendars = await _context.HolidayCalendars
+            .OrderByDescending(c => c.IsDefault)
+            .ThenBy(c => c.Id)
             .Select(c => new CalendarListDto
             {
                 Id = c.Id,
                 Name = c.Name,
-                Source = c.Source
+                Source = c.Source,
+                IsDefault = c.IsDefault
             })
             .ToListAsync();
 
