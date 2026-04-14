@@ -101,123 +101,64 @@
             <div class="header-line"></div>
 
             <!-- ================= WEEKLY ================= -->
-            <div v-if="selectedTimesheet === 'weekly'" class="table">
-
-                <div class="table-header">
-                    <SearchBar v-model="search" />
-                    <div class="days">
-                        <span>M</span>
-                        <span>T</span>
-                        <span>W</span>
-                        <span>TH</span>
-                        <span>F</span>
-                        <span>S</span>
-                        <span>S</span>
-                        <span>Total Hours</span>
-                    </div>
-                </div>
-
-                <div class="row" v-for="user in filteredUsers" :key="user.name">
-                    <div class="user">
-                        <img :src="user.avatar" class="avatar" />
-                        <span>{{ user.name }}</span>
-                    </div>
-
-                    <div class="days">
-                        <span v-for="(day, index) in user.days" :key="index">
-                            <span v-if="day === 'rest'" class="rest">Rest day</span>
-                            <span v-else>{{ day }}</span>
-                        </span>
-                        <span>{{ user.total }}</span>
-                    </div>
-                </div>
-            </div>
+            <WeeklyTimesheet
+                v-if="selectedTimesheet === 'weekly'"
+                :users="filteredUsers"
+                :search="search"
+                :loading="loading"
+                :hasData="hasData"
+                :defaultAvatar="defaultAvatar"
+            />
 
             <!-- ================= DAILY ================= -->
-            <div v-if="selectedTimesheet === 'daily'" class="table">
-
-                <div class="table-header">
-                    <SearchBar v-model="search" />
-                    <div class="days daily">
-                        <span>First In</span>
-                        <span>Last Out</span>
-                        <span>Total Hours</span>
-                    </div>
-                </div>
-
-                <div class="row" v-for="user in filteredUsers" :key="user.name">
-                    <div class="user">
-                        <img :src="user.avatar" class="avatar" />
-                        <span>{{ user.name }}</span>
-                    </div>
-
-                    <div class="days daily">
-                        <span>8:00 AM</span>
-                        <span>5:00 PM</span>
-                        <span>8 hrs</span>
-                    </div>
-                </div>
-            </div>
+            <DailyTimesheet
+                v-if="selectedTimesheet === 'daily'"
+                :users="dailyUsers"
+                :search="search"
+                :loading="dailyLoading"
+                :hasData="dailyHasData"
+                :defaultAvatar="defaultAvatar"
+            />
 
             <!-- ================= MONTHLY ================= -->
-            <div v-if="selectedTimesheet === 'monthly'" class="table">
-
-                <div class="table-header">
-                    <SearchBar v-model="search" />
-                    <div class="days monthly">
-                        <span v-for="day in 31" :key="day">{{ day }}</span>
-                        <span>Total</span>
-                    </div>
-                </div>
-
-                <div class="row" v-for="user in filteredUsers" :key="user.name">
-                    <div class="user">
-                        <img :src="user.avatar" class="avatar" />
-                        <span>{{ user.name }}</span>
-                    </div>
-
-                    <div class="days monthly">
-                        <span v-for="day in 31" :key="day" class="box"></span>
-                        <span>40 hrs</span>
-                    </div>
-                </div>
-            </div>
+            <MonthlyTimesheet
+                v-if="selectedTimesheet === 'monthly'"
+                :users="monthlyUsers"
+                :search="search"
+                :loading="monthlyLoading"
+                :hasData="monthlyHasData"
+                :defaultAvatar="defaultAvatar"
+            />
         </div>
     </div>
     </div>
 </template>
 
 <script setup>
-    import { ref, computed, nextTick } from 'vue'
+    import { ref, computed, nextTick, onMounted, watch } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import SearchBar from '../components/Search.vue'
     import Header from '../components/Header.vue'
     import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Download, TreePalm} from "lucide-vue-next"
-    import { watch } from 'vue'
-    import { users } from '../services/summaryData.js'
     import { useSearch } from '../services/search.js'
     import { VueDatePicker } from '@vuepic/vue-datepicker'
     import '@vuepic/vue-datepicker/dist/main.css'
     import dayjs from 'dayjs'
+    import defaultAvatar from '../assets/sample_img.jpg'
+    import WeeklyTimesheet from '../components/timesheets/WeeklyTimesheet.vue'
+    import { useWeeklyTimesheet } from '../composables/useWeeklyTimesheet.js'
+    import DailyTimesheet from '../components/timesheets/DailyTimesheet.vue'
+    import { useDailyTimesheet } from '../composables/useDailyTimesheet.js'
+    import MonthlyTimesheet from '../components/timesheets/MonthlyTimesheet.vue'
+    import { useMonthlyTimesheet } from '../composables/useMonthlyTimesheet'
 
     const calendarBtn = ref(null)
     const pickerStyle = ref({})
-
     const isOpen = ref(true)
-    const { search, filtered: filteredUsers } = useSearch(users, ['name'])
     const selectedMonth = ref(new Date())
-    
-    function toggleSidebar() {
-        isOpen.value = !isOpen.value
-    }
 
     const showDropdown = ref(false)
     const selectedTimesheet = ref('weekly')
-
-    function toggleDropdown() {
-        showDropdown.value = !showDropdown.value
-    }
-
     const showDatePicker = ref(false)
     const dateRange = ref([
         dayjs().toDate(),
@@ -225,12 +166,6 @@
     ])
     const startDate = ref(dateRange.value[0])
     const endDate = ref(dateRange.value[1])
-
-    function selectTimesheet(type) {
-        selectedTimesheet.value = type
-        showDropdown.value = false
-    }
-
     const formattedRange = computed(() => {
         const options = { month: 'short', day: 'numeric' }
 
@@ -240,41 +175,69 @@
         return `${start} - ${end}`
     })
 
+    const { users, loading, hasData, fetchWeekly } = useWeeklyTimesheet()
+    const { users: dailyUsers, loading: dailyLoading, hasData: dailyHasData, fetchDaily } = useDailyTimesheet()
+    const { users: monthlyUsers, loading: monthlyLoading, hasData: monthlyHasData, fetchMonthly } = useMonthlyTimesheet()
+
+    const search = ref('')
+    const { filtered: filteredUsers } = useSearch(users, ['name'])
+
+    function toggleSidebar() {
+        isOpen.value = !isOpen.value
+    }
+
+    function toggleDropdown() {
+        showDropdown.value = !showDropdown.value
+    }
+
+    function selectTimesheet(type) {
+        selectedTimesheet.value = type
+        showDropdown.value = false
+    }
+
     function nextWeek() {
         if (selectedTimesheet.value === 'weekly') {
-            dateRange.value = [
-                dayjs(startDate.value).add(7, 'day').toDate(),
-                dayjs(endDate.value).add(7, 'day').toDate()
-            ]
+            const start = dayjs(startDate.value).add(7, 'day').toDate()
+            const end = dayjs(endDate.value).add(7, 'day').toDate()
+
+            dateRange.value = [start, end]
+            startDate.value = start
+            endDate.value = end
         } 
         else if (selectedTimesheet.value === 'daily') {
             startDate.value = dayjs(startDate.value).add(1, 'day').toDate()
             endDate.value = startDate.value
         } 
         else {
-            dateRange.value = [
-                dayjs(startDate.value).add(1, 'month').startOf('month').toDate(),
-                dayjs(startDate.value).add(1, 'month').endOf('month').toDate()
-            ]
+            const start = dayjs(startDate.value).add(1, 'month').startOf('month').toDate()
+            const end = dayjs(startDate.value).add(1, 'month').endOf('month').toDate()
+
+            dateRange.value = [start, end]
+            startDate.value = start
+            endDate.value = end
         }
     }
 
     function prevWeek() {
         if (selectedTimesheet.value === 'weekly') {
-            dateRange.value = [
-                dayjs(startDate.value).subtract(7, 'day').toDate(),
-                dayjs(endDate.value).subtract(7, 'day').toDate()
-            ]
+            const start = dayjs(startDate.value).subtract(7, 'day').toDate()
+            const end = dayjs(endDate.value).subtract(7, 'day').toDate()
+
+            dateRange.value = [start, end]
+            startDate.value = start
+            endDate.value = end
         } 
         else if (selectedTimesheet.value === 'daily') {
             startDate.value = dayjs(startDate.value).subtract(1, 'day').toDate()
             endDate.value = startDate.value
         } 
         else {
-            dateRange.value = [
-                dayjs(startDate.value).subtract(1, 'month').startOf('month').toDate(),
-                dayjs(startDate.value).subtract(1, 'month').endOf('month').toDate()
-            ]
+            const start = dayjs(startDate.value).subtract(1, 'month').startOf('month').toDate()
+            const end = dayjs(startDate.value).subtract(1, 'month').endOf('month').toDate()
+
+            dateRange.value = [start, end]
+            startDate.value = start
+            endDate.value = end
         }
     }
 
@@ -334,10 +297,39 @@
         }
     }
 
+    onMounted(() => {
+        fetchWeekly(dateRange.value)
+
+        if (selectedTimesheet.value === 'daily') {
+            fetchDaily(startDate.value)
+        }
+    })
+
     watch(dateRange, (val) => {
-        if (val && val.length === 2) {
-            startDate.value = val[0]
-            endDate.value = val[1]
+        if (!val || val.length !== 2) return
+        if (selectedTimesheet.value !== 'weekly') return
+
+        fetchWeekly(val)
+    }, { deep: true })
+
+    watch(startDate, (date) => {
+        if (selectedTimesheet.value === 'daily') {
+            fetchDaily(date)
+        }
+    })
+
+    watch(selectedMonth, (date) => {
+        if (selectedTimesheet.value === 'monthly') {
+            fetchMonthly(date)
+        }
+    })
+
+    watch(selectedTimesheet, (type) => {
+        if (type === 'daily') {
+            fetchDaily(startDate.value)
+        }
+        else if (type === 'monthly') {
+            fetchMonthly(selectedMonth.value)
         }
     })
 
@@ -357,7 +349,6 @@
         padding: 1rem;
         transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         color: white; 
-       
     }
 
     .main-content::-webkit-scrollbar {
@@ -488,13 +479,6 @@
         margin-bottom: 20px;
     }
 
-    .table {
-        backdrop-filter: blur(6px);
-        border-radius: 5px;
-        padding: 20px;
-        
-    }
-
     .table-header {
         display: grid;
         grid-template-columns: 250px 1fr;
@@ -616,10 +600,27 @@
     }
 
     .table {
+        backdrop-filter: blur(6px);
+        border-radius: 5px;
         animation: fadeIn 0.4s ease-in-out;
         display: flex;
         flex-direction: column;
         width: 100%;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #F0F0F0AD;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .empty-icon {
+        width: 40px;
+        height: 40px;
     }
 
     @keyframes fadeIn {

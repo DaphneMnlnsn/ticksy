@@ -307,4 +307,248 @@ public class AttendanceController : ControllerBase
 
         return Ok(attendances);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("weekly")]
+    public async Task<IActionResult> GetWeeklyAttendance(DateTime start, DateTime end)
+    {
+        var startDate = DateOnly.FromDateTime(start);
+        var endDate = DateOnly.FromDateTime(end);
+
+        var data = await _context.Attendances
+            .Include(a => a.User)
+            .Where(a => a.Date >= startDate && a.Date <= endDate)
+            .ToListAsync();
+
+        var result = data
+            .GroupBy(a => new
+            {
+                a.UserId,
+                FullName = string.Join(" ", new[]
+                {
+                    a.User.FirstName,
+                    a.User.MiddleName,
+                    a.User.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
+
+                AvatarUrl = a.User.AvatarUrl
+            })
+            .Select(group =>
+            {
+                var days = Enumerable.Repeat("0", 7).ToArray();
+                int total = 0;
+
+                foreach (var a in group)
+                {
+                    var day = a.Date.ToDateTime(TimeOnly.MinValue).DayOfWeek;
+
+                    int index = day == DayOfWeek.Sunday ? 6 : (int)day - 1;
+
+                    int hours = a.TotalWorkMinutes / 60;
+
+                    if (hours > 0)
+                        days[index] = $"{hours}h";
+
+                    total += hours;
+                }
+
+                return new
+                {
+                    userId = group.Key.UserId,
+                    name = group.Key.FullName,
+                    avatar = group.Key.AvatarUrl,
+                    days,
+                    total
+                };
+            })
+            .ToList();
+
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("daily")]
+    public async Task<IActionResult> GetDailyAttendance(DateTime date)
+    {
+        var selectedDate = DateOnly.FromDateTime(date);
+
+        var data = await _context.Attendances
+            .Include(a => a.User)
+            .Where(a => a.Date == selectedDate)
+            .ToListAsync();
+
+        var result = data
+            .GroupBy(a => new
+            {
+                a.UserId,
+                FullName = string.Join(" ", new[]
+                {
+                    a.User.FirstName,
+                    a.User.MiddleName,
+                    a.User.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
+
+                AvatarUrl = a.User.AvatarUrl
+            })
+            .Select(group =>
+            {
+                var firstIn = group
+                    .Select(a => (TimeOnly?)a.TimeIn)
+                    .Min();
+
+                var lastOut = group
+                    .Where(a => a.TimeOut.HasValue)
+                    .Select(a => a.TimeOut)
+                    .DefaultIfEmpty()
+                    .Max();
+
+                var totalMinutes = group.Sum(a => a.TotalWorkMinutes);
+
+                return new
+                {
+                    userId = group.Key.UserId,
+                    name = group.Key.FullName,
+                    avatar = group.Key.AvatarUrl,
+
+                    firstIn = firstIn.HasValue
+                        ? new DateTime(
+                            selectedDate.Year,
+                            selectedDate.Month,
+                            selectedDate.Day,
+                            firstIn.Value.Hour,
+                            firstIn.Value.Minute,
+                            firstIn.Value.Second
+                        ).ToString("hh:mm tt")
+                        : "--",
+
+                    lastOut = lastOut.HasValue
+                        ? new DateTime(
+                            selectedDate.Year,
+                            selectedDate.Month,
+                            selectedDate.Day,
+                            lastOut.Value.Hour,
+                            lastOut.Value.Minute,
+                            lastOut.Value.Second
+                        ).ToString("hh:mm tt")
+                        : "--",
+
+                    totalHours = $"{totalMinutes / 60}h"
+                };
+            })
+            .ToList();
+
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("monthly")]
+    public async Task<IActionResult> GetMonthlyAttendance(DateTime date)
+    {
+        var selectedDate = DateOnly.FromDateTime(date);
+
+        var startOfMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
+        var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+        var data = await _context.Attendances
+            .Include(a => a.User)
+            .Where(a =>
+                a.Date.ToDateTime(TimeOnly.MinValue) >= startOfMonth.ToDateTime(TimeOnly.MinValue) &&
+                a.Date.ToDateTime(TimeOnly.MinValue) <= endOfMonth.ToDateTime(TimeOnly.MinValue)
+            )
+            .ToListAsync();
+
+        var userSchedules = await _context.UserWorkSchedules
+            .Where(us =>
+                us.WorkSchedule.DeletedAt == null &&
+                us.UserId != null
+            )
+            .Select(us => new
+            {
+                us.UserId,
+                Days = us.WorkSchedule.ScheduleDays.Select(sd => new ScheduleDayDto
+                {
+                    Day = sd.Day,
+                    StartTime = sd.StartTime,
+                    EndTime = sd.EndTime,
+                    Duration = sd.Duration,
+                    IsRestDay = sd.IsRestDay,
+                    Breaks = new List<ScheduleBreakDisplayDto>()
+                })
+            })
+            .ToListAsync();
+
+        var scheduleMap = userSchedules
+            .GroupBy(x => x.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(x => x.Days)
+                    .GroupBy(d => new { d.Day, d.IsRestDay })
+                    .Select(g => g.First())
+                    .ToList()
+            );
+
+        var result = data
+            .GroupBy(a => new
+            {
+                a.UserId,
+                FullName = string.Join(" ", new[]
+                {
+                    a.User.FirstName,
+                    a.User.MiddleName,
+                    a.User.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                AvatarUrl = a.User.AvatarUrl
+            })
+            .Select(group =>
+            {
+                var days = new string[31];
+                var dailyMinutes = new int[31];
+                int totalMinutes = 0;
+
+                foreach (var a in group)
+                {
+                    int dayIndex = a.Date.Day - 1;
+                    dailyMinutes[dayIndex] += a.TotalWorkMinutes;
+                    totalMinutes += a.TotalWorkMinutes;
+                }
+
+                var schedule = scheduleMap.ContainsKey(group.Key.UserId)
+                    ? scheduleMap[group.Key.UserId]
+                    : new List<ScheduleDayDto>();
+
+                for (int i = 0; i < 31; i++)
+                {
+                    var date = new DateOnly(selectedDate.Year, selectedDate.Month, i + 1);
+
+                    var isRestDay = schedule.Any(s =>
+                        s.Day == date.DayOfWeek &&
+                        s.IsRestDay
+                    );
+
+                    if (isRestDay)
+                    {
+                        days[i] = "REST";
+                    }
+                    else if (dailyMinutes[i] > 0)
+                    {
+                        days[i] = $"{dailyMinutes[i] / 60}h";
+                    }
+                    else
+                    {
+                        days[i] = "0h";
+                    }
+                }
+
+                return new
+                {
+                    userId = group.Key.UserId,
+                    name = group.Key.FullName,
+                    avatar = group.Key.AvatarUrl,
+                    days,
+                    totalHours = $"{totalMinutes / 60}h"
+                };
+            })
+            .ToList();
+
+        return Ok(result);
+    }
 }
