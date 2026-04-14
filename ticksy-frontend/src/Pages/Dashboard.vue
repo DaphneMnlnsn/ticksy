@@ -7,7 +7,7 @@
             <Sidebar :isOpen="isOpen" @toggle="toggleSidebar" />
 
             <div class="main-content">
-                <div v-if="!isSetupComplete" class="setup-banner">
+                <div v-if="!isSetupComplete && !hasSchedule" class="setup-banner">
                     <div class="banner-message">
                         <FilePen :size="19" color="white" stroke-width="2" opacity="0.9" class="filepen-icon" />
                         You have not created a work schedule or invited members. Complete your setup now. 
@@ -81,6 +81,7 @@
     import { ChevronRight, FilePen } from 'lucide-vue-next';
     import DimmedBg from '../components/DimmedBg.vue';
     import Swal from 'sweetalert2';
+    import { getSchedules } from '../services/schedule';
 
     const activeTab = ref ('Day')
     const holidays = [
@@ -93,6 +94,7 @@
         isOpen.value = !isOpen.value
     }
     const isSetupComplete = ref(false)
+    const hasSchedule = ref(false)
     const isScheduleOpen = ref(false)
 
     function openSchedule() {
@@ -102,10 +104,16 @@
         isScheduleOpen.value = false;
     }
 
-    onMounted(() => {
+    onMounted(async() => {
         const setupDone = localStorage.getItem('ticksy_setup_done');
         if (setupDone === 'true') {
             isSetupComplete.value = true;
+        }
+
+        const schedules = await getSchedules();
+
+        if (schedules.length > 0) {
+            hasSchedule.value = true;
         }
     });
 

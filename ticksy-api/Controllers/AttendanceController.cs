@@ -196,6 +196,28 @@ public class AttendanceController : ControllerBase
 
         return Ok(new { message = "Break ended." });
     }
+
+    [Authorize]
+    [HttpGet("today-status")]
+    public async Task<IActionResult> GetTodayStatus()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        
+        var attendance = await _context.Attendances
+            .Where(a => a.UserId == userId && a.TimeOut == null)
+            .OrderByDescending(a => a.Date)
+            .FirstOrDefaultAsync();
+
+        if (attendance == null) return Ok(new { isClockedIn = false });
+
+        return Ok(new {
+            isClockedIn = true,
+            isOnBreak = attendance.BreakStart != null,
+            timeIn = attendance.CreatedAt,
+            breakStart = attendance.BreakStart
+        });
+    }
+
     private DateTime GetUserLocalTime(User user)
     {
         if (string.IsNullOrEmpty(user.TimeZone))

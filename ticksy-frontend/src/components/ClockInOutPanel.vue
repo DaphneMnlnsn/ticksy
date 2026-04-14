@@ -35,12 +35,13 @@
             </div>
 
             <div class="form-body">
-                <div class="input-field" @click="$refs.timeInput.showPicker()">
+                <div class="input-field" @click="mode === 'in' && $refs.timeInput.showPicker()">
                     <input 
                         ref="timeInput"
                         type="time" 
-                        v-model="selectedTime" 
+                        v-model="selectedTime"
                         class="native-picker"
+                        disabled
                     />
                     <Clock :size="18"/>
                 </div>
@@ -49,7 +50,8 @@
                     <input 
                         ref="dateInput"
                         type="date" 
-                        v-model="selectedDate" 
+                        disabled
+                        v-model="selectedDate"
                         class="native-picker"
                     />
                     <Calendar :size="18"/>
@@ -73,6 +75,7 @@
     import {X, CheckCircle, User, Clock, Calendar} from "lucide-vue-next";
     import avatar from "../assets/sample_img.jpg";
     import DimmedBg from "./DimmedBg.vue";
+    import { clockIn, clockOut } from "../services/attendanceService";
 
     const props = defineProps({
         isClockedIn: Boolean,
@@ -122,22 +125,36 @@
         }
     });
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const [h, m] = selectedTime.value.split(':');
         const hour = parseInt(h, 10);
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const hour12 = hour % 12 || 12;
         const finalTime = `${hour12}:${m} ${ampm}`;
 
-        emit('save', {
-            time: finalTime,
+        const payload = {
+            time: selectedTime.value,
             date: selectedDate.value,
             note: note.value,
             type: mode.value
-        });
-        note.value = "";
-        emit("close");
+        };
+
+        try {
+            if (mode.value == 'in') {
+                await clockIn(payload);
+            } else {
+                await clockOut(payload);
+            }
+
+            emit('save', payload);
+            note.value = "";
+            emit('close');
+        } catch (error) {
+            console.error("Attendance error:", error.response?.data || error.message);
+            alert(error.response?.data || "An error occurred");
+        }
     };
+
 </script>
 
 <style scoped>
