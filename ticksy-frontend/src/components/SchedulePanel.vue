@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+    
     <transition name="slide-workschedule">
         <div v-if="isOpen" 
             class="schedule-panel"
@@ -96,6 +98,7 @@
     import { ref, watch } from "vue";
     import { MoveRight, X, CheckCircle } from "lucide-vue-next";
     import { createSchedule } from "../services/schedule";
+    import DimmedBg from "./DimmedBg.vue";
 
     const props = defineProps({
         isOpen: Boolean,

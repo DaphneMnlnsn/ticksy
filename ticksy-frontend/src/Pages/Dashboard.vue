@@ -1,6 +1,4 @@
 <template>
-    <DimmedBg :show="isScheduleOpen" @close="isScheduleOpen = false" /> 
-
     <div class="dashboard">
         <div class="main-bg"></div>
         <div :class="['app', { collapsed: !isOpen }]">
@@ -79,7 +77,6 @@
     import Sidebar from '../components/Sidebar.vue';
     import SchedulePanel from '../components/SchedulePanel.vue';
     import { ChevronRight, FilePen } from 'lucide-vue-next';
-    import DimmedBg from '../components/DimmedBg.vue';
     import Swal from 'sweetalert2';
 
     const activeTab = ref ('Day')
