@@ -1,5 +1,4 @@
 <template>
-    <DimmedBg :show="isScheduleOpen || isRequestOpen || isCalendarOpen || isAddBreakOpen || isHolidayOpen" @close="closeAllPanels" />
 
     <div class="dashboard">
         <div class="main-bg"></div>
@@ -116,7 +115,7 @@
                                             <div class="divider-left">
                                                 <div class="card-title2">
                                                     <span>SCHEDULE</span>
-                                                    <SquarePen class="icon"/>
+                                                    <SquarePen class="icon" @click="handleEditSchedule" style="cursor: pointer;"/>
                                                 </div>
 
                                                 <div class="schedule">
@@ -379,7 +378,7 @@
     />
     <AddBreak
         :isOpen="isAddBreakOpen"
-        :isSidebarCollapsed="!isospin"
+        :isSidebarCollapsed="!isOpen"
         :scheduleId=activeScheduleId
         @close="isAddBreakOpen = false"
     />
@@ -410,7 +409,6 @@
     import Sidebar from '../components/Sidebar.vue'
     import SidePanel from '../components/SidePanel.vue'
     import SchedulePanel from '../components/SchedulePanel.vue'
-    import DimmedBg from '../components/DimmedBg.vue'
     import Search from '../components/Search.vue'
     import RowItem from '../components/RowItem.vue'
     import { calendars } from '../services/summaryData'
@@ -443,6 +441,12 @@
 
     const selectedRequests = ref([])
     const selectAllRequests = ref(false)
+
+    function handleEditSchedule() {
+        if (selectedSchedule.value) {
+            isScheduleOpen.value = true;
+        }
+    }
 
     const toggleAllRequests = () => {
         if (selectAllRequests.value) {
