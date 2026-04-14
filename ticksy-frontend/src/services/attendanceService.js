@@ -1,6 +1,32 @@
 import api from "./api";
 import dayjs from "dayjs";
 
+export async function getTodayStatus() {
+    return await api.get("/attendance/today-status");
+}
+
+export async function clockIn(data) {
+    return await api.post("/attendance/clock-in", {
+        notes: data.note,
+        customTime: data.time,
+        customDate: data.date
+    });
+}
+
+export async function clockOut(data) {
+    return await api.patch("/attendance/clock-out", {
+        notes: data.note
+    });
+}
+
+export async function startBreak() {
+    return await api.patch("/attendance/start-break");
+}
+
+export async function endBreakApi() {
+    return await api.patch("/attendance/end-break");
+}
+
 export async function getWeeklyAttendance(start, end) {
     if (!start || !end) {
         throw new Error("Missing start or end date");

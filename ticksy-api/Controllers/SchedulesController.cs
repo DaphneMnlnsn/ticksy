@@ -136,6 +136,71 @@ public class SchedulesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("my-schedule")]
+    public async Task<IActionResult> GetMySchedule()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var data = await _context.WorkSchedules
+            .Where(s => s.DeletedAt == null && s.UserWorkSchedules.Any(us => us.UserId == userId))
+            .Select(schedule => new
+            {
+                schedule.Id,
+                schedule.ScheduleName,
+                schedule.WorkArrangement,
+                schedule.WeeklyDuration,
+                schedule.CreatedBy,
+                schedule.UpdatedAt,
+
+                Days = schedule.ScheduleDays.Select(sd => new
+                {
+                    sd.Day,
+                    sd.StartTime,
+                    sd.EndTime,
+                    sd.IsRestDay,
+                    sd.Duration,
+
+                    Breaks = sd.Breaks.Select(sb => new
+                    {
+                        sb.BreakName,
+                        sb.BreakDuration
+                    })
+                })
+            })
+            .FirstOrDefaultAsync();
+
+        if (data == null) 
+            return NotFound("You are not currently assigned to any active schedule.");
+
+        var result = new ScheduleDetailsDto
+        {
+            Id = data.Id,
+            ScheduleName = data.ScheduleName,
+            WorkArrangement = data.WorkArrangement,
+            WeeklyDuration = data.WeeklyDuration,
+            CreatedBy = data.CreatedBy,
+            UpdatedAt = data.UpdatedAt,
+
+            Days = data.Days.Select(sd => new ScheduleDayDto
+            {
+                Day = sd.Day,
+                StartTime = sd.StartTime,
+                EndTime = sd.EndTime,
+                IsRestDay = sd.IsRestDay,
+                Duration = sd.Duration,
+
+                Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
+                {
+                    BreakName = sb.BreakName,
+                    BreakDuration = sb.BreakDuration
+                }).ToList()
+            }).ToList()
+        };
+
+        return Ok(result);
+    }
+
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSchedule(int id)
     {
@@ -229,71 +294,6 @@ public class SchedulesController : ControllerBase
         {
             return Forbid("You do not have permission to view this user's schedule.");
         }
-
-        var data = await _context.WorkSchedules
-            .Where(s => s.DeletedAt == null && s.UserWorkSchedules.Any(us => us.UserId == userId))
-            .Select(schedule => new
-            {
-                schedule.Id,
-                schedule.ScheduleName,
-                schedule.WorkArrangement,
-                schedule.WeeklyDuration,
-                schedule.CreatedBy,
-                schedule.UpdatedAt,
-
-                Days = schedule.ScheduleDays.Select(sd => new
-                {
-                    sd.Day,
-                    sd.StartTime,
-                    sd.EndTime,
-                    sd.IsRestDay,
-                    sd.Duration,
-
-                    Breaks = sd.Breaks.Select(sb => new
-                    {
-                        sb.BreakName,
-                        sb.BreakDuration
-                    })
-                })
-            })
-            .FirstOrDefaultAsync();
-
-        if (data == null) 
-            return NotFound("You are not currently assigned to any active schedule.");
-
-        var result = new ScheduleDetailsDto
-        {
-            Id = data.Id,
-            ScheduleName = data.ScheduleName,
-            WorkArrangement = data.WorkArrangement,
-            WeeklyDuration = data.WeeklyDuration,
-            CreatedBy = data.CreatedBy,
-            UpdatedAt = data.UpdatedAt,
-
-            Days = data.Days.Select(sd => new ScheduleDayDto
-            {
-                Day = sd.Day,
-                StartTime = sd.StartTime,
-                EndTime = sd.EndTime,
-                IsRestDay = sd.IsRestDay,
-                Duration = sd.Duration,
-
-                Breaks = sd.Breaks.Select(sb => new ScheduleBreakDisplayDto
-                {
-                    BreakName = sb.BreakName,
-                    BreakDuration = sb.BreakDuration
-                }).ToList()
-            }).ToList()
-        };
-
-        return Ok(result);
-    }
-
-    [Authorize]
-    [HttpGet("my-schedule")]
-    public async Task<IActionResult> GetMySchedule()
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         var data = await _context.WorkSchedules
             .Where(s => s.DeletedAt == null && s.UserWorkSchedules.Any(us => us.UserId == userId))

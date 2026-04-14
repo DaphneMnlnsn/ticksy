@@ -20,6 +20,10 @@ export async function getSchedules() {
     }));
 }
 
+export async function getMySchedule() {
+    return await api.get("/Schedules/my-schedule");
+}
+
 export async function getScheduleById(id) {
     const res = await api.get(`/Schedules/${id}`);
     return res.data; 
