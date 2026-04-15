@@ -19,7 +19,7 @@
 
         <div class="rows-wrapper">
             <TransitionGroup name="row-fade" tag="div">
-                <div class="row" v-for="user in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
+                <div class="row" v-for="(user, i) in filteredUsers" :key="user.userId" >
                     <div class="user">
                         <img :src="user.avatar || defaultAvatar" class="avatar" />
                         <span>{{ user.name }}</span>
@@ -27,14 +27,18 @@
 
                     <div class="days monthly">
                         <span
-                            v-for="(day, index) in 31"
+                            v-for="(day, index) in daysInMonth"
                             :key="index"
                             class="box"
-                            :class="getBoxClass(user.days?.[index])"
-                            @mouseenter="showTooltip($event, user.days?.[index])"
+                            :class="getBoxClass(user.days?.[index], index)"
+                            @mouseenter="showTooltip($event, user.days?.[index], index)"
                             @mousemove="moveTooltip"
                             @mouseleave="hideTooltip"
-                        >
+                        >   
+                            <template v-if="isHoliday(index + 1)">
+                                <Calendar class="holiday-icon" />
+                            </template>
+
                             <template v-if="user.days?.[index] === 'REST'">
                                 <TreePalm class="rest-icon" />
                             </template>
@@ -63,21 +67,24 @@
 </template>
 
 <script setup>
-    import { ref, computed } from 'vue'
+    import { ref, computed, onMounted, watch } from 'vue'
     import SearchBar from '../../components/Search.vue'
     import { Calendar, TreePalm } from 'lucide-vue-next'
     import Loading from '../Loading.vue'
+    import { getCalendars } from '../../services/calendars'
+    import { getHolidays } from '../../services/holidays'
 
     const props = defineProps({
         users: Array,
         search: String,
         loading: Boolean,
         hasData: Boolean,
-        defaultAvatar: String
+        defaultAvatar: String,
+        selectedMonth: Number,
+        selectedYear: Number,
     })
 
     const search = ref('')
-    const daysInMonth = Array.from({ length: 31 })
 
     const filteredUsers = computed(() => {
         if (!props.search) return props.users
@@ -94,25 +101,69 @@
         y: 0
     })
 
-    function getBoxClass(value) {
-        if (!value) return ''
+    const daysInMonth = computed(() => {
+        if (!props.selectedYear || !props.selectedMonth) return 30
+        return new Date(props.selectedYear, props.selectedMonth, 0).getDate()
+    })
 
+    const holidays = ref([])
+    const calendarId = ref(null)
+
+    const pad = (n) => String(n).padStart(2, '0')
+
+    const holidayMap = computed(() => {
+        const map = {}
+
+        holidays.value.forEach(h => {
+            const [year, month, day] = h.date.split('-').map(Number)
+
+            const key = `${pad(month)}-${pad(day)}`
+            map[key] = h
+        })
+
+        return map
+    })
+
+    function getKey(month, day) {
+        return `${pad(Number(month))}-${pad(Number(day))}`
+    }
+
+    function isHoliday(day) {
+        return !!holidayMap.value[getKey(props.selectedMonth, day)]
+    }
+
+    function getBoxClass(value, index) {
+        const day = index + 1
+        const key = getKey(props.selectedMonth, day)
+
+        if (holidayMap.value[key]) return 'holiday'
+
+        if (!value) return 'no-record'
         if (value === 'REST') return 'rest-day'
         if (value === '0h') return 'zero-day'
 
         const hours = parseFloat(value)
 
         if (hours === 0) return 'zero-day'
-        if (hours >= 1 && hours <= 5) return 'low-hours'
-        if (hours >= 6 && hours <= 8) return 'full-day'
+        if (hours <= 5) return 'low-hours'
+        if (hours <= 8) return 'full-day'
         if (hours >= 9) return 'overtime'
 
         return ''
     }
 
-    function showTooltip(event, value) {
+    function showTooltip(event, value, index) {
         tooltip.value.show = true
         updateTooltipPosition(event)
+
+        const day = index + 1
+        const key = getKey(props.selectedMonth, day)
+
+        if (holidayMap.value[key]) {
+            tooltip.value.text = holidayMap.value[key].name
+            return
+        }
+
         tooltip.value.text = getTooltip(value)
     }
 
@@ -145,6 +196,30 @@
 
         return `${value} hours`
     }
+
+    async function loadHolidays() {
+        const calendars = await getCalendars()
+
+        const defaultCal = calendars.find(c => c.isDefault)
+
+        if (!defaultCal) return
+
+        calendarId.value = defaultCal.id
+
+        holidays.value = await getHolidays(calendarId.value, props.selectedYear)
+    }
+
+    onMounted(() => {
+        loadHolidays()
+    })
+
+    watch(
+        () => [props.selectedMonth, props.selectedYear],
+        () => {
+            loadHolidays()
+        },
+        { immediate: true }
+    )
 </script>
 
 <style scoped>
@@ -256,7 +331,7 @@
         font-size: 14px;
     }
 
-    .rest-icon {
+    .rest-icon, .holiday-icon {
         width: 19px;
         height: 19px;
         color: #D9D9D9;
@@ -295,10 +370,6 @@
     .row-fade-leave-to {
         opacity: 0;
         transform: translateY(-8px);
-    }
-
-    .row-fade-enter-active {
-        transition-delay: calc(var(--i) * 40ms);
     }
 
     @keyframes fadeIn {

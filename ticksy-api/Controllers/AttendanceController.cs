@@ -521,9 +521,10 @@ public class AttendanceController : ControllerBase
                 AvatarUrl = a.User.AvatarUrl
             })
             .Select(group =>
-            {
-                var days = new string[31];
-                var dailyMinutes = new int[31];
+            {   
+                var daysInMonth = DateTime.DaysInMonth(selectedDate.Year, selectedDate.Month);
+                var days = new string[daysInMonth];
+                var dailyMinutes = new int[daysInMonth];
                 int totalMinutes = 0;
 
                 foreach (var a in group)
@@ -537,7 +538,7 @@ public class AttendanceController : ControllerBase
                     ? scheduleMap[group.Key.UserId]
                     : new List<ScheduleDayDto>();
 
-                for (int i = 0; i < 31; i++)
+                for (int i = 0; i < daysInMonth; i++)
                 {
                     var date = new DateOnly(selectedDate.Year, selectedDate.Month, i + 1);
 

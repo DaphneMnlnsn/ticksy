@@ -39,16 +39,6 @@
                 <Luggage class="icon" />
                 <span>Time off</span>
             </div>
-
-            <div class="legend-item">
-                <ClockFading class="icon" />
-                <span>Shortened workday</span>
-            </div>
-
-            <div class="legend-item">
-                <Moon class="icon" />
-                <span>Overtime</span>
-            </div>
         </div>
 
     </div>

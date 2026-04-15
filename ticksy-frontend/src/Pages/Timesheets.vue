@@ -94,7 +94,11 @@
 
                 </div>
                 <div class="button-group">
-                    <button class="export-btn" ref="legendBtn" @click="toggleLegend">
+                    <button v-if="selectedTimesheet === 'monthly'" 
+                        class="export-btn" 
+                        ref="legendBtn" 
+                        @click="toggleLegend"
+                    >
                         <Clock3 class="export-icon" />
                         <span>Legends</span>
                     </button>
@@ -134,6 +138,8 @@
                 :loading="monthlyLoading"
                 :hasData="monthlyHasData"
                 :defaultAvatar="defaultAvatar"
+                :selectedMonth="selectedMonth ? selectedMonth.getMonth() + 1 : 1"
+                :selectedYear="selectedMonth ? selectedMonth.getFullYear() : 2026"
             />
         </div>
     </div>

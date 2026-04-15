@@ -22,7 +22,7 @@
 
         <div class="rows-wrapper">
             <TransitionGroup name="row-fade" tag="div">
-                <div class="row" v-for="user in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
+                <div class="row" v-for="(user, i) in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
                     <div class="user">
                         <img :src="user.avatar || defaultAvatar" class="avatar" />
                         <span>{{ user.name }}</span>
