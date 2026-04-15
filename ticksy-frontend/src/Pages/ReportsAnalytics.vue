@@ -40,58 +40,64 @@
                                         <div class="table-header">
                                             <Users class="icon" />
                                             <span>Employee Name</span>
-                                            <ChevronsUpDownIcon class="sort-icon" @click=""/>
+                                            <ChevronsUpDownIcon 
+                                                :class="['sort-icon', { active: sortConfig.key === 'employeeName' }]" 
+                                                @click="handleSort('employeeName')"
+                                            />
                                         </div>
                                     </th>
                                     <th>
                                         <div class="table-header">
                                             <ClockCheck class="icon" />
                                             <span>Clock-in & out</span>
-                                            <ChevronsUpDownIcon class="sort-icon" @click=""/>
+                                            <ChevronsUpDownIcon 
+                                            :class="['sort-icon', { active: sortConfig.key === 'clockIn' }]" 
+                                            @click="handleSort('clockIn')"/>
                                         </div>
                                     </th>
                                     <th>
                                         <div class="table-header">
                                             <ClockPlus class="icon" />
                                             <span>Overtime</span>
-                                            <ChevronsUpDownIcon class="sort-icon" @click=""/>
+                                            <ChevronsUpDownIcon 
+                                            :class="['sort-icon', { active: sortConfig.key === 'overtimeHours' }]" 
+                                            @click="handleSort('overtimeHours')"/>
                                         </div>
                                     </th>
                                     <th>
                                         <div class="table-header">
                                             <FileText class="icon" />
                                             <span>Note</span>
-                                            <ChevronsUpDownIcon class="sort-icon" @click=""/>
+                                            <ChevronsUpDownIcon
+                                            :class="['sort-icon', { active: sortConfig.key === 'notes' }]" 
+                                            @click="handleSort('notes')"/>
                                         </div>
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(report, index) in filteredReports" :key="index">
+                                <tr v-for="(report, index) in sortedAndFilteredReports" :key="index">
                                     <td>
                                         <div class="user-group">
-                                            <img :src="sampleIMG" alt="profile" class="avatar" /> 
-                                            <span>{{ report.name }}</span>
+                                            <img :src="report.avatar || sampleIMG" alt="profile" class="avatar" /> 
+                                            <span>{{ report.employeeName }}</span>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="time-group">
-                                            <span class="span-time-in" >
-                                                {{ report.clockIn }} 
-                                            </span>
+                                            <span class="span-time-in">{{ report.clockIn }}</span>
                                             <img :src="timeStyle" alt="style" class="time-style-left" />
-                                            <span class="span-total"> {{report.totalHours}} </span>
+                                            
+                                            <span class="span-total">{{ report.totalHours }}h</span>
+                                            
                                             <img :src="timeStyle" alt="style" class="time-style-right" /> 
-                                            <span class="span-time-out" >
-                                                {{ report.clockOut }}
-                                            </span>
+                                            <span class="span-time-out">{{ report.clockOut }}</span>
                                         </div>
                                     </td>
-                                    <td>{{ report.overtime }}</td>
-                                    <td>{{ report.note }}</td>
+                                    <td>{{ report.overtimeHours }}h</td>
+                                    <td>{{ report.notes || '-' }}</td>
                                 </tr>
                             </tbody>
-                            
                         </table>
                     </div>
                 </div>
@@ -101,17 +107,9 @@
 </template>   
 
 <script setup>
-    import { ref } from 'vue'
     import Sidebar from '../components/Sidebar.vue';
     import Header from '../components/Header.vue';
     import SummaryCard from '../components/SummaryCard.vue'
-    import { 
-        presentSummary, 
-        notPresentSummary, 
-        awaySummary, 
-        reports
-    } from '../services/summaryData.js'
-    import { useSearch } from '../services/search.js';
     import Search from '../components/Search.vue'
     import { Users, ClockCheck, ClockPlus, FileText, 
         ChevronsUpDownIcon, MoveRight, Download 
@@ -120,9 +118,9 @@
     import sampleIMG from '../assets/sample_img.jpg'
     import DatePicker from '../components/DatePicker.vue'
     import { computed } from 'vue'
-
-    const reportsRef = reports
-    const { search, filtered: filteredReports } = useSearch(reportsRef, ['name'])
+    import { ref, onMounted, watch } from 'vue'
+    import { useSearch } from '../services/search.js'
+    import { getAttendanceReport, getAttendanceSummary } from '../services/reports.js'
 
     const startDate = ref(new Date())
     const endDate = ref(new Date())
@@ -131,6 +129,86 @@
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
+
+    const reports = ref([])
+    const reportsRef = reports
+    const loading = ref(false)
+
+    async function loadAttendanceData() {
+        loading.value = true
+        try {
+            const reportResponse = await getAttendanceReport(startDate.value, endDate.value);
+            reports.value = reportResponse.data;
+
+            const summaryResponse = await getAttendanceSummary(startDate.value, endDate.value);
+            updateSummaryCards(summaryResponse.data);
+            
+        } catch (error) {
+            console.error("Error loading reports:", error);
+        } finally {
+            loading.value = false
+        }
+    }
+
+    watch([startDate, endDate], () => {
+        if (startDate.value && endDate.value) {
+            loadAttendanceData();
+        }
+    }, { immediate: false });
+
+    onMounted(loadAttendanceData);
+
+    const presentSummary = ref([]);
+    const notPresentSummary = ref([]);
+    const awaySummary = ref([]);
+
+    function updateSummaryCards(data) {
+        presentSummary.value = [
+            { label: 'Present', value: data.present, color: '#4CAF50' },
+            { label: 'Late', value: data.late, color: '#FF9800' },
+            { label: 'Half Day', value: data.halfDay, color: '#2196F3' }
+        ];
+
+        notPresentSummary.value = [
+            { label: 'Absent', value: data.absent, color: '#F44336' },
+            { label: 'No Clock-In', value: data.noClockIn, color: '#9C27B0' }
+        ];
+
+        awaySummary.value = [
+            { label: 'On Leave', value: data.onLeave, color: '#795548' },
+            { label: 'Day Off', value: data.dayOff, color: '#607D8B' },
+            { label: 'No Clock-Out', value: data.noClockOut, color: '#FF5722' }
+        ];
+    }
+
+    const sortConfig = ref({ key: null, direction: 'asc' });
+
+    function handleSort(key) {
+        let direction = 'asc';
+        if (sortConfig.value.key === key && sortConfig.value.direction === 'asc') {
+            direction = 'desc';
+        }
+        sortConfig.value = { key, direction };
+    }
+
+    const sortedAndFilteredReports = computed(() => {
+        let items = [...filteredReports.value];
+
+        if (sortConfig.value.key) {
+            items.sort((a, b) => {
+                const varA = a[sortConfig.value.key];
+                const varB = b[sortConfig.value.key];
+
+                if (varA < varB) return sortConfig.value.direction === 'asc' ? -1 : 1;
+                if (varA > varB) return sortConfig.value.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return items;
+    });
+
+    const { search, filtered: filteredReports } = useSearch(reports, ['employeeName'])
+
 </script>
 
 <style scoped>
@@ -378,6 +456,16 @@
         display: flex;
         flex-direction: column;
         width: 100%;
+    }
+
+    .sort-icon {
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    .sort-icon:hover, .sort-icon.active {
+        opacity: 1;
+        color: #4379a9;
     }
 
     @keyframes fadeIn {
