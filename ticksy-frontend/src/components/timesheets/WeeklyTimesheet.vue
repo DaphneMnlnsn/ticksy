@@ -14,31 +14,29 @@
             </div>
         </div>
 
-        <div v-if="loading" class="empty-state">
-            Loading timesheets...
-        </div>
-
-        <div v-else-if="!hasData" class="empty-state">
+        <div v-if="!hasData" class="empty-state">
             <Calendar class="empty-icon" />
             <p>No attendance records found for this date range</p>
             <span>Try selecting another week</span>
         </div>
 
-        <div v-else>
-            <div class="row" v-for="user in filteredUsers" :key="user.name">
-                <div class="user">
-                    <img :src="user.avatar || defaultAvatar" class="avatar" />
-                    <span>{{ user.name }}</span>
-                </div>
+        <div class="rows-wrapper">
+            <TransitionGroup name="row-fade" tag="div">
+                <div class="row" v-for="user in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
+                    <div class="user">
+                        <img :src="user.avatar || defaultAvatar" class="avatar" />
+                        <span>{{ user.name }}</span>
+                    </div>
 
-                <div class="days">
-                    <span v-for="(day, index) in user.days" :key="index">
-                        <span v-if="day === 'rest'" class="rest">Rest day</span>
-                        <span v-else>{{ day }}</span>
-                    </span>
-                    <span>{{ user.total }}</span>
+                    <div class="days">
+                        <span v-for="(day, index) in user.days" :key="index">
+                            <span v-if="day === 'rest'" class="rest">Rest day</span>
+                            <span v-else>{{ day }}</span>
+                        </span>
+                        <span>{{ user.total }}</span>
+                    </div>
                 </div>
-            </div>
+            </TransitionGroup>
         </div>
     </div>
 </template>
@@ -133,6 +131,30 @@
 
     span {
         font-size: 14px;
+    }
+
+    .rows-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .row-fade-enter-active,
+    .row-fade-leave-active {
+        transition: all 0.2s ease;
+    }
+
+    .row-fade-enter-from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    .row-fade-leave-to {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    .row-fade-enter-active {
+        transition-delay: calc(var(--i) * 40ms);
     }
 
     @keyframes fadeIn {

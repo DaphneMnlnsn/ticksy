@@ -93,10 +93,16 @@
                     </div>
 
                 </div>
-                <button class="export-btn">
-                    <Download class="export-icon" />
-                    <span>Export</span>                       
-                </button>
+                <div class="button-group">
+                    <button class="export-btn" ref="legendBtn" @click="toggleLegend">
+                        <Clock3 class="export-icon" />
+                        <span>Legends</span>
+                    </button>
+                    <button class="export-btn">
+                        <Download class="export-icon" />
+                        <span>Export</span>                       
+                    </button>
+                </div>
             </div>
             <div class="header-line"></div>
 
@@ -131,6 +137,10 @@
             />
         </div>
     </div>
+    <LegendModal 
+        :show="showLegend" 
+        :style="legendStyle"
+    />
     </div>
 </template>
 
@@ -139,7 +149,9 @@
     import Sidebar from '../components/Sidebar.vue'
     import SearchBar from '../components/Search.vue'
     import Header from '../components/Header.vue'
-    import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Download, TreePalm} from "lucide-vue-next"
+    import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Download, TreePalm,
+        Clock3, 
+    } from "lucide-vue-next"
     import { useSearch } from '../services/search.js'
     import { VueDatePicker } from '@vuepic/vue-datepicker'
     import '@vuepic/vue-datepicker/dist/main.css'
@@ -151,6 +163,7 @@
     import { useDailyTimesheet } from '../composables/useDailyTimesheet.js'
     import MonthlyTimesheet from '../components/timesheets/MonthlyTimesheet.vue'
     import { useMonthlyTimesheet } from '../composables/useMonthlyTimesheet'
+    import LegendModal from '../components/LegendModal.vue'
 
     const calendarBtn = ref(null)
     const pickerStyle = ref({})
@@ -182,6 +195,10 @@
     const search = ref('')
     const { filtered: filteredUsers } = useSearch(users, ['name'])
 
+    const legendBtn = ref(null)
+    const showLegend = ref(false)
+    const legendStyle = ref({})
+
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
@@ -209,12 +226,11 @@
             endDate.value = startDate.value
         } 
         else {
-            const start = dayjs(startDate.value).add(1, 'month').startOf('month').toDate()
-            const end = dayjs(startDate.value).add(1, 'month').endOf('month').toDate()
+            const newDate = dayjs(selectedMonth.value).add(1, 'month').toDate()
 
-            dateRange.value = [start, end]
-            startDate.value = start
-            endDate.value = end
+            selectedMonth.value = newDate
+            startDate.value = dayjs(newDate).startOf('month').toDate()
+            endDate.value = dayjs(newDate).endOf('month').toDate()
         }
     }
 
@@ -232,12 +248,11 @@
             endDate.value = startDate.value
         } 
         else {
-            const start = dayjs(startDate.value).subtract(1, 'month').startOf('month').toDate()
-            const end = dayjs(startDate.value).subtract(1, 'month').endOf('month').toDate()
+            const newDate = dayjs(selectedMonth.value).subtract(1, 'month').toDate()
 
-            dateRange.value = [start, end]
-            startDate.value = start
-            endDate.value = end
+            selectedMonth.value = newDate
+            startDate.value = dayjs(newDate).startOf('month').toDate()
+            endDate.value = dayjs(newDate).endOf('month').toDate()
         }
     }
 
@@ -292,6 +307,21 @@
                     top: `${rect.bottom + 5}px`,
                     left: `${rect.left}px`,
                     zIndex: 999
+                }
+            })
+        }
+    }
+
+    function toggleLegend() {
+        showLegend.value = !showLegend.value
+
+        if (showLegend.value) {
+            nextTick(() => {
+                const rect = legendBtn.value.getBoundingClientRect()
+
+                legendStyle.value = {
+                    top: `${rect.bottom + 5}px`,
+                    left: `${rect.left}px`
                 }
             })
         }
@@ -466,7 +496,7 @@
         color: white;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 10px;
         outline: none;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
     }
@@ -621,6 +651,12 @@
     .empty-icon {
         width: 40px;
         height: 40px;
+    }
+
+    .button-group {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
     }
 
     @keyframes fadeIn {
