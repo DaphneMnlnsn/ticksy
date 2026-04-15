@@ -74,18 +74,21 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('role');
 
-    if (to.meta.requiresAuth && !token) return '/login';
+    if (to.meta.requiresAuth && !isAuthenticated()) {
+        return '/login';
+    }
 
-    if ((to.path === '/login' || to.path === '/create-account') && token) return '/dashboard';
+    if ((to.path === '/login' || to.path === '/create-account') && isAuthenticated()) {
+        return '/dashboard';
+    }
 
     if (to.roles && !to.roles.includes(userRole)) {
         return '/dashboard';
     }
 
-    return true; 
+    return true;
 });
 
 export default router

@@ -10,29 +10,27 @@
             </div>
         </div>
 
-        <div v-if="loading" class="state">Loading...</div>
-        <div v-else-if="!hasData" class="empty-state">
+        <div v-if="!hasData" class="empty-state">
             <Calendar class="empty-icon" />
             <p>No attendance records found for this date</p>
             <span>Try selecting another date</span>
         </div>
 
-        <div
-            v-else
-            class="row"
-            v-for="user in filteredUsers"
-            :key="user.userId"
-        >
-            <div class="user">
-                <img :src="user.avatar || defaultAvatar" class="avatar" />
-                <span>{{ user.name }}</span>
-            </div>
+        <div class="rows-wrapper">
+            <TransitionGroup name="row-fade" tag="div">
+                <div class="row" v-for="user in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
+                    <div class="user">
+                        <img :src="user.avatar || defaultAvatar" class="avatar" />
+                        <span>{{ user.name }}</span>
+                    </div>
 
-            <div class="days daily">
-                <span>{{ user.firstIn }}</span>
-                <span>{{ user.lastOut }}</span>
-                <span>{{ user.totalHours }}</span>
-            </div>
+                    <div class="days daily">
+                        <span>{{ user.firstIn }}</span>
+                        <span>{{ user.lastOut }}</span>
+                        <span>{{ user.totalHours }}</span>
+                    </div>
+                </div>
+            </TransitionGroup>
         </div>
     </div>
 </template>
@@ -132,6 +130,30 @@
 
     .days.daily {
         grid-template-columns: repeat(3, 1fr);
+    }
+
+    .rows-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .row-fade-enter-active,
+    .row-fade-leave-active {
+        transition: all 0.2s ease;
+    }
+
+    .row-fade-enter-from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    .row-fade-leave-to {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    .row-fade-enter-active {
+        transition-delay: calc(var(--i) * 40ms);
     }
 
     @keyframes fadeIn {
