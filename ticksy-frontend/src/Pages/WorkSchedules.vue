@@ -371,6 +371,13 @@
         :isSidebarCollapsed="!isOpen"
         @close="isScheduleOpen = false"
     />
+    <EditSchedulePanel
+        :isOpen="isEditScheduleOpen"
+        :isSidebarCollapsed="!isOpen"
+        :scheduleEdit="selectedSchedule"
+        @setup-finished="loadSchedules"
+        @close="isEditScheduleOpen = false"
+    />
     <RequestTimeOffPanel
         :isOpen="isRequestOpen"
         :isSidebarCollapsed="!isOpen"
@@ -380,6 +387,7 @@
         :isOpen="isAddBreakOpen"
         :isSidebarCollapsed="!isOpen"
         :scheduleId=activeScheduleId
+        :setup-finished="handleInstantBreakAdd"
         @close="isAddBreakOpen = false"
     />
     <AddCalendarPanel
@@ -399,6 +407,12 @@
         :holiday="holiday"
         :calendarId="activeCalendarId"
         @close="isEditHolidayOpen = false"
+    />
+    <AssignMembers
+        v-model="isAssignOpen"
+        :users="users"
+        :scheduleId="activeScheduleId"
+        @save="selectSchedule(activeScheduleId)"
     />
 
 </template>   
@@ -426,6 +440,9 @@
     import AddBreak from '../components/AddBreak.vue'
     import AddHolidayPanel from '../components/AddHolidayPanel.vue'
     import EditHolidayPanel from '../components/EditHolidayPanel.vue'
+    import EditSchedulePanel from '../components/EditSchedulePanel.vue'
+    import AssignMembers from '../components/AssignMembers.vue'
+    import { getUsers } from '../services/assignMembers'
 
     const activeTab = ref ('Schedules')
     const showToast = ref(false)
@@ -433,19 +450,53 @@
     const showApproveToast = ref(false)
     const showRejectToast = ref(false)
     const isScheduleOpen = ref(false)
+    const isEditScheduleOpen = ref(false)
     const isRequestOpen = ref(false)
     const isCalendarOpen = ref(false)
     const isHolidayOpen = ref(false)
     const isOpen = ref(true)
     const isAddBreakOpen = ref(false)
+    const isAssignOpen = ref (false)
+    const isLoadingUsers = ref(false)
 
     const selectedRequests = ref([])
     const selectAllRequests = ref(false)
+    const users = ref([])
+
+    async function handleAssignMember() {
+        try {
+            if (!selectedSchedule.value) {
+                console.error("No selected schedule")
+                return
+            }
+
+            isLoadingUsers.value = true
+
+            users.value = await getUsers()
+
+            console.log("USERS:", users.value)
+
+            isAssignOpen.value = true
+
+        } catch (err) {
+            console.error("Error fetching users:", err)
+        } finally {
+            isLoadingUsers.value = false
+        }
+    }
+
+    const handleInstantBreakAdd = (newData) => {
+        selectedSchedule.value = newData;
+
+        const index = schedules.value.findIndex(s => s.id === newData.id);
+        if (index !== -1) {
+            schedules.value[index] = newData;
+        }
+    };
 
     function handleEditSchedule() {
-        if (selectedSchedule.value) {
-            isScheduleOpen.value = true;
-        }
+        if (!selectedSchedule.value) return
+        isEditScheduleOpen.value = true
     }
 
     const toggleAllRequests = () => {
@@ -524,10 +575,18 @@
 
     async function loadSchedules() {
         try {
-            schedules.value = await getSchedules();
-            
-            if (schedules.value.length > 0) {
-                await selectSchedule(schedules.value[0].id);
+            const data = await getSchedules();
+            schedules.value = data;
+
+            const currentId = activeScheduleId.value || selectedSchedule.value?.id;
+
+            const stillExists = data.find(s => s.id === currentId);
+
+            if (stillExists) {
+                await selectSchedule(stillExists.id);
+
+            } else if (data.length > 0) {
+                await selectSchedule(data[0].id);
             }
         } catch (error) {
             console.error("Failed to load schedules:", error);
@@ -799,6 +858,7 @@
     });
 
     const totalWeeklyHours = computed(() => {
+        // Safety check: if no days array exists, return 0
         if (!selectedSchedule.value?.days) return 0;
         
         return selectedSchedule.value.days.reduce((acc, day) => {
@@ -828,13 +888,13 @@
     });
 
     const averageShift = computed(() => {
-        const activeDays = selectedSchedule.value?.days.filter(d => !d.isRestDay) || [];
+        const activeDays = selectedSchedule.value?.days?.filter(d => !d.isRestDay) || [];
         if (activeDays.length === 0) return 0;
         return (totalWeeklyHours.value / activeDays.length).toFixed(1);
     });
 
     const scheduledDaysCount = computed(() => {
-        return selectedSchedule.value?.days.filter(d => !d.isRestDay).length || 0;
+        return selectedSchedule.value?.days?.filter(d => !d.isRestDay).length || 0;
     });
 
     const { search: scheduleSearch, filtered: filteredSchedules } = useSearch(schedules, ['name']);
@@ -1366,7 +1426,7 @@
 
     .btn-row {
         margin-top: auto;
-        padding-top: 15px;
+        padding-top: 175px;
         background: transparent; 
     }
 

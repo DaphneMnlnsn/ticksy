@@ -107,14 +107,14 @@
                 breakDuration: formatDuration()
             };
 
-            await addBreak(payload);
+            const updatedSchedule = await addBreak(payload);
 
             showToast.value = true;
             
             setTimeout(() => {
                 showToast.value = false;
                 resetForm();
-                emit('setup-finished');
+                emit('setup-finished', updatedSchedule);
                 emit('close');
             }, 2000);
 
