@@ -381,13 +381,13 @@
     <RequestTimeOffPanel
         :isOpen="isRequestOpen"
         :isSidebarCollapsed="!isOpen"
+        @setup-finished="loadTimeOffRequests"
         @close="isRequestOpen = false"
     />
     <AddBreak
         :isOpen="isAddBreakOpen"
         :isSidebarCollapsed="!isOpen"
         :scheduleId=activeScheduleId
-        :setup-finished="handleInstantBreakAdd"
         @close="isAddBreakOpen = false"
     />
     <AddCalendarPanel
@@ -431,7 +431,7 @@
     import { computed } from 'vue';
     import { useSearch } from '../services/search'
     import { getScheduleById, getSchedules } from '../services/schedule'
-    import { approveRequest, getRequests, rejectRequest } from '../services/timeOff'
+    import { approveRequest, createRequest, getRequests, rejectRequest } from '../services/timeOff'
     import { deleteCalendar, getCalendars, updateCalendar } from '../services/calendars'
     import { deleteHoliday, getHolidays } from '../services/holidays'
     import { formatDate, formatDuration, formatFullDateTime, formatRange, formatTime } from '../services/formatting'
@@ -484,15 +484,6 @@
             isLoadingUsers.value = false
         }
     }
-
-    const handleInstantBreakAdd = (newData) => {
-        selectedSchedule.value = newData;
-
-        const index = schedules.value.findIndex(s => s.id === newData.id);
-        if (index !== -1) {
-            schedules.value[index] = newData;
-        }
-    };
 
     function handleEditSchedule() {
         if (!selectedSchedule.value) return
@@ -858,7 +849,6 @@
     });
 
     const totalWeeklyHours = computed(() => {
-        // Safety check: if no days array exists, return 0
         if (!selectedSchedule.value?.days) return 0;
         
         return selectedSchedule.value.days.reduce((acc, day) => {

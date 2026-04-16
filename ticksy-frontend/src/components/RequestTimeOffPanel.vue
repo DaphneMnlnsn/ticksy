@@ -162,7 +162,7 @@
                 reason: note.value
             };
 
-            const result = await createRequest(payload);
+            await createRequest(payload);
 
             showToast.value = true;
             setTimeout(() => {

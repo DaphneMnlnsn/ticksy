@@ -50,9 +50,9 @@
                 <span>
                     <input type="checkbox" :value="user.id" v-model="selectedUsers" />
                 </span>
-                <span>{{ user.name }}</span>
+                <span>{{ user.firstName }}</span>
                 <span>{{ user.email }}</span>
-                <span>09123456789</span>
+                <span>{{user.phone}}</span>
                 </div>
             </div>
         </div>
@@ -86,11 +86,16 @@
     const selectedUsers = ref([])
 
     const filteredUsers = computed(() => {
+        if (!props.users) return [] 
         if (!searchQuery.value) return props.users
-        return props.users.filter(u =>
-        u.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-        )
+        
+        const query = searchQuery.value.toLowerCase()
+        
+        return props.users.filter(u => {
+            // Combine names for a full-name search
+            const fullName = `${u.firstName} ${u.lastName}`.toLowerCase()
+            return fullName.includes(query) || u.email.toLowerCase().includes(query)
+        })
     })
 
     function copyLink() {
@@ -140,7 +145,7 @@
     top: 0;
     right: 0;
     height: 100vh;
-    background: #031e2f;
+    background: #001527;
     box-shadow: -5px 0 20px rgba(0,0,0,0.5);
     z-index: 999;
     display: flex;
@@ -174,6 +179,7 @@
     border: none;
     color: white;
     cursor: pointer;
+    outline: none;
     }
 
     .section-title {
@@ -245,23 +251,35 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: auto;
+    margin-top: 25px;
+    }
+
+    .cancel, .save {
+        padding: 10px 20px;
+        min-width: 120px;
+        height: fit-content;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
     }
 
     .cancel {
-    background: none;
+    background: #003867;
     border: none;
     color: white;
     cursor: pointer;
+    outline: none;
     }
 
     .save {
-    background: #003867;
+    background: rgb(0, 56, 103, 50%);
     border: none;
     padding: 8px 15px;
     border-radius: 6px;
     color: white;
     cursor: pointer;
+    outline: none;
     }
 
     .table {
@@ -288,6 +306,7 @@
     gap: 10px;
     font-weight: 600;
     font-size: 13px;
+    margin-left: 45px;
     }
 
     .row.people {
@@ -306,6 +325,11 @@
     .divider {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
     margin-bottom: 1px; 
+    }
+
+    .section {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 15px;
     }
 
     .section-title {
