@@ -122,4 +122,155 @@ public class DashboardService
 
         return result;
     }
+
+    public async Task<List<MostAbsencesDto>> GetMostAbsences(int adminId, DateOnly start, DateOnly end)
+    {
+
+        var defaultCalendarId = await _context.HolidayCalendars
+            .Where(c => c.IsDefault)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        var users = await _context.Users
+            .Include(u => u.UserWorkSchedules)
+                .ThenInclude(us => us.WorkSchedule)
+                .ThenInclude(ws => ws.ScheduleDays)
+            .ToListAsync();
+
+        var allAttendances = await _context.Attendances
+            .Where(a => a.Date >= start && a.Date <= end)
+            .ToListAsync();
+
+        var holidays = (await _context.Holidays
+            .Where(h =>
+                h.CalendarId == defaultCalendarId &&
+                h.Date >= start &&
+                h.Date <= end &&
+                h.DeletedAt == null
+            )
+            .Select(h => h.Date)
+            .ToListAsync())
+            .ToHashSet();
+
+        var approvedLeaves = await _context.LeaveRequests
+            .Where(l =>
+                l.Status == LeaveRequest.RequestStatus.Approved &&
+                l.EndDate >= start &&
+                l.StartDate <= end
+            )
+            .ToListAsync();
+
+        var result = new List<MostAbsencesDto>();
+
+        foreach (var user in users)
+        {
+            int absenceCount = 0;
+
+            var userAttendanceDates = allAttendances
+                .Where(a => a.UserId == user.Id)
+                .Select(a => a.Date)
+                .ToHashSet();
+
+            var userLeaves = approvedLeaves
+                .Where(l => l.UserId == user.Id)
+                .ToList();
+
+            var scheduleDays = user.UserWorkSchedules
+                .SelectMany(us => us.WorkSchedule.ScheduleDays)
+                .Where(sd => !sd.IsRestDay)
+                .ToList();
+
+            if (!scheduleDays.Any()) continue;
+
+            for (var date = start; date <= end; date = date.AddDays(1))
+            {
+                var dayOfWeek = date.DayOfWeek;
+
+                var isScheduled = scheduleDays.Any(sd => sd.Day == dayOfWeek);
+                if (!isScheduled) continue;
+
+                if (holidays.Contains(date)) continue;
+
+                var isOnLeave = userLeaves.Any(l =>
+                    date >= l.StartDate && date <= l.EndDate
+                );
+                if (isOnLeave) continue;
+
+                var hasAttendance = userAttendanceDates.Contains(date);
+
+                if (!hasAttendance)
+                {
+                    absenceCount++;
+                }
+            }
+
+            if (absenceCount > 0)
+            {
+                result.Add(new MostAbsencesDto
+                {
+                    UserId = user.Id,
+                    FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                    AvatarUrl = user.AvatarUrl,
+                    AbsenceCount = absenceCount
+                });
+            }
+        }
+
+        return result
+            .OrderByDescending(r => r.AbsenceCount)
+            .Take(5)
+            .ToList();
+    }
+
+    public async Task<List<UserLiveStatusDto>> GetUsersLiveStatusAsync()
+    {
+        var users = await _context.Users.ToListAsync();
+        var result = new List<UserLiveStatusDto>();
+
+        foreach (var user in users)
+        {
+            var latest = await _context.Attendances
+                .Where(a => a.UserId == user.Id)
+                .OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.TimeIn)
+                .FirstOrDefaultAsync();
+
+            string status = "Out";
+            DateOnly? lastDate = latest?.Date;
+            TimeOnly? lastTime = null;
+
+            if (latest != null)
+            {
+                if (latest.BreakStart != null)
+                {
+                    status = "On Break";
+                    lastTime = latest.BreakStart;
+                }
+                else if (latest.TimeOut != null)
+                {
+                    status = "Out";
+                    lastTime = latest.TimeOut;
+                }
+                else if (latest.TimeIn != default)
+                {
+                    status = "In";
+                    lastTime = latest.TimeIn;
+                }
+            }
+
+            result.Add(new UserLiveStatusDto
+            {
+                UserId = user.Id,
+                FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                AvatarUrl = user.AvatarUrl,
+                Status = status,
+                LastActionDate = lastDate,
+                LastActionTime = lastTime
+            });
+
+            Console.WriteLine($"User {user.Id} | In: {latest?.TimeIn} | Out: {latest?.TimeOut} | Break: {latest?.BreakStart}");
+        }
+
+        return result;
+    }
 }

@@ -59,4 +59,23 @@ public class DashboardController : ControllerBase
 
         return Ok(monthlyTracked);
     }
+
+    [Authorize]
+    [HttpGet("most-absences")]
+    public async Task<IActionResult> GetMostAbsences([FromQuery] DateTime start, [FromQuery] DateTime end)
+    {
+        var startDay = DateOnly.FromDateTime(start);
+        var endDay = DateOnly.FromDateTime(end);
+        
+        var result = await _dashboardService.GetMostAbsences(0, startDay, endDay);
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("live-status")]
+    public async Task<ActionResult<List<UserLiveStatusDto>>> GetLiveStatus()
+    {
+        var statusList = await _dashboardService.GetUsersLiveStatusAsync();
+        return Ok(statusList);
+    }
 }
