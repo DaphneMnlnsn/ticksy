@@ -193,6 +193,10 @@
                                         <Search v-model="requestSearch" />
                                     </div>
 
+                                    <button class="create-btn" @click="handleShowPolicies">
+                                        <span class="show-policy-bubble">Show Time Off Policies/Types</span>
+                                    </button>
+
                                     <button class="create-btn" @click="handleAddRequest">
                                         <FilePlus class="create-icon"/>
                                         <span>Create Request</span>
@@ -414,6 +418,11 @@
         :scheduleId="activeScheduleId"
         @save="selectSchedule(activeScheduleId)"
     />
+    <PolicyListPanel
+        :isOpen="isPoliciesOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="isPoliciesOpen = false"
+    />
 
 </template>   
 
@@ -443,6 +452,7 @@
     import EditSchedulePanel from '../components/EditSchedulePanel.vue'
     import AssignMembers from '../components/AssignMembers.vue'
     import { getUsers } from '../services/assignMembers'
+    import PolicyListPanel from '../components/PolicyListPanel.vue'
 
     const activeTab = ref ('Schedules')
     const showToast = ref(false)
@@ -458,6 +468,7 @@
     const isAddBreakOpen = ref(false)
     const isAssignOpen = ref (false)
     const isLoadingUsers = ref(false)
+    const isPoliciesOpen = ref(false)
 
     const selectedRequests = ref([])
     const selectAllRequests = ref(false)
@@ -483,6 +494,10 @@
         } finally {
             isLoadingUsers.value = false
         }
+    }
+
+    function handleShowPolicies() {
+        isPoliciesOpen.value = true
     }
 
     function handleEditSchedule() {
@@ -1278,6 +1293,16 @@
         padding: 5px 15px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         margin-left: 10px;
+    }
+
+    .show-policy-bubble {
+        font-size: 13px;
+        color: #F0F0F0;
+        border-radius: 10px;
+        background-color:#003867;
+        padding: 5px 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        margin-right: -200%;
     }
 
     .search-row {
