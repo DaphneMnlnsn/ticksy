@@ -135,12 +135,14 @@ public class TeamsController : ControllerBase
             return NotFound("This team has been deleted.");
 
         var members = await _context.TeamMembers
+             .Where(t => t.TeamId == id)
             .Select(t => new
             {
                 t.UserId,
                 t.User.FirstName,
                 t.User.MiddleName,
                 t.User.LastName,
+                t.User.Email,
                 Role = t.TeamRole.ToString(),
                 t.JoinedAt
             })
@@ -160,6 +162,7 @@ public class TeamsController : ControllerBase
                     tm.MiddleName,
                     tm.LastName
                 }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                Email = tm.Email,
                 Role = tm.Role,
                 JoinedAt = tm.JoinedAt
             }).ToList()
