@@ -102,7 +102,7 @@
                         <Clock3 class="export-icon" />
                         <span>Legends</span>
                     </button>
-                    <button class="export-btn">
+                    <button class="export-btn" @click="handleExport">
                         <Download class="export-icon" />
                         <span>Export</span>                       
                     </button>
@@ -170,6 +170,10 @@
     import MonthlyTimesheet from '../components/timesheets/MonthlyTimesheet.vue'
     import { useMonthlyTimesheet } from '../composables/useMonthlyTimesheet'
     import LegendModal from '../components/LegendModal.vue'
+    import { buildExportPayload } from '../services/exportBuilder'
+    import { formatCSV } from '../services/exportFormatter'
+    import { useExportService } from '../services/exportService.js'
+    import Swal from 'sweetalert2'
 
     const calendarBtn = ref(null)
     const pickerStyle = ref({})
@@ -204,6 +208,8 @@
     const legendBtn = ref(null)
     const showLegend = ref(false)
     const legendStyle = ref({})
+
+    const { exportCSV, exportPDF } = useExportService()
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -330,6 +336,189 @@
                     left: `${rect.left}px`
                 }
             })
+        }
+    }
+
+    function getExportPayload() {
+        if (selectedTimesheet.value === 'weekly') return buildWeeklyPayload()
+        if (selectedTimesheet.value === 'daily') return buildDailyPayload()
+        return buildMonthlyPayload()
+    }
+
+    async function handleExport() {
+        const result = await Swal.fire({
+            title: 'Export Timesheet',
+            text: 'Choose export format',
+            icon: 'question',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'CSV',
+            denyButtonText: 'PDF',
+            confirmButtonColor: "#083A73",
+            denyButtonColor: "#052348",
+            cancelButtonText: 'Cancel',
+        })
+
+        if (result.isConfirmed) {
+            exportCSVHandler()
+        } 
+        else if (result.isDenied) {
+            exportPDFHandler()
+        }
+    }
+
+    function exportCSVHandler() {
+        const payload = getExportPayload()
+
+        const formatted = formatCSV(payload)
+
+        exportCSV(
+            `timesheet-${selectedTimesheet.value}`,
+            formatted
+        )
+    }
+
+    function exportPDFHandler() {
+        const payload = getExportPayload()
+
+        const pdfPayload = transformPayloadForPDF(payload)
+
+        exportPDF(
+            `timesheet-${selectedTimesheet.value}`,
+            pdfPayload,
+            {
+                landscape: selectedTimesheet.value === 'monthly'
+            }
+        )
+    }
+
+    function buildWeeklyPayload() {
+        return buildExportPayload({
+            title: 'WEEKLY TIMESHEET REPORT',
+            subtitle: 'Employee Attendance Summary',
+            dateRange: formattedRange.value,
+
+            headers: ['Name','Mon','Tue','Wed','Thu','Fri','Sat','Sun','Total Hours'],
+
+            rows: users.value.map(user => ({
+                Name: user.name,
+                Mon: user.days[0],
+                Tue: user.days[1],
+                Wed: user.days[2],
+                Thu: user.days[3],
+                Fri: user.days[4],
+                Sat: user.days[5],
+                Sun: user.days[6],
+                'Total Hours': user.total ?? 0
+            }))
+        })
+    }
+
+    function buildDailyPayload() {
+        return buildExportPayload({
+            title: 'DAILY TIMESHEET REPORT',
+            subtitle: 'Employee Attendance Summary',
+            dateRange: startDate.value.toDateString(),
+
+            headers: [
+                'Name',
+                'First In',
+                'Last Out',
+                'Total Hours'
+            ],
+
+            rows: dailyUsers.value.map(user => ({
+                'Name': user.name,
+                'First In': user.firstIn || '-',
+                'Last Out': user.lastOut || '-',
+                'Total Hours': user.totalHours || 0
+            }))
+        })
+    }
+
+    function buildMonthlyPayload() {
+        const monthDate = selectedMonth.value
+        const year = monthDate.getFullYear()
+        const month = monthDate.getMonth()
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+        const rows = monthlyUsers.value.map(user => {
+            const days = user.days || []
+
+            let present = 0
+            let absent = 0
+            let late = 0
+
+            const weekTotals = [0, 0, 0, 0]
+
+            for (let i = 0; i < daysInMonth; i++) {
+                const val = days[i]
+
+                if (val && val !== '—' && val !== 'REST') {
+                    present++
+                    weekTotals[Math.floor(i / 7)] += Number(val) || 0
+                } else if (!val || val === '—') {
+                    absent++
+                }
+
+                if (val === 'late') late++
+            }
+
+            return {
+                'Name': user.name,
+                'Month': monthDate.toLocaleString('default', { month: 'long', year: 'numeric' }),
+                'Total Hours': user.totalHours || 0,
+                'Days Present': present,
+                'Days Absent': absent,
+                'Late Count': late,
+                'Week 1 Hours': weekTotals[0],
+                'Week 2 Hours': weekTotals[1],
+                'Week 3 Hours': weekTotals[2],
+                'Week 4 Hours': weekTotals[3]
+            }
+        })
+
+        return buildExportPayload({
+            title: 'MONTHLY TIMESHEET REPORT',
+            subtitle: 'Employee Attendance Summary',
+            dateRange: monthDate.toLocaleString('default', {
+                month: 'long',
+                year: 'numeric'
+            }),
+
+            headers: [
+                'Name',
+                'Month',
+                'Total Hours',
+                'Days Present',
+                'Days Absent',
+                'Late Count',
+                'Week 1 Hours',
+                'Week 2 Hours',
+                'Week 3 Hours',
+                'Week 4 Hours'
+            ],
+
+            rows
+        })
+    }
+
+    function transformPayloadForPDF(payload) {
+        const headers = payload.table.headers
+
+        const rows = payload.table.rows.map(row => {
+            if (Array.isArray(row)) return row
+
+            return headers.map(h => row[h] ?? '')
+        })
+
+        return {
+            ...payload,
+            table: {
+                ...payload.table,
+                rows
+            }
         }
     }
 

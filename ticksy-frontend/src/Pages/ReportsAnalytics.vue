@@ -21,7 +21,7 @@
                             <MoveRight class="icon" :size="18" />
                             <DatePicker v-model="endDate" placeholder="DD/MM/YYYY" />
                         </div>
-                        <button class="export-btn">
+                        <button class="export-btn" @click="handleExport">
                             <Download class="export-icon" />
                             <span>Export</span>                       
                         </button>
@@ -121,18 +121,49 @@
     import { ref, onMounted, watch } from 'vue'
     import { useSearch } from '../services/search.js'
     import { getAttendanceReport, getAttendanceSummary } from '../services/reports.js'
+    import jsPDF from 'jspdf'
+    import autoTable from 'jspdf-autotable'
+    import logo from '../assets/IDA-Logo.png'
+    import { useExportService } from '../services/exportService'
+    import Swal from 'sweetalert2'
+    import { formatDate } from '../services/formatting'
 
     const startDate = ref(new Date())
     const endDate = ref(new Date())
     const isOpen = ref(true)
 
-    function toggleSidebar() {
-        isOpen.value = !isOpen.value
-    }
-
     const reports = ref([])
     const reportsRef = reports
     const loading = ref(false)
+
+    const { search, filtered: filteredReports } = useSearch(reports, ['employeeName'])
+
+    const presentSummary = ref([]);
+    const notPresentSummary = ref([]);
+    const awaySummary = ref([]);
+    const sortConfig = ref({ key: null, direction: 'asc' });
+
+    const { exportCSV, exportPDF } = useExportService()
+
+    const sortedAndFilteredReports = computed(() => {
+        let items = [...filteredReports.value];
+
+        if (sortConfig.value.key) {
+            items.sort((a, b) => {
+                const varA = a[sortConfig.value.key];
+                const varB = b[sortConfig.value.key];
+
+                if (varA < varB) return sortConfig.value.direction === 'asc' ? -1 : 1;
+                if (varA > varB) return sortConfig.value.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return items;
+    });
+
+    function toggleSidebar() {
+        isOpen.value = !isOpen.value
+    }
 
     async function loadAttendanceData() {
         loading.value = true
@@ -149,18 +180,6 @@
             loading.value = false
         }
     }
-
-    watch([startDate, endDate], () => {
-        if (startDate.value && endDate.value) {
-            loadAttendanceData();
-        }
-    }, { immediate: false });
-
-    onMounted(loadAttendanceData);
-
-    const presentSummary = ref([]);
-    const notPresentSummary = ref([]);
-    const awaySummary = ref([]);
 
     function updateSummaryCards(data) {
         presentSummary.value = [
@@ -181,8 +200,6 @@
         ];
     }
 
-    const sortConfig = ref({ key: null, direction: 'asc' });
-
     function handleSort(key) {
         let direction = 'asc';
         if (sortConfig.value.key === key && sortConfig.value.direction === 'asc') {
@@ -191,24 +208,100 @@
         sortConfig.value = { key, direction };
     }
 
-    const sortedAndFilteredReports = computed(() => {
-        let items = [...filteredReports.value];
+    function buildAttendanceReportPayload() {
+        return {
+            meta: {
+                title: 'Attendance Reports',
+                dateRange: `${formatDate(startDate.value)} - ${formatDate(endDate.value)}`,
+                generatedAt: new Date().toLocaleString()
+            },
 
-        if (sortConfig.value.key) {
-            items.sort((a, b) => {
-                const varA = a[sortConfig.value.key];
-                const varB = b[sortConfig.value.key];
+            summary: [
+                { title: 'Present', items: presentSummary.value },
+                { title: 'Not Present', items: notPresentSummary.value },
+                { title: 'Away', items: awaySummary.value }
+            ],
 
-                if (varA < varB) return sortConfig.value.direction === 'asc' ? -1 : 1;
-                if (varA > varB) return sortConfig.value.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+            table: {
+                headers: ['Employee', 'Clock In/Out', 'Overtime', 'Note'],
+                rows: sortedAndFilteredReports.value.map(r => [
+                    r.employeeName,
+                    `${r.clockIn} - ${r.clockOut}`,
+                    `${r.overtimeHours}h`,
+                    r.notes || '-'
+                ])
+            }
         }
-        return items;
-    });
+    }
 
-    const { search, filtered: filteredReports } = useSearch(reports, ['employeeName'])
+    async function handleExport() {
+        const result = await Swal.fire({
+            title: 'Export Reports',
+            text: 'Choose export format',
+            icon: 'question',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'CSV',
+            denyButtonText: 'PDF',
+            confirmButtonColor: "#083A73",
+            denyButtonColor: "#052348",
+            cancelButtonText: 'Cancel',
+        })
 
+        if (result.isConfirmed) {
+            exportCSVHandler()
+        } else if (result.isDenied) {
+            exportPDFHandler()
+        }
+    }
+
+    function exportCSVHandler() {
+        const summaryRows = []
+
+        const pushGroup = (title, items) => {
+            summaryRows.push([title]) 
+
+            items.forEach(i => {
+                summaryRows.push([i.label, i.value])
+            })
+
+            summaryRows.push([]) 
+        }
+
+        pushGroup('Present Summary', presentSummary.value)
+        pushGroup('Not Present Summary', notPresentSummary.value)
+        pushGroup('Away Summary', awaySummary.value)
+
+        exportCSV('attendance-reports', {
+            metaRows: [
+                [`Date Range: ${formatDate(startDate.value)} - ${formatDate(endDate.value)}`],
+                [], 
+                ...summaryRows,
+                [] 
+            ],
+
+            headers: ['employee', 'time', 'overtime', 'note'],
+
+            rows: sortedAndFilteredReports.value.map(r => ({
+                employee: r.employeeName,
+                time: `${r.clockIn} - ${r.clockOut}`,
+                overtime: `${r.overtimeHours}h`,
+                note: r.notes || '-'
+            }))
+        })
+    }
+
+    function exportPDFHandler() {
+        exportPDF('attendance-reports', buildAttendanceReportPayload())
+    }
+
+    watch([startDate, endDate], () => {
+        if (startDate.value && endDate.value) {
+            loadAttendanceData();
+        }
+    }, { immediate: false });
+
+    onMounted(loadAttendanceData);
 </script>
 
 <style scoped>
