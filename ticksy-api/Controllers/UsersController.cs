@@ -70,6 +70,10 @@ public class UsersController : ControllerBase
         {
             await AutoClockIn(user.Id);
         }
+
+        user.LastActive = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
         
         var token = GenerateJwtToken(user);
 
@@ -107,6 +111,7 @@ public class UsersController : ControllerBase
     {
         var users = await _context.Users
             .Where(u => u.DeletedAt == null)
+            .OrderByDescending(u => u.Id)
             .Select(u => new
             {
                 u.Id,
@@ -120,7 +125,23 @@ public class UsersController : ControllerBase
                 u.AvatarUrl,
                 Role = u.Role.ToString(),
                 u.LastActive,
-                u.CreatedAt
+                u.CreatedAt,
+                TeamName = u.TeamMemberships
+                .Where(tm => tm.Team.DeletedAt == null)
+                .Select(tm => tm.Team.TeamName)
+                .FirstOrDefault() ?? "No Team",
+                TeamId = u.TeamMemberships
+                .Where(tm => tm.Team.DeletedAt == null)
+                .Select(tm => tm.TeamId)
+                .FirstOrDefault(),
+                ScheduleName = u.UserWorkSchedules
+                .Where(uws => uws.WorkSchedule.DeletedAt == null)
+                .Select(uws => uws.WorkSchedule.ScheduleName)
+                .FirstOrDefault() ?? "No Schedule Assigned",
+                ScheduleId = u.UserWorkSchedules
+                .Where(uws => uws.WorkSchedule.DeletedAt == null)
+                .Select(uws => uws.WorkScheduleId)
+                .FirstOrDefault()
             })
             .ToListAsync();
 
@@ -162,7 +183,10 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] UserUpdateDto dto)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.TeamMemberships)
+            .Include(u => u.UserWorkSchedules)
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null) return NotFound();
 
         if (user.DeletedAt != null)
@@ -176,6 +200,40 @@ public class UsersController : ControllerBase
         if(!string.IsNullOrWhiteSpace(dto.AvatarUrl)) user.AvatarUrl = dto.AvatarUrl;
         if (dto.Role.HasValue) user.Role = dto.Role.Value;
         if(!string.IsNullOrWhiteSpace(dto.TimeZone)) user.TimeZone = dto.TimeZone;
+
+        if (dto.TeamId.HasValue)
+        {
+            var existingTeam = user.TeamMemberships.FirstOrDefault();
+            if (existingTeam != null)
+            {
+                _context.TeamMembers.Remove(existingTeam);
+            }
+            if (dto.TeamId.Value > 0)
+            {
+                _context.TeamMembers.Add(new TeamMember
+                {
+                    UserId = id,
+                    TeamId = dto.TeamId.Value
+                });
+            }
+        }
+
+        if (dto.ScheduleId.HasValue)
+        {
+            var existingSchedules = user.UserWorkSchedules.ToList();
+            foreach (var sched in existingSchedules)
+            {
+                _context.UserWorkSchedules.Remove(sched);
+            }
+            if (dto.ScheduleId.Value > 0)
+            {
+                _context.UserWorkSchedules.Add(new UserWorkSchedule
+                {
+                    UserId = id,
+                    WorkScheduleId = dto.ScheduleId.Value
+                });
+            }
+        }
 
         user.UpdatedAt = DateTime.UtcNow;
 

@@ -41,7 +41,7 @@
                         </div>
                         <div class="input-group">
                             <div class="form-label">Email</div>
-                            <input type="email" v-model="form.email" :disabled="!isEditing" />
+                            <input type="email" v-model="form.email" disabled="true" />
                         </div>
                         <div class="input-group">
                             <div class="form-label">Phone Number</div>
