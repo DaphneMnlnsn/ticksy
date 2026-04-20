@@ -60,7 +60,7 @@
                                 <span></span>
                             </div>
 
-                            <div class="row people" v-for="user in filteredUsers" :key="user.email">
+                            <div class="row people" v-for="user in filteredUsers" :key="user.id">
                                 <span>
                                     <input 
                                         type="checkbox"
@@ -76,13 +76,13 @@
 
                                 <span>{{ user.email }}</span>
                                 <span>{{ user.team }}</span>
-                                <span>{{ user.lastActive }}</span>
+                                <span>{{ formatFullDateTime(user.lastActive) }}</span>
 
                                 <div class="actions" @click.stop>
                                     <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
                                     <div v-if="activeMenu === user.email" class="dropdown">
-                                        <div class="dropdown-item" @click="openEdit(user)">
+                                        <div class="dropdown-item" @click="openEdit(user); activeMenu = null">
                                     <Edit size="14" />
                                     Edit
                                 </div>
@@ -101,7 +101,7 @@
                             <div class="teams-left">
                                 <SidePanel 
                                     buttonText="+ Add Team"
-                                       @click="showAddTeamModal = true" 
+                                    @actionClick="showAddTeamModal = true" 
                                 >
                                     
                                     <template #header>
@@ -189,16 +189,16 @@
         </div>
     </div>
 
-        <EditMemberPanel
-            v-model="showEditModal"
-            :user="selectedUserData"
-            :avatar="sampleIMG"
-            @save="handleSaveEdit"
-        />
+   <EditMemberPanel
+  v-model="showEditModal"
+  :user="selectedUserData"
+  :avatar="sampleIMG"
+  @save="handleSaveEdit"
+/>
 
         <AddMemberPanel
             v-model="showAddMemberModal"
-            :users="allUsers"
+            :users="users"
             @save="handleAddMembers"
         />
 
@@ -218,190 +218,248 @@
 </template>   
 
 <script setup>
-    import { ref } from 'vue'
-    import Sidebar from '../components/Sidebar.vue';
-    import Header from '../components/Header.vue';
-    import { computed } from 'vue'
-    import sampleIMG from '../assets/sample_img.jpg'
-    import { watch } from 'vue'
-    import { useSearch } from '../services/search.js'
-    import Search from '../components/Search.vue'
-    import { allUsers } from '../services/summaryData.js'
-    import { Edit, Archive, Trash2 } from 'lucide-vue-next'
-    import { User, Mail, Phone } from 'lucide-vue-next'
-    import SidePanel from '../components/SidePanel.vue'
-    import EditMemberPanel from '../components/EditMemberPanel.vue'
-    import EditTeamsPanel from '../components/EditTeamsPanel.vue'
-    import AddTeamPanel from '../components/AddTeamPanel.vue' 
-    
-    
-    const activeTab = ref('members')
-    const isOpen = ref(true)
-    const { search, filtered: filteredUsers } = useSearch(allUsers, ['name', 'email', 'team'])
+import { ref, computed, onMounted, watch } from 'vue'
 
-    function toggleSidebar() {
-        isOpen.value = !isOpen.value
-    }
-    import { onMounted, onUnmounted } from 'vue'
+import Sidebar from '../components/Sidebar.vue'
+import Header from '../components/Header.vue'
+import Search from '../components/Search.vue'
+import SidePanel from '../components/SidePanel.vue'
 
-    const activeMenu = ref(null)
+import EditMemberPanel from '../components/EditMemberPanel.vue'
+import EditTeamsPanel from '../components/EditTeamsPanel.vue'
+import AddTeamPanel from '../components/AddTeamPanel.vue'
+import AddMemberPanel from '../components/AddMemberPanel.vue'
 
-    function toggleMenu(email) {
-        activeMenu.value = activeMenu.value === email ? null : email
-    }
+import { Edit, Archive } from 'lucide-vue-next'
 
-    function closeMenu() {
-        activeMenu.value = null
-    }
+import sampleIMG from '../assets/sample_img.jpg'
 
-    function handleClickOutside() {
-        activeMenu.value = null
-    }
+import { useSearch } from '../services/search.js'
+import { formatFullDateTime } from '../services/formatting.js'
+import { getUsers, archiveUser, updateUser } from '../services/people.js'
+import { getTeams, createTeam, updateTeam } from '../services/people.js'
 
-    onMounted(() => {
-        document.addEventListener('click', handleClickOutside)
-    })
+import { nextTick } from 'vue'
 
-    onUnmounted(() => {
-        document.removeEventListener('click', handleClickOutside)
-    })
 
-    const selectedTeam = ref(1)  
-    const selectedUsers = ref([])
-    const selectAll = ref(false)
-    const selectedTeamUsers = ref([])
-    const selectAllTeams = ref(false)
 
-    watch(selectedTeam, () => {
-        selectedTeamUsers.value = []
-        selectAllTeams.value = false
-    })
+/* ================= STATE ================= */
+const users = ref([])
+const activeTab = ref('members')
+const isOpen = ref(true)
 
-    function toggleAll() {
-        if (selectAll.value) {
-            selectedUsers.value = filteredUsers.value.map(user => user.email)
-        } else {
-            selectedUsers.value = []
-        }
-    }
+const activeMenu = ref(null)
 
-    function toggleAllTeams() {
-        if (selectAllTeams.value) {
-            selectedTeamUsers.value = selectedTeamMembers.value.map(user => user.email)
-        } else {
-            selectedTeamUsers.value = []
-        }
-    }
+/* ================= MEMBERS ================= */
+const selectedUsers = ref([])
+const selectAll = ref(false)
+const showAddMemberModal = ref(false)
+const showEditModal = ref(false)
+const selectedUserData = ref(null)
 
-    const teamSearch = ref('')
+/* ================= TEAMS ================= */
+const teamsList = ref([])
 
-    const teams = ref([
-    {
-        id: 1,
-        name: 'Interns',
-        members: 9,
-        users: [
-            { name: 'Kiana', email: 'kianamartinxxiv@gmail.com', lastActive: '9 minutes ago' },
-            { name: 'Daphne', email: 'daphnemanalansan1213@gmail.com', lastActive: '19 minutes ago' },
-            { name: 'Lei', email: 'anyssonleim.it@gmail.com', lastActive: '10 minutes ago' },
-            { name: 'Quiana', email: 'quianadomingo004@gmail.com', lastActive: '8 minutes ago' }
-        ]
-    },
-    {
-        id: 2,
-        name: 'Dev Team',
-        members: 4,
-        users: [
-            { name: 'Mark', email: 'markdev@gmail.com', lastActive: '5 minutes ago' },
-            { name: 'John', email: 'johncode@gmail.com', lastActive: '12 minutes ago' },
-            { name: 'Lisa', email: 'lisa.dev@gmail.com', lastActive: '1 hour ago' },
-            { name: 'Anne', email: 'anne.dev@gmail.com', lastActive: '30 minutes ago' }
-        ]
-    },
-    {
-        id: 3,
-        name: 'QA Team',
-        members: 4,
-        users: [
-            { name: 'Paul', email: 'paul.qa@gmail.com', lastActive: '15 minutes ago' },
-            { name: 'Jane', email: 'jane.qa@gmail.com', lastActive: '22 minutes ago' },
-            { name: 'Kyle', email: 'kyle.qa@gmail.com', lastActive: '40 minutes ago' },
-            { name: 'Mia', email: 'mia.qa@gmail.com', lastActive: '1 hour ago' }
-        ]
-    }
-    ])
+const teamSearch = ref('')
+const selectedTeam = ref(null)
+const selectedTeamUsers = ref([])
+const selectAllTeams = ref(false)
 
-    const filteredTeams = computed(() => {
-        return teams.value.filter(t =>
-            t.name.toLowerCase().includes(teamSearch.value.toLowerCase())
-        )
-    })
+const showAddTeamModal = ref(false)
+const showEditTeamModal = ref(false)
+const selectedTeamData = ref(null)
 
-    const selectedTeamMembers = computed(() => {
-        const team = teams.value.find(t => t.id === selectedTeam.value)
-        return team ? team.users : []
-    })
+/* ================= SEARCH ================= */
+const { search, filtered: filteredUsers } =
+  useSearch(users, ['name', 'email', 'team'])
 
-    const showAddMemberModal = ref(false)
+/* ================= FETCH USERS ================= */
+async function fetchUsers() {
+  try {
+    const data = await getUsers()
 
-    const showEditModal = ref(false)
-    const selectedUserData = ref(null)
+    users.value = []
+    await nextTick()
 
-    function openEdit(user) {
-        selectedUserData.value = user
-        showEditModal.value = true
-    }
-    
-    function handleSaveEdit(updatedUser) {
-        console.log('Updated:', updatedUser)
-    }
+    users.value = data.map(u => ({
+      id: u.id,
+      name: `${u.firstName} ${u.middleName ?? ''} ${u.lastName}`.trim(),
+      email: u.email,
+      team: u.teamName || 'No Team',
+      lastActive: formatFullDateTime(u.lastActive),
+      avatar: u.avatarUrl || sampleIMG,
+      raw: u
+    }))
+  } catch (err) {
+    console.error('Failed to load users:', err)
+  }
+}
 
-    import AddMemberPanel from '../components/AddMemberPanel.vue'
-        function handleAddMembers(selected) {
-            console.log('Members to add:', selected)
-    }
+/* ================= FETCH TEAMS ================= */
+async function fetchTeams() {
+  try {
+    const res = await getTeams()
+    teamsList.value = res.data
+  } catch (err) {
+    console.error('Failed to load teams:', err)
+  }
+}
 
-    const props = defineProps(['modelValue', 'team'])
-    const emit = defineEmits(['update:modelValue', 'save'])
-    const showEditTeamModal = ref(false)
-    const selectedTeamData = ref(null)
+/* ================= MENU ================= */
+function toggleMenu(email) {
+  activeMenu.value = activeMenu.value === email ? null : email
+}
 
-    function openEditTeam(user) {
-        selectedTeamData.value = { ...user }
-        showEditTeamModal.value = true
-    }
+function closeMenu() {
+  activeMenu.value = null
+}
 
-    function handleSaveTeam(updatedUser) {
+function handleClickOutside() {
+  activeMenu.value = null
+}
 
-    const team = teams.value.find(t => t.id === selectedTeam.value)
+/* ================= MEMBERS ================= */
+function toggleAll() {
+  if (selectAll.value) {
+    selectedUsers.value = filteredUsers.value.map(u => u.email)
+  } else {
+    selectedUsers.value = []
+  }
+}
 
-    if (team) {
-        const index = team.users.findIndex(u => u.email === updatedUser.email)
+function openEdit(user) {
+  selectedUserData.value = {
+    id: user.id,
+    firstName: user.raw.firstName,
+    middleName: user.raw.middleName,
+    lastName: user.raw.lastName,
+    email: user.raw.email,
+    phone: user.raw.phone,
+    teamName: user.raw.teamName,
+    schedule: user.raw.schedule
+  }
 
-        if (index !== -1) {
-        team.users[index] = updatedUser
-        }
-    }
-    }
+  showEditModal.value = true
+}
 
-    const showAddTeamModal = ref(false)
-    function handleAddTeam(team) {
-        console.log('New Team:', team)
+async function handleArchive(userId) {
+  if (!confirm('Archive this user?')) return
+  await archiveUser(userId)
+  await fetchUsers()
+}
 
-    teams.value.push({
-        id: Date.now(),
-        name: team.name,
-        users: team.members || [],
-    })
-    }
+/* ================= TEAMS ================= */
+const teams = computed(() => {
+  return teamsList.value.map(t => ({
+    id: t.id,
+    name: t.teamName,
+    users: []
+  }))
+})
 
-    function selectTeam(id) {
-    selectedTeam.value = id
-    // optional reset states para iwas bugs
+const filteredTeams = computed(() => {
+  return teams.value.filter(t =>
+    t.name.toLowerCase().includes(teamSearch.value.toLowerCase())
+  )
+})
+
+const selectedTeamMembers = ref([])
+
+async function selectTeam(id) {
+  selectedTeam.value = id
+
+  const res = await getTeam(id)
+  selectedTeamMembers.value = res.data.members
+}
+
+function toggleAllTeams() {
+  if (selectAllTeams.value) {
+    selectedTeamUsers.value =
+      selectedTeamMembers.value.map(u => u.email)
+  } else {
     selectedTeamUsers.value = []
-    selectAllTeams.value = false
-    
+  }
+}
+
+/* ================= TEAM ACTIONS ================= */
+function openEditTeam(user) {
+  selectedTeamData.value = { ...user }
+  showEditTeamModal.value = true
+}
+
+async function handleSaveTeam(updatedTeam) {
+  await updateTeam(updatedTeam.id, updatedTeam)
+  await fetchTeams()
+}
+
+async function handleAddTeam(team) {
+  await createTeam({
+    teamName: team.name,
+    memberIds: team.members || []
+  })
+
+  await fetchTeams()
+}
+
+/* ================= LIFECYCLE ================= */
+onMounted(() => {
+  fetchUsers()
+  fetchTeams()
+  document.addEventListener('click', handleClickOutside)
+})
+
+/* ================= Handle Edit Member ================= */
+async function handleSaveEdit(updatedUser) {
+  try {
+    await updateUser(updatedUser.id, {
+      firstName: updatedUser.firstName,
+      middleName: updatedUser.middleName,
+      lastName: updatedUser.lastName,
+      email: updatedUser.email,
+      phone: updatedUser.contact,
+      teamName: updatedUser.team,
+      schedule: updatedUser.schedule
+    })
+    await fetchUsers()
+    const index = users.value.findIndex(u => u.id === updatedUser.id)
+
+    if (index !== -1) {
+      const existing = users.value[index]
+
+      const updated = {
+        ...existing,
+        name: [
+          updatedUser.firstName,
+          updatedUser.middleName,
+          updatedUser.lastName
+        ].filter(Boolean).join(' '),
+
+        email: updatedUser.email,
+        team: updatedUser.team || 'No Team',
+
+        raw: {
+          ...existing.raw,
+          firstName: updatedUser.firstName,
+          middleName: updatedUser.middleName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          phone: updatedUser.contact,
+          teamName: updatedUser.team,
+          schedule: updatedUser.schedule
+        }
+      }
+
+      users.value[index] = updated
     }
+
+    showEditModal.value = false
+    selectedUserData.value = null
+
+  } catch (err) {
+    console.error('Failed to update user:', err)
+  }
+}
+
 
 </script>
 

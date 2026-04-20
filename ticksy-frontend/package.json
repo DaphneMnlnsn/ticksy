@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@vuepic/vue-datepicker": "^12.1.0",
-    "axios": "^1.14.0",
+    "axios": "^1.15.0",
     "dayjs": "^1.11.20",
     "lucide": "^1.8.0",
     "lucide-vue-next": "^0.577.0",
