@@ -8,19 +8,32 @@
             <div class="main-content">
                 <Header title="People" />
 
-                <div class="cards">
+                <transition name="fade">
+                    <div v-if="showToast" class="success-toast">
+                        <CheckCircle :size="18" />
+                        <span>Saved successfully!</span>
+                    </div>
+                </transition>
 
+                <transition name="fade">
+                    <div v-if="showDeleteToast" class="delete-toast">
+                        <CheckCircle :size="18" />
+                        <span>Unassigned successfully!</span>
+                    </div>
+                </transition>
+
+                <div class="cards">
                     <div class="tabs">
                         <span 
-                            :class="{ active: activeTab === 'members' }"
-                            @click="activeTab = 'members'"
+                        :class="{ active: activeTab === 'members' }"
+                        @click="activeTab = 'members'"
                         >
                             Members
                         </span>
 
                         <span 
-                            :class="{ active: activeTab === 'teams' }"
-                            @click="activeTab = 'teams'"
+                        :class="{ active: activeTab === 'teams' }"
+                        @click="activeTab = 'teams'"
                         >
                             Teams
                         </span>
@@ -35,15 +48,12 @@
                         v-if="activeTab === 'members'" 
                         class="add-btn"
                         @click="showAddMemberModal = true"
-                    >
-                        + Add Member
-
-                            
+                        >
+                            + Add Member    
                         </button>
                     </div>
-                        
+
                     <div :key="activeTab" class="tab-content">
-                        
                         <div v-if="activeTab === 'members'" class="table">
                             <div class="table-header people">
                                 <span>
@@ -83,9 +93,9 @@
 
                                     <div v-if="activeMenu === user.email" class="dropdown">
                                         <div class="dropdown-item" @click="openEdit(user); activeMenu = null">
-                                    <Edit size="14" />
-                                    Edit
-                                </div>
+                                            <Edit size="14" />
+                                            Edit
+                                        </div>
 
                                         <div class="dropdown-item archive">
                                             <Archive size="14" />
@@ -95,13 +105,13 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div v-else class="teams-layout">
 
                             <div class="teams-left">
                                 <SidePanel 
                                     buttonText="+ Add Team"
-                                    @actionClick="showAddTeamModal = true" 
+                                    @actionClick="isAddTeamOpen = true" 
                                 >
                                     
                                     <template #header>
@@ -109,21 +119,14 @@
                                     </template>
 
                                     <template #body>
-                                     <div 
-                                             v-for="team in filteredTeams"
-                                                :key="team.id"
-                                                class="team-item"
-                                                :class="{ active: selectedTeam === team.id }"
-                                                @click.stop="selectTeam(team.id)"  
-                                            
-                                        >
-                                            <div class="team-info">
-                                                <div class="team-name">{{ team.name }}</div>
-                                                <div class="team-sub">{{ team.users.length }} members</div>
-                                            </div>
-
-                                            <div class="team-arrow">››</div>
-                                        </div>
+                                        <RowItem
+                                            v-for="team in filteredTeams" 
+                                            :key="team.id"
+                                            :item="team"
+                                            :icon="team.icon"
+                                            :class="{ active: activeTeamName === team.name }"
+                                            @click="selectTeam(team.id)"
+                                        />
                                     </template>
 
                                 </SidePanel>
@@ -131,16 +134,9 @@
 
                             <div class="teams-right" @click="closeMenu">
                                 <div class="table-header people">
-                                    <span>
-                                        <input 
-                                            type="checkbox" 
-                                            v-model="selectAllTeams" 
-                                            @change="toggleAllTeams" 
-                                        />
-                                    </span>
                                     <span>{{ selectedTeamMembers.length }} Members</span>
                                     <span>Email</span>
-                                    <span>Last Active</span>
+                                    <span>Joined At</span>
                                     <span></span>
                                 </div>
 
@@ -149,35 +145,19 @@
                                     v-for="user in selectedTeamMembers"
                                     :key="user.email"
                                 >
-                                    <span>
-                                        <input 
-                                            type="checkbox" 
-                                            v-model="selectedTeamUsers" 
-                                            :value="user.email"
-                                        />
-                                    </span>
-
                                     <div class="user">
                                         <img :src="sampleIMG" class="avatar" />
                                         <span>{{ user.name }}</span>
                                     </div>
 
                                     <span>{{ user.email }}</span>
-                                    <span>{{ user.lastActive }}</span>
+                                    <span>{{ user.joinedAt }}</span>
 
                                     <div class="actions" @click.stop>
-                                        <span class="dots" @click="toggleMenu(user.email)">•••</span>
 
-                                        <div v-if="activeMenu === user.email" class="dropdown">
-                                            <div class="dropdown-item" @click="openEditTeam(user); activeMenu = null">
-                                            <Edit size="14" />
-                                            Edit
-                                        </div>
-
-                                            <div class="dropdown-item archive">
-                                                <Archive size="14" />
-                                                Archive
-                                            </div>
+                                        <div class="dropdown-item archive" @click="handleUnassignUser(user.id);">
+                                            <CircleXIcon size="14" />
+                                            <b>Unassign</b>
                                         </div>
                                     </div>
                                 </div>
@@ -189,278 +169,255 @@
         </div>
     </div>
 
-   <EditMemberPanel
-  v-model="showEditModal"
-  :user="selectedUserData"
-  :avatar="sampleIMG"
-  @save="handleSaveEdit"
-/>
+    <EditMemberPanel
+        v-model="showEditModal"
+        :user="selectedUserData"
+        :avatar="sampleIMG"
+        :allTeams="teamsList"       
+        :allSchedules="schedules"   
+        @saved="handleMemberSaved"
+    />
 
-        <AddMemberPanel
-            v-model="showAddMemberModal"
-            :users="users"
-            @save="handleAddMembers"
-        />
+    <AssignMembers
+        v-model="showAddMemberModal"
+        :users="users"
+        @save="handleAddMembers"
+    />
 
-       <EditTeamsPanel
-            v-model="showEditTeamModal"
-            :team="selectedTeamData"
-            :avatar="sampleIMG"
-            @save="handleSaveTeam"
-        />
+    <EditTeamsPanel
+        v-model="showEditTeamModal"
+        :team="selectedTeamData"
+        :avatar="sampleIMG"
+        @save="handleSaveTeam"
+    />
 
-        <AddTeamPanel
-            v-model="showAddTeamModal"
-            :avatar="sampleIMG"
-            @save="handleAddTeam"
-        />
-   
+    <AddTeamPanel
+        :isOpen="isAddTeamOpen"
+        :isSidebarCollapsed="!isOpen"
+        @close="isAddTeamOpen = false"
+        :avatar="sampleIMG"
+        @save="handleAddTeam"
+    />
 </template>   
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+    import { ref, computed, onMounted, watch } from 'vue'
 
-import Sidebar from '../components/Sidebar.vue'
-import Header from '../components/Header.vue'
-import Search from '../components/Search.vue'
-import SidePanel from '../components/SidePanel.vue'
+    import Sidebar from '../components/Sidebar.vue'
+    import Header from '../components/Header.vue'
+    import Search from '../components/Search.vue'
+    import SidePanel from '../components/SidePanel.vue'
 
-import EditMemberPanel from '../components/EditMemberPanel.vue'
-import EditTeamsPanel from '../components/EditTeamsPanel.vue'
-import AddTeamPanel from '../components/AddTeamPanel.vue'
-import AddMemberPanel from '../components/AddMemberPanel.vue'
+    import EditMemberPanel from '../components/EditMemberPanel.vue'
+    import EditTeamsPanel from '../components/EditTeamsPanel.vue'
+    import AddMemberPanel from '../components/AddMemberPanel.vue'
 
-import { Edit, Archive } from 'lucide-vue-next'
+    import { Edit, Archive, CircleXIcon } from 'lucide-vue-next'
 
-import sampleIMG from '../assets/sample_img.jpg'
+    import sampleIMG from '../assets/sample_img.jpg'
 
-import { useSearch } from '../services/search.js'
-import { formatFullDateTime } from '../services/formatting.js'
-import { getUsers, archiveUser, updateUser } from '../services/people.js'
-import { getTeams, createTeam, updateTeam } from '../services/people.js'
+    import { useSearch } from '../services/search.js'
+    import { formatFullDateTime } from '../services/formatting.js'
+    import { getUsers, archiveUser, getTeam, unassignMember } from '../services/people.js'
+    import { getTeams, createTeam, updateTeam } from '../services/people.js'
 
-import { nextTick } from 'vue'
+    import { nextTick } from 'vue'
+    import AddTeamPanel from '../components/AddTeamPanel.vue'
+    import RowItem from '../components/RowItem.vue'
+    import AssignMembers from '../components/AssignMembers.vue'
 
+    const users = ref([])
+    const activeTab = ref('members')
+    const isOpen = ref(true)
+    const showToast = ref(false)
+    const showDeleteToast = ref(false)
 
+    const activeMenu = ref(null)
+    const selectedUsers = ref([])
+    const selectAll = ref(false)
+    const showAddMemberModal = ref(false)
+    const showEditModal = ref(false)
+    const selectedUserData = ref(null)
 
-/* ================= STATE ================= */
-const users = ref([])
-const activeTab = ref('members')
-const isOpen = ref(true)
+    const teamsList = ref([])
 
-const activeMenu = ref(null)
+    const selectedTeam = ref(null)
+    const selectedTeamUsers = ref([])
+    const selectAllTeams = ref(false)
 
-/* ================= MEMBERS ================= */
-const selectedUsers = ref([])
-const selectAll = ref(false)
-const showAddMemberModal = ref(false)
-const showEditModal = ref(false)
-const selectedUserData = ref(null)
+    const isAddTeamOpen = ref(false)
+    const showEditTeamModal = ref(false)
+    const selectedTeamData = ref(null)
 
-/* ================= TEAMS ================= */
-const teamsList = ref([])
+    const { search, filtered: filteredUsers } =
+    useSearch(users, ['name', 'email', 'team'])
 
-const teamSearch = ref('')
-const selectedTeam = ref(null)
-const selectedTeamUsers = ref([])
-const selectAllTeams = ref(false)
+    async function fetchUsers() {
+        try {
+            const data = await getUsers()
 
-const showAddTeamModal = ref(false)
-const showEditTeamModal = ref(false)
-const selectedTeamData = ref(null)
+            users.value = []
+            await nextTick()
 
-/* ================= SEARCH ================= */
-const { search, filtered: filteredUsers } =
-  useSearch(users, ['name', 'email', 'team'])
-
-/* ================= FETCH USERS ================= */
-async function fetchUsers() {
-  try {
-    const data = await getUsers()
-
-    users.value = []
-    await nextTick()
-
-    users.value = data.map(u => ({
-      id: u.id,
-      name: `${u.firstName} ${u.middleName ?? ''} ${u.lastName}`.trim(),
-      email: u.email,
-      team: u.teamName || 'No Team',
-      lastActive: formatFullDateTime(u.lastActive),
-      avatar: u.avatarUrl || sampleIMG,
-      raw: u
-    }))
-  } catch (err) {
-    console.error('Failed to load users:', err)
-  }
-}
-
-/* ================= FETCH TEAMS ================= */
-async function fetchTeams() {
-  try {
-    const res = await getTeams()
-    teamsList.value = res.data
-  } catch (err) {
-    console.error('Failed to load teams:', err)
-  }
-}
-
-/* ================= MENU ================= */
-function toggleMenu(email) {
-  activeMenu.value = activeMenu.value === email ? null : email
-}
-
-function closeMenu() {
-  activeMenu.value = null
-}
-
-function handleClickOutside() {
-  activeMenu.value = null
-}
-
-/* ================= MEMBERS ================= */
-function toggleAll() {
-  if (selectAll.value) {
-    selectedUsers.value = filteredUsers.value.map(u => u.email)
-  } else {
-    selectedUsers.value = []
-  }
-}
-
-function openEdit(user) {
-  selectedUserData.value = {
-    id: user.id,
-    firstName: user.raw.firstName,
-    middleName: user.raw.middleName,
-    lastName: user.raw.lastName,
-    email: user.raw.email,
-    phone: user.raw.phone,
-    teamName: user.raw.teamName,
-    schedule: user.raw.schedule
-  }
-
-  showEditModal.value = true
-}
-
-async function handleArchive(userId) {
-  if (!confirm('Archive this user?')) return
-  await archiveUser(userId)
-  await fetchUsers()
-}
-
-/* ================= TEAMS ================= */
-const teams = computed(() => {
-  return teamsList.value.map(t => ({
-    id: t.id,
-    name: t.teamName,
-    users: []
-  }))
-})
-
-const filteredTeams = computed(() => {
-  return teams.value.filter(t =>
-    t.name.toLowerCase().includes(teamSearch.value.toLowerCase())
-  )
-})
-
-const selectedTeamMembers = ref([])
-
-async function selectTeam(id) {
-  selectedTeam.value = id
-
-  const res = await getTeam(id)
-  selectedTeamMembers.value = res.data.members
-}
-
-function toggleAllTeams() {
-  if (selectAllTeams.value) {
-    selectedTeamUsers.value =
-      selectedTeamMembers.value.map(u => u.email)
-  } else {
-    selectedTeamUsers.value = []
-  }
-}
-
-/* ================= TEAM ACTIONS ================= */
-function openEditTeam(user) {
-  selectedTeamData.value = { ...user }
-  showEditTeamModal.value = true
-}
-
-async function handleSaveTeam(updatedTeam) {
-  await updateTeam(updatedTeam.id, updatedTeam)
-  await fetchTeams()
-}
-
-async function handleAddTeam(team) {
-  await createTeam({
-    teamName: team.name,
-    memberIds: team.members || []
-  })
-
-  await fetchTeams()
-}
-
-/* ================= LIFECYCLE ================= */
-onMounted(() => {
-  fetchUsers()
-  fetchTeams()
-  document.addEventListener('click', handleClickOutside)
-})
-
-/* ================= Handle Edit Member ================= */
-async function handleSaveEdit(updatedUser) {
-  try {
-    await updateUser(updatedUser.id, {
-      firstName: updatedUser.firstName,
-      middleName: updatedUser.middleName,
-      lastName: updatedUser.lastName,
-      email: updatedUser.email,
-      phone: updatedUser.contact,
-      teamName: updatedUser.team,
-      schedule: updatedUser.schedule
-    })
-    await fetchUsers()
-    const index = users.value.findIndex(u => u.id === updatedUser.id)
-
-    if (index !== -1) {
-      const existing = users.value[index]
-
-      const updated = {
-        ...existing,
-        name: [
-          updatedUser.firstName,
-          updatedUser.middleName,
-          updatedUser.lastName
-        ].filter(Boolean).join(' '),
-
-        email: updatedUser.email,
-        team: updatedUser.team || 'No Team',
-
-        raw: {
-          ...existing.raw,
-          firstName: updatedUser.firstName,
-          middleName: updatedUser.middleName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-          phone: updatedUser.contact,
-          teamName: updatedUser.team,
-          schedule: updatedUser.schedule
+            users.value = data.map(u => ({
+                id: u.id,
+                name: `${u.firstName} ${u.middleName ?? ''} ${u.lastName}`.trim(),
+                email: u.email,
+                team: u.teamName || 'No Team',
+                schedule: u.scheduleName || 'No Schedule',
+                lastActive: formatFullDateTime(u.lastActive),
+                avatar: u.avatarUrl || sampleIMG,
+                raw: u
+            }))
+        } catch (err) {
+            console.error('Failed to load users:', err)
         }
-      }
-
-      users.value[index] = updated
     }
 
-    showEditModal.value = false
-    selectedUserData.value = null
+    async function fetchTeams() {
+        try {
+            const data = await getTeams();
+            teamsList.value = data; 
 
-  } catch (err) {
-    console.error('Failed to update user:', err)
-  }
-}
+            if (teamsList.value.length > 0 && !selectedTeam.value) {
+            selectTeam(teamsList.value[0].id);
+            }
+        } catch (err) {
+            console.error('Failed to load teams:', err);
+        }
+    }
 
+    const activeTeamName = computed(() => {
+        const active = teams.value.find(t => t.id === selectedTeam.value);
+        return active ? active.name : '';
+    });
 
+    async function selectTeam(id) {
+        selectedTeam.value = id;
+        try {
+            const res = await getTeam(id);
+
+            console.log("Team API Response:", res);
+
+            const membersList = res.members || (res.data && res.data.members);
+
+            if (membersList) {
+                selectedTeamMembers.value = membersList.map(m => ({
+                    id: m.id || m.userId,
+                    name: m.fullName,
+                    email: m.email,
+                    joinedAt: formatFullDateTime(m.joinedAt)
+                }));
+            } else {
+                console.warn("No members found in response for team:", id);
+                selectedTeamMembers.value = [];
+            }
+        } catch (err) {
+            console.error('Failed to fetch team members:', err);
+        }
+    }
+
+    function toggleMenu(email) {
+        activeMenu.value = activeMenu.value === email ? null : email
+    }
+
+    function closeMenu() {
+        activeMenu.value = null
+    }
+
+    function handleClickOutside() {
+        activeMenu.value = null
+    }
+
+    function toggleAll() {
+        if (selectAll.value) {
+            selectedUsers.value = filteredUsers.value.map(u => u.email)
+        } else {
+            selectedUsers.value = []
+        }
+    }
+
+    function openEdit(user) {
+        selectedUserData.value = {
+            id: user.id,
+            firstName: user.raw.firstName,
+            middleName: user.raw.middleName,
+            lastName: user.raw.lastName,
+            phone: user.raw.phone,
+            teamId: user.raw.teamId || null, 
+            scheduleId: user.raw.scheduleId || null
+        }
+
+        showEditModal.value = true
+    }
+
+    async function handleArchive(userId) {
+        if (!confirm('Archive this user?')) return
+        await archiveUser(userId)
+        await fetchUsers()
+    }
+
+    const teams = computed(() => teamsList.value || [])
+
+    const { search: teamSearch, filtered: filteredTeams } = useSearch(teams, ['name'])
+
+    const selectedTeamMembers = ref([])
+
+    function toggleAllTeams() {
+        if (selectAllTeams.value) {
+            selectedTeamUsers.value =
+            selectedTeamMembers.value.map(u => u.email)
+        } else {
+            selectedTeamUsers.value = []
+        }
+    }
+
+    function openEditTeam(user) {
+        selectedTeamData.value = { ...user }
+        showEditTeamModal.value = true
+    }
+
+    console.log("teamsList:", teamsList.value)
+    console.log("teams:", teams.value)
+    console.log("filteredTeams:", filteredTeams.value)
+
+    async function handleSaveTeam(updatedTeam) {
+        await updateTeam(updatedTeam.id, updatedTeam)
+        await fetchTeams()
+    }
+
+    async function handleAddTeam(team) {
+        await fetchTeams()
+    }
+
+    async function handleUnassignUser(userId) {
+        try {
+            await unassignMember(selectedTeam.value, userId);
+
+            await selectTeam(selectedTeam.value);
+
+            showDeleteToast.value = true;
+
+            setTimeout(() => {
+                showDeleteToast.value = false;
+            }, 2000);
+
+        } catch (err) {
+            console.error("Unassign Error:", err);
+            const errorMsg = err.response?.data || "Failed to unassign user.";
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+        }
+    };
+
+    onMounted(() => {
+        fetchUsers()
+        fetchTeams()
+        document.addEventListener('click', handleClickOutside)
+    })
+
+    async function handleMemberSaved() {
+        await fetchUsers()
+    }
 </script>
 
 <style scoped>
@@ -526,7 +483,7 @@ async function handleSaveEdit(updatedUser) {
         box-sizing: border-box;
         gap: 25px;
         margin-bottom: 30px;
-        
+
     }
 
     .table {
@@ -581,7 +538,7 @@ async function handleSaveEdit(updatedUser) {
         object-fit: cover;
     }
 
-  
+
     .dots {
         text-align: center;
         cursor: pointer;
@@ -684,7 +641,6 @@ async function handleSaveEdit(updatedUser) {
     .teams-layout {
         display: flex;
         height: 100%;
-
     }
 
     .teams-left {
@@ -763,9 +719,9 @@ async function handleSaveEdit(updatedUser) {
     .teams-right .table-header.people,
     .teams-right .row.people {
         display: grid;
-        grid-template-columns: 40px 1.5fr 2fr 1.5fr 2fr 50px;
+        grid-template-columns: 2.5fr 2.5fr 1.5fr 1fr 50px;
         align-items: center;
-        
+
     }
 
     .teams-right .row.people span {
@@ -822,7 +778,7 @@ async function handleSaveEdit(updatedUser) {
     .dropdown-item.archive {
         color: #ff4d4d;
     }
-    
+
     .dropdown {
         animation: fadeIn 0.12s ease;
     }
@@ -838,29 +794,27 @@ async function handleSaveEdit(updatedUser) {
         }
     }
 
-    
-
     .side-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 400px;
-    background: #031e2f;
-    box-shadow: -5px 0 20px rgba(0,0,0,0.5);
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
-    animation: slideIn 0.3s ease forwards;
-    color: white;
-    border-radius: 15px;
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: 400px;
+        background: #031e2f;
+        box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        overflow-y: auto;
+        animation: slideIn 0.3s ease forwards;
+        color: white;
+        border-radius: 15px;
     }
 
     @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
     }
 
     .edit-modal {
@@ -875,7 +829,7 @@ async function handleSaveEdit(updatedUser) {
         display: flex;
         justify-content: space-between;
         align-items: center;
-         padding: 10px 20px;
+        padding: 10px 20px;
         margin: 0;  
         margin-top: 10px;
         border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -934,7 +888,6 @@ async function handleSaveEdit(updatedUser) {
         font-size: 13px;
         margin-bottom: 2px;
         opacity: 0.7;
-        
     }
 
     .edit-modal .close-btn {
@@ -946,7 +899,6 @@ async function handleSaveEdit(updatedUser) {
         border: none;
         color: white;
         cursor: pointer;
-        
     }
 
     .modal-footer {
@@ -954,7 +906,6 @@ async function handleSaveEdit(updatedUser) {
         justify-content: flex-end;
         gap: 10px;
         margin-top: 20px;
-        
     }
 
     .cancel {
@@ -983,4 +934,73 @@ async function handleSaveEdit(updatedUser) {
         margin: 35px -20px 0 -20px;
     }
 
+    .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
+
+    .main-content::-webkit-scrollbar-track {
+        background: transparent; 
+    }
+
+    .teams-left .row-item.active {
+        background-color: rgba(255, 255, 255, 0.04);
+        border-left: 4px solid #88b6ffc8;
+        color: #ffffff;
+        opacity: 1;
+    }
+
+    .success-toast {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #06d6a0;
+        color: #001324;
+        padding: 10px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+        z-index: 9999;
+    }
+
+    .delete-toast {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #d60606;
+        color: #d8dee3;
+        padding: 10px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(214, 6, 6, 0.3);
+        z-index: 9999;
+    }
+
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .fade-enter-from, .fade-leave-to {
+        opacity: 0;
+        transform: translate(-50%, -10px);
+    }
 </style>

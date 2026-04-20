@@ -11,4 +11,6 @@ public class UserUpdateDto
     public string? TimeZone { get; set; }
 
     public User.UserRole? Role { get; set; }
+    public int? TeamId { get; set; }
+    public int? ScheduleId { get; set; }
 }

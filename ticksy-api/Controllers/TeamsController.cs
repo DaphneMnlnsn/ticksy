@@ -95,12 +95,13 @@ public class TeamsController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        var teams = await _context.TeamMembers
-            .Where(tm => tm.UserId == userId && tm.Team.DeletedAt == null)
-            .Select(tm => new TeamListDto
+        var teams = await _context.Teams
+            .Where(t => t.DeletedAt == null && t.TeamMembers.Any(tm => tm.UserId == userId))
+            .Select(t => new TeamListDto
             {
-                Id = tm.Team.Id,
-                TeamName = tm.Team.TeamName
+                Id = t.Id,
+                TeamName = t.TeamName,
+                MemberCount = t.TeamMembers.Count() 
             })
             .ToListAsync();
 

@@ -1,38 +1,47 @@
+import { ChevronsRight } from "lucide-vue-next";
 import api from "./api";
 
 export async function getUsers() {
-  const res = await api.get('/Users');
-  return res.data || [];
+    const res = await api.get('/Users');
+    return res.data || [];
 }
 
 export async function archiveUser(id) {
-  return await api.delete(`/Users/${id}`);
+    return await api.delete(`/Users/${id}`);
 }
 
 export async function getTeams() {
-  return await api.get('/Teams');
+    const res = await api.get('/Teams');
+    
+    if (!res.data) return [];
+
+    return res.data.map((item, index) => ({
+        id: item.id,
+        name: item.teamName,
+        label: item.memberCount + " member/s",
+        icon: ChevronsRight
+    }));
 }
 
 export async function getTeam(id) { 
-  const res = await api.get(`/Teams/${id}`)
-  return res.data
+    const res = await api.get(`/Teams/${id}`)
+    return res.data
 }
 
 export async function createTeam(payload) {
-  return await api.post('/Teams/create', payload);
+    return await api.post('/Teams/create', payload);
 }
 
 export async function updateTeam(id, payload) {
-  const res = await api.put(`/Teams/${id}`, payload);
-  return res.data;
+    const res = await api.put(`/Teams/${id}`, payload);
+    return res.data;
 }
 
 export async function updateUser(id, payload) {
-  console.log('SENDING:', payload)
+    const res = await api.put(`/Users/${id}`, payload)
+    return res.data
+}
 
-  const res = await api.put(`/Users/${id}`, payload)
-
-  console.log('RESPONSE:', res.data)
-
-  return res.data
+export async function unassignMember(teamId, memberId) {
+    return await api.delete(`/Teams/${teamId}/members/${memberId}`);
 }
