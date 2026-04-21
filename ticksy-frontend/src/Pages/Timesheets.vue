@@ -113,7 +113,7 @@
             <!-- ================= WEEKLY ================= -->
             <WeeklyTimesheet
                 v-if="selectedTimesheet === 'weekly'"
-                :users="filteredUsers"
+                :users="tableData"
                 :search="search"
                 :loading="loading"
                 :hasData="hasData"
@@ -123,20 +123,20 @@
             <!-- ================= DAILY ================= -->
             <DailyTimesheet
                 v-if="selectedTimesheet === 'daily'"
-                :users="dailyUsers"
+                :users="tableData"
                 :search="search"
-                :loading="dailyLoading"
-                :hasData="dailyHasData"
+                :loading="loading"
+                :hasData="hasData"
                 :defaultAvatar="defaultAvatar"
             />
 
             <!-- ================= MONTHLY ================= -->
             <MonthlyTimesheet
                 v-if="selectedTimesheet === 'monthly'"
-                :users="monthlyUsers"
+                :users="tableData"
                 :search="search"
-                :loading="monthlyLoading"
-                :hasData="monthlyHasData"
+                :loading="loading"
+                :hasData="hasData"
                 :defaultAvatar="defaultAvatar"
                 :selectedMonth="selectedMonth ? selectedMonth.getMonth() + 1 : 1"
                 :selectedYear="selectedMonth ? selectedMonth.getFullYear() : 2026"
@@ -164,11 +164,10 @@
     import dayjs from 'dayjs'
     import defaultAvatar from '../assets/sample_img.jpg'
     import WeeklyTimesheet from '../components/timesheets/WeeklyTimesheet.vue'
-    import { useWeeklyTimesheet } from '../composables/useWeeklyTimesheet.js'
     import DailyTimesheet from '../components/timesheets/DailyTimesheet.vue'
-    import { useDailyTimesheet } from '../composables/useDailyTimesheet.js'
     import MonthlyTimesheet from '../components/timesheets/MonthlyTimesheet.vue'
-    import { useMonthlyTimesheet } from '../composables/useMonthlyTimesheet'
+    import { fetchAttendance } from "../services/attendanceManager"
+
     import LegendModal from '../components/LegendModal.vue'
     import { buildExportPayload } from '../services/exportBuilder'
     import { formatCSV } from '../services/exportFormatter'
@@ -198,18 +197,17 @@
         return `${start} - ${end}`
     })
 
-    const { users, loading, hasData, fetchWeekly } = useWeeklyTimesheet()
-    const { users: dailyUsers, loading: dailyLoading, hasData: dailyHasData, fetchDaily } = useDailyTimesheet()
-    const { users: monthlyUsers, loading: monthlyLoading, hasData: monthlyHasData, fetchMonthly } = useMonthlyTimesheet()
-
     const search = ref('')
-    const { filtered: filteredUsers } = useSearch(users, ['name'])
 
     const legendBtn = ref(null)
     const showLegend = ref(false)
     const legendStyle = ref({})
 
     const { exportCSV, exportPDF } = useExportService()
+
+    const tableData = ref([])
+    const loading = ref(false)
+    const hasData = ref(false)
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -222,6 +220,12 @@
     function selectTimesheet(type) {
         selectedTimesheet.value = type
         showDropdown.value = false
+
+        tableData.value = []
+        hasData.value = false
+        loading.value = true
+
+        loadData()
     }
 
     function nextWeek() {
@@ -339,10 +343,14 @@
         }
     }
 
+    const exportMap = {
+        weekly: buildWeeklyPayload,
+        daily: buildDailyPayload,
+        monthly: buildMonthlyPayload
+    }
+
     function getExportPayload() {
-        if (selectedTimesheet.value === 'weekly') return buildWeeklyPayload()
-        if (selectedTimesheet.value === 'daily') return buildDailyPayload()
-        return buildMonthlyPayload()
+        return exportMap[selectedTimesheet.value]?.() || buildWeeklyPayload()
     }
 
     async function handleExport() {
@@ -396,11 +404,15 @@
         return buildExportPayload({
             title: 'WEEKLY TIMESHEET REPORT',
             subtitle: 'Employee Attendance Summary',
-            dateRange: formattedRange.value,
+            dateRange: {
+                label: formattedRange.value,
+                start: startDate.value,
+                end: endDate.value
+            },
 
             headers: ['Name','Mon','Tue','Wed','Thu','Fri','Sat','Sun','Total Hours'],
 
-            rows: users.value.map(user => ({
+            rows: tableData.value.map(user => ({
                 Name: user.name,
                 Mon: user.days[0],
                 Tue: user.days[1],
@@ -427,7 +439,7 @@
                 'Total Hours'
             ],
 
-            rows: dailyUsers.value.map(user => ({
+            rows: tableData.value.map(user => ({
                 'Name': user.name,
                 'First In': user.firstIn || '-',
                 'Last Out': user.lastOut || '-',
@@ -443,7 +455,7 @@
 
         const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-        const rows = monthlyUsers.value.map(user => {
+        const rows = tableData.value.map(user => {
             const days = user.days || []
 
             let present = 0
@@ -522,41 +534,41 @@
         }
     }
 
+    async function loadData() {
+        loading.value = true
+
+        const role = localStorage.getItem("role")
+        const userId = localStorage.getItem("userId")
+
+        const params = {
+            start: startDate.value,
+            end: endDate.value,
+            date: startDate.value
+        }
+
+        const res = await fetchAttendance(
+            selectedTimesheet.value,
+            params,
+            role,
+            userId
+        )
+
+        tableData.value = res.data ?? []
+        hasData.value = tableData.value.length > 0
+
+        loading.value = false
+    }
+
     onMounted(() => {
-        fetchWeekly(dateRange.value)
-
-        if (selectedTimesheet.value === 'daily') {
-            fetchDaily(startDate.value)
-        }
+        loadData()
     })
 
-    watch(dateRange, (val) => {
-        if (!val || val.length !== 2) return
-        if (selectedTimesheet.value !== 'weekly') return
-
-        fetchWeekly(val)
-    }, { deep: true })
-
-    watch(startDate, (date) => {
-        if (selectedTimesheet.value === 'daily') {
-            fetchDaily(date)
+    watch(
+        [selectedTimesheet, startDate, endDate, selectedMonth],
+        () => {
+            loadData()
         }
-    })
-
-    watch(selectedMonth, (date) => {
-        if (selectedTimesheet.value === 'monthly') {
-            fetchMonthly(date)
-        }
-    })
-
-    watch(selectedTimesheet, (type) => {
-        if (type === 'daily') {
-            fetchDaily(startDate.value)
-        }
-        else if (type === 'monthly') {
-            fetchMonthly(selectedMonth.value)
-        }
-    })
+    )
 
 </script>
 

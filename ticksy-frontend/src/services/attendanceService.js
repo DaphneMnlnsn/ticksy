@@ -61,3 +61,9 @@ export async function getMonthlyAttendance(date) {
         }
     })
 }
+
+export async function getUserAttendance(userId) {
+    if (!userId) throw new Error("Missing userId")
+
+    return await api.get(`/attendance/${userId}`)
+}
