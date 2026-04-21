@@ -1,33 +1,19 @@
 import { ref } from 'vue'
-import { getMonthlyAttendance } from '../services/attendanceService'
 
 export function useMonthlyTimesheet() {
     const users = ref([])
     const loading = ref(false)
-    const hasData = ref(true)
+    const hasData = ref(false)
 
-    async function fetchMonthly(date) {
-        try {
-            loading.value = true
-
-            const res = await getMonthlyAttendance(date)
-
-            users.value = res.data ?? []
-            hasData.value = users.value.length > 0
-
-        } catch (err) {
-            console.error("Monthly fetch error:", err)
-            users.value = []
-            hasData.value = false
-        } finally {
-            loading.value = false
-        }
+    function setMonthly(data) {
+        users.value = data
+        hasData.value = data.length > 0
     }
 
     return {
         users,
         loading,
         hasData,
-        fetchMonthly
+        setMonthly
     }
 }
