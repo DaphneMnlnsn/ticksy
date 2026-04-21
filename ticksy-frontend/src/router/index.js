@@ -31,34 +31,29 @@ const routes = [
     {
         path: '/dashboard',
         component: Dashboard,
-        meta: { requiresAuth: true }, 
-        roles: ['Admin','User'] 
+        meta: { requiresAuth: true, roles: ['Admin', 'User'] }
     },
     {
         path: '/timesheets', 
         component: Timesheets,
-        meta: { requiresAuth: true }, 
-        roles: ['Admin','User'] 
+        meta: { requiresAuth: true, roles: ['Admin', 'User'] }
     },
     {
         path: '/management/work-schedules', 
         component: WorkSchedules,
-        meta: { requiresAuth: true }, 
-        roles: ['Admin','User'] 
+        meta: { requiresAuth: true, roles: ['Admin', 'User'] }
     },
 
     // Admin-only !!!
     {
         path: '/reports-and-analytics', 
         component: ReportsAnalytics,
-        meta: { requiresAuth: true }, 
-        roles: ['Admin'] 
+        meta: { requiresAuth: true, roles: ['Admin'] }
     },
     {
         path: '/management/people', 
         component: People,
-        meta: { requiresAuth: true }, 
-        roles: ['Admin'] 
+        meta: { requiresAuth: true, roles: ['Admin'] }
     },
 
     // Redirect
@@ -74,7 +69,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const userRole = localStorage.getItem('role');
+    const userRole = localStorage.getItem('role') || '';
 
     if (to.meta.requiresAuth && !isAuthenticated()) {
         return '/login';
@@ -84,7 +79,7 @@ router.beforeEach((to) => {
         return '/dashboard';
     }
 
-    if (to.roles && !to.roles.includes(userRole)) {
+    if (to.meta.roles && !to.meta.roles.includes(userRole)) {
         return '/dashboard';
     }
 

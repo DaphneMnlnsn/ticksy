@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+
     <transition name="slide-workschedule">
         <div v-if="isOpen" 
             class="request-panel"
@@ -30,11 +32,14 @@
                 </div>
 
                 <div class="input-group">
-                    <label class="form-label">Reason</label>
+                    <div class="label-header">
+                        <label class="form-label">Reason</label>
+                        <span v-if="errors.name" class="error-msg">*Required</span>
+                    </div>
+
                     <div class="textarea-field">
                         <textarea placeholder="Add a Note" v-model="note"></textarea>
                     </div>
-                    <span v-if="errors.name" class="error-msg">*Required</span>
                 </div>
 
                 <div class="date-section">
@@ -78,6 +83,7 @@
     import { ref, watch, onMounted } from "vue";
     import { MoveRight, X, CheckCircle } from "lucide-vue-next";
     import { createRequest, getPolicies } from "../services/timeOff";
+    import DimmedBg from "./DimmedBg.vue";
 
     const policies = ref([]);
     const selectedPolicy = ref("");
@@ -367,6 +373,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        width: 100%;
         margin-bottom: 8px;
     }
 
@@ -380,6 +387,7 @@
         font-weight: 500;
         letter-spacing: 0.3px;
         animation: errorShake 0.4s ease-in-out;
+        margin-top: 10px;
     }
 
     @keyframes errorShake {
@@ -423,6 +431,16 @@
     }
 
     .btn-save:hover {
+        opacity: 0.8;
+    }
+
+    .btn-cancel {
+        background: #003867;
+        color: white;
+        outline: none;
+    }
+
+    .btn-cancel:hover {
         opacity: 0.8;
     }
 

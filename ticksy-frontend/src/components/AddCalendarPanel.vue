@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+
     <transition name="slide-calendar">
         <div v-if="isOpen" 
             class="calendar-panel"
@@ -54,6 +56,7 @@
     import { X, CheckCircle } from "lucide-vue-next";
     import { createCalendar } from "../services/calendars"; 
     import { getSupportedCountries } from "../services/calendars";
+    import DimmedBg from "./DimmedBg.vue";
 
     const props = defineProps({
         isOpen: Boolean,

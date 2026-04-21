@@ -17,7 +17,7 @@
             <span>Try selecting a different month</span>
         </div>
 
-        <div class="rows-wrapper">
+        <div v-else class="rows-wrapper">
             <TransitionGroup name="row-fade" tag="div">
                 <div class="row" v-for="(user, i) in filteredUsers" :key="user.userId" >
                     <div class="user">

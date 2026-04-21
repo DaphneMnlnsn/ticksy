@@ -93,7 +93,7 @@
 
     const user = ref({
         firstName: savedUser.firstName || '',
-        role: savedUser.role || localStorage.getItem('role') || 'User',
+        role: savedUser.role || 'User',
         avatar: savedUser.avatar || ''
     })
 
@@ -112,16 +112,19 @@
     ]
 
     const filteredMenuItems = computed(() => {
-    return menuItems
-        .map(item => {
-        const newItem = { ...item }
-        if (newItem.children) {
-            newItem.children = newItem.children.filter(c => c.roles.includes(user.value.role))
-            return newItem.children.length || newItem.roles.includes(user.value.role) ? newItem : null
-        }
-        return newItem.roles.includes(user.value.role) ? newItem : null
-        })
-        .filter(Boolean)
+        return menuItems
+            .map(item => {
+            const newItem = { ...item }
+            if (newItem.children) {
+                newItem.children = newItem.children.filter(c => c.roles.includes(user.value.role))
+                if (newItem.children.length > 0 || newItem.roles.includes(user.value.role)) {
+                    return newItem
+                }
+                return null
+            }
+            return newItem.roles.includes(user.value.role) ? newItem : null
+            })
+            .filter(Boolean)
     })
 
     function toggleDropdown(item) {

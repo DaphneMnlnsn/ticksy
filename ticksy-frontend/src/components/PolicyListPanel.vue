@@ -1,4 +1,6 @@
 <template>
+    <DimmedBg :show="isOpen" @close="emit ('close')"></DimmedBg>
+
     <transition name="slide-workschedule">
         <div v-if="isOpen" 
             class="policy-panel"
@@ -17,14 +19,20 @@
             </div>
             
             <div class="policy-content">
-                <template v-if="!isAddPolicyOpen && !isEditPolicyOpen">
+                <transition name="fade-slide" mode="out-in">
+                    <div
+                        v-if="!isAddPolicyOpen && !isEditPolicyOpen"
+                        key="list"
+                        class="list-wrapper"
+                    >
                     <div class="search-row">
                         <div class="search-box">
-                            <Search v-model="searchQuery" placeholder="Search policies..." />
+                        <Search v-model="searchQuery" placeholder="Search policies..." />
                         </div>
+
                         <button class="create-btn" @click="handleAddPolicy">
-                            <Plus class="create-icon"/>
-                            <span>Create Policy</span>
+                        <Plus class="create-icon"/>
+                        <span>Create Policy</span>
                         </button>
                     </div>
 
@@ -32,48 +40,54 @@
                         <table class="timeoff-table">
                             <thead>
                                 <tr>
-                                    <th><div class="table-header">Name</div></th>
-                                    <th><div class="table-header">Max Days</div></th>
-                                    <th><div class="table-header">Rules/Description</div></th>
-                                    <th><div class="table-header">Actions</div></th>
+                                <th><div class="table-header">Name</div></th>
+                                <th><div class="table-header">Max Days</div></th>
+                                <th><div class="table-header">Rules/Description</div></th>
+                                <th><div class="table-header">Actions</div></th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 <tr v-for="policy in filteredPolicies" :key="policy.id">
-                                    <td style="font-weight: 500;">{{ policy.name }}</td>
-                                    <td>{{ policy.details ? policy.details.maxDays : '...' }}</td>
-                                    <td style="max-width: 200px; word-break: break-word; white-space: normal;">
-                                        {{ policy.details ? policy.details.rules : 'Loading...' }}
-                                    </td>
-                                    <td>
-                                        <div class="actions">
-                                            <span class="dots" @click="toggleMenu(policy.id)">•••</span>
-                                            <div v-if="activeMenu === policy.id" class="dropdown">
-                                                <div class="dropdown-item" @click="handleEditPolicy(policy)">
-                                                    <Edit2 size="14" /> Edit
-                                                </div>
-                                                <div class="dropdown-item reject" @click="handleDeletePolicy(policy.id)">
-                                                    <Trash2 size="14" /> Delete
-                                                </div>
-                                            </div>
+                                <td style="font-weight: 500;">{{ policy.name }}</td>
+                                <td>{{ policy.details ? policy.details.maxDays : '...' }}</td>
+                                <td style="max-width: 200px; word-break: break-word; white-space: normal;">
+                                    {{ policy.details ? policy.details.rules : 'Loading...' }}
+                                </td>
+                                <td>
+                                    <div class="actions">
+                                    <span class="dots" @click="toggleMenu(policy.id)">•••</span>
+                                    <div v-if="activeMenu === policy.id" class="dropdown">
+                                        <div class="dropdown-item" @click="handleEditPolicy(policy)">
+                                        <Edit2 size="14" /> Edit
                                         </div>
-                                    </td>
+                                        <div class="dropdown-item reject" @click="handleDeletePolicy(policy.id)">
+                                        <Trash2 size="14" /> Delete
+                                        </div>
+                                    </div>
+                                    </div>
+                                </td>
                                 </tr>
                             </tbody>
-                        </table>
+                            </table>
+                        </div>
                     </div>
-                </template>
 
-                <div v-else class="form-container-inner">
-                    <div class="input-group">
+                    <div
+                        v-else
+                        key="form"
+                        class="form-container-inner"
+                    >
+                    <div class="form-group">
+                        <div class="input-group-policyName">
                         <div class="label-header">
                             <label class="form-label">Policy Name</label>
                             <span v-if="errors.name" class="error-msg">*Required</span>
                         </div>
-                        <input type="text" v-model="form.name" placeholder="e.g. Annual Leave"/> 
-                    </div>
+                        <input type="text" v-model="form.name" placeholder="e.g. Annual Leave"/>
+                        </div>
 
-                    <div class="input-group">
+                        <div class="input-group-maxDays">
                         <div class="label-header">
                             <label class="form-label">Max Days</label>
                             <span v-if="errors.maxDays" class="error-msg">*Enter a number</span>
@@ -81,23 +95,28 @@
                         <div class="duration-input large">
                             <input type="number" v-model="form.maxDays" min="0" class="time-box" />
                         </div>
+                        </div>
                     </div>
 
                     <div class="input-group">
                         <div class="label-header">
                             <label class="form-label">Rules / Description</label>
+                            </div>
+                            <textarea v-model="form.rules" class="form-textarea"
+                            placeholder="Describe eligibility, carry-over rules, etc...">
+                            </textarea>
                         </div>
-                        <textarea v-model="form.rules" class="form-textarea" placeholder="Describe eligibility, carry-over rules, etc..."></textarea>
                     </div>
+                </transition>
+            </div>
 
-                    <div class="footer-actions">
+            <div class="footer-actions">
                         <button class="btn-cancel" @click="closeForms">Cancel</button>
                         <button class="btn-save" @click="handleSavePolicy">
                             {{ isEditPolicyOpen ? 'Update Policy' : 'Save Policy' }}
                         </button>
-                    </div>
-                </div>
             </div>
+
         </div>
     </transition>
 </template>
@@ -107,6 +126,7 @@
     import { X, CheckCircle, Plus, Edit2, Trash2 } from "lucide-vue-next";
     import { getPolicies, getPolicyDetails, deletePolicy, createPolicy, updatePolicy } from "../services/timeOff";
     import Search from "./Search.vue";
+    import DimmedBg from "./DimmedBg.vue";
 
     const props = defineProps({
         isOpen: Boolean,
@@ -252,7 +272,7 @@
         top: 0;
         right: 0;
         bottom: 0;
-        width: 40%;
+        width: 35%;
         background-color: #001527;
         z-index: 1000;
         display: flex;
@@ -278,6 +298,13 @@
         font-size: 20px;
     }
 
+    .label-header{
+        display: flex;
+        width: 100%;
+        align-items: center;
+        padding-right: 12px;
+    }
+
     .icon-btn {
         background: transparent;
         border: none;
@@ -290,10 +317,8 @@
     .policy-content {
         flex: 1;
         overflow-y: auto;
-        padding: 20px 40px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+        padding: 30px ;
+        display: block;
         width: 100%;
     }
 
@@ -328,6 +353,23 @@
         margin-bottom: 2%;
     }
 
+    .form-group {
+        display: flex;
+        gap: 85px;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .policyName {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 15px;
+    }
+
+    .maxDays {
+        width: 120px;
+    }
+
     input[type="text"] {
         width: 100%;
         background: rgba(255, 255, 255, 0.05);
@@ -339,7 +381,7 @@
     }
 
     input[type="number"] {
-        width: 15%;
+        width: 100%;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 10px 12px;
@@ -354,6 +396,9 @@
         font-weight: 500;
         letter-spacing: 0.3px;
         animation: errorShake 0.4s ease-in-out;
+        margin-left: auto !important;
+        text-align: right;
+        white-space: nowrap;
     }
 
     @keyframes errorShake {
@@ -378,6 +423,21 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
         transform: translate(-50%, -10px);
+    }
+
+    .fade-slide-enter-active,
+    .fade-slide-leave-active {
+        transition: all 0.3s ease;
+    }
+
+    .fade-slide-enter-from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    .fade-slide-leave-to {
+        opacity: 0;
+        transform: translateX(-20px);
     }
 
     .holiday-table-wrapper table {
@@ -437,10 +497,11 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
+        margin-bottom: 15px;
     }
 
     .search-box {
-        width: 30%;
+        width: 50%;
     }
     
     .create-btn {
@@ -581,18 +642,21 @@
     }
 
     .form-container-inner {
-        display: flex;
-        flex-direction: column;
+        display: block;
         height: 100%;
     }
 
     .input-group {
-        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
     }
 
     .form-textarea {
         width: 100%;
         min-height: 120px;
+        max-height: 100%;
+        display: block;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 12px;
@@ -625,7 +689,9 @@
         gap: 12px;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         justify-content: flex-end;
-        margin-top: 35%;
+        background: #001527; 
+        margin: 10px 0;   
+        z-index: 10;
     }
 
     .btn-cancel, .btn-save {
