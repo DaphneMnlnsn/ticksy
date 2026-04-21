@@ -85,6 +85,7 @@
 	import logo from "../assets/ticksy_logo.png"
 	import { registerUser } from "../services/userService"
 	import Toast from "../components/Toast.vue"
+	import { acceptTeamInvite } from "../services/people"
 
 	const firstName = ref("")
 	const middleName = ref("")
@@ -158,16 +159,27 @@
 		};
 
 		try {
-			const result = await registerUser(userData);
-			showToast("Account created successfully!", "success", CheckCircle);
-			router.push("/dashboard");
-		} catch (err) {
-			const data = err.response?.data;
-			if (typeof data === "string") {
-				showToast(data, "error"); 
-			} else {
-				showToast(data?.message || err.message || "Registration failed", "error");
+			await registerUser(userData)
+
+			showToast("Account created successfully!", "success", CheckCircle)
+
+			const inviteToken = localStorage.getItem("pendingInvite")
+
+			if (inviteToken) {
+				try {
+					await acceptTeamInvite(inviteToken)
+					localStorage.removeItem("pendingInvite")
+				} catch (err) {
+					console.error("Auto join failed:", err)
+				}
 			}
+
+			setTimeout(() => {
+				router.push("/dashboard")
+			}, 800)
+
+		} catch (err) {
+			showToast("Registration failed", "error")
 		}
 	}
 </script>

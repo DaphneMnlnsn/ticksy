@@ -22,6 +22,13 @@
                     </div>
                 </transition>
 
+                <transition name="fade">
+                    <div v-if="showDeleteUserToast" class="delete-toast">
+                        <CheckCircle :size="18" />
+                        <span>Deleted successfully!</span>
+                    </div>
+                </transition>
+
                 <div class="cards">
                     <div class="tabs">
                         <span 
@@ -44,13 +51,19 @@
                             <Search v-model="search" />
                         </div>
 
-                        <button 
-                        v-if="activeTab === 'members'" 
-                        class="add-btn"
-                        @click="showAddMemberModal = true"
-                        >
-                            + Add Member    
-                        </button>
+                        <div class="search-actions">
+                            <transition name="fade">
+                                <button 
+                                    v-if="activeTab === 'members' && selectedUsers.length > 0" 
+                                    class="delete-btn"
+                                    @click="bulkArchive"
+                                >
+                                    <Trash2 :size="14" />
+                                    Delete Selected ({{ selectedUsers.length }})
+                                </button>
+                            </transition>
+
+                        </div>
                     </div>
 
                     <div :key="activeTab" class="tab-content">
@@ -75,7 +88,7 @@
                                     <input 
                                         type="checkbox"
                                         v-model="selectedUsers" 
-                                        :value="user.email"
+                                        :value="user.id"
                                     />
                                 </span>
 
@@ -97,9 +110,9 @@
                                             Edit
                                         </div>
 
-                                        <div class="dropdown-item archive">
-                                            <Archive size="14" />
-                                            Archive
+                                        <div class="dropdown-item archive" @click="handleDeleteUser(user.id)">
+                                            <CircleXIcon size="14" />
+                                            Delete
                                         </div>  
                                     </div>
                                 </div>
@@ -111,7 +124,7 @@
                             <div class="teams-left">
                                 <SidePanel 
                                     buttonText="+ Add Team"
-                                    @actionClick="isAddTeamOpen = true" 
+                                    @actionClick="isAddTeamOpen = true"
                                 >
                                     
                                     <template #header>
@@ -119,14 +132,31 @@
                                     </template>
 
                                     <template #body>
-                                        <RowItem
+                                        <div 
                                             v-for="team in filteredTeams" 
-                                            :key="team.id"
-                                            :item="team"
-                                            :icon="team.icon"
-                                            :class="{ active: activeTeamName === team.name }"
-                                            @click="selectTeam(team.id)"
-                                        />
+                                            :key="team.id" 
+                                            class="team-row-wrapper"
+                                        >
+                                            <RowItem
+                                                :item="team"
+                                                :icon="team.icon"
+                                                :class="{ active: activeTeamName === team.name }"
+                                                @click="selectTeam(team.id)"
+                                            />
+                                            
+                                            <div class="team-actions-overlay">
+                                                <Edit 
+                                                    :size="16" 
+                                                    class="action-icon" 
+                                                    @click.stop="openEditTeam(team)" 
+                                                />
+                                                <Trash2 
+                                                    :size="16" 
+                                                    class="action-icon delete" 
+                                                    @click.stop="handleDeleteTeam(team.id)" 
+                                                />
+                                            </div>
+                                        </div>
                                     </template>
 
                                 </SidePanel>
@@ -178,17 +208,21 @@
         @saved="handleMemberSaved"
     />
 
-    <AssignMembers
+    <AssignMembersToTeam
         v-model="showAddMemberModal"
         :users="users"
         @save="handleAddMembers"
     />
 
-    <EditTeamsPanel
-        v-model="showEditTeamModal"
+    <EditTeamPanel
+        v-if="isEditTeamOpen"
+        :key="selectedTeamData?.id"
+        :isOpen="isEditTeamOpen"
+        :isSidebarCollapsed="!isOpen"
         :team="selectedTeamData"
-        :avatar="sampleIMG"
-        @save="handleSaveTeam"
+        :allUsers="users"
+        @close="isEditTeamOpen = false"
+        @setup-finished="handleEditTeam"  
     />
 
     <AddTeamPanel
@@ -196,6 +230,7 @@
         :isSidebarCollapsed="!isOpen"
         @close="isAddTeamOpen = false"
         :avatar="sampleIMG"
+        :allUsers="users"
         @save="handleAddTeam"
     />
 </template>   
@@ -209,28 +244,29 @@
     import SidePanel from '../components/SidePanel.vue'
 
     import EditMemberPanel from '../components/EditMemberPanel.vue'
-    import EditTeamsPanel from '../components/EditTeamsPanel.vue'
     import AddMemberPanel from '../components/AddMemberPanel.vue'
 
-    import { Edit, Archive, CircleXIcon } from 'lucide-vue-next'
+    import { Edit, Archive, CircleXIcon, Trash2 } from 'lucide-vue-next'
 
     import sampleIMG from '../assets/sample_img.jpg'
 
     import { useSearch } from '../services/search.js'
     import { formatFullDateTime } from '../services/formatting.js'
-    import { getUsers, archiveUser, getTeam, unassignMember } from '../services/people.js'
+    import { getUsers, archiveUser, getTeam, unassignMember, archiveTeam } from '../services/people.js'
     import { getTeams, createTeam, updateTeam } from '../services/people.js'
 
     import { nextTick } from 'vue'
     import AddTeamPanel from '../components/AddTeamPanel.vue'
     import RowItem from '../components/RowItem.vue'
-    import AssignMembers from '../components/AssignMembers.vue'
+    import AssignMembersToTeam from '../components/AssignMembersToTeam.vue'
+    import EditTeamPanel from '../components/EditTeamPanel.vue'
 
     const users = ref([])
     const activeTab = ref('members')
     const isOpen = ref(true)
     const showToast = ref(false)
     const showDeleteToast = ref(false)
+    const showDeleteUserToast = ref(false)
 
     const activeMenu = ref(null)
     const selectedUsers = ref([])
@@ -246,7 +282,7 @@
     const selectAllTeams = ref(false)
 
     const isAddTeamOpen = ref(false)
-    const showEditTeamModal = ref(false)
+    const isEditTeamOpen = ref(false)
     const selectedTeamData = ref(null)
 
     const { search, filtered: filteredUsers } =
@@ -263,6 +299,7 @@
                 id: u.id,
                 name: `${u.firstName} ${u.middleName ?? ''} ${u.lastName}`.trim(),
                 email: u.email,
+                contact: u.phone,
                 team: u.teamName || 'No Team',
                 schedule: u.scheduleName || 'No Schedule',
                 lastActive: formatFullDateTime(u.lastActive),
@@ -331,7 +368,7 @@
 
     function toggleAll() {
         if (selectAll.value) {
-            selectedUsers.value = filteredUsers.value.map(u => u.email)
+            selectedUsers.value = filteredUsers.value.map(u => u.id)
         } else {
             selectedUsers.value = []
         }
@@ -351,10 +388,30 @@
         showEditModal.value = true
     }
 
-    async function handleArchive(userId) {
-        if (!confirm('Archive this user?')) return
+    async function handleDeleteUser(userId) {
+        if (!confirm('Delete this user?')) return
         await archiveUser(userId)
+
+        showDeleteUserToast.value = true;
+
+        setTimeout(() => {
+            showDeleteUserToast.value = false;
+        }, 2000);
+
         await fetchUsers()
+    }
+
+    async function handleDeleteTeam(teamId) {
+        if (!confirm('Delete this team?')) return
+        await archiveTeam(teamId)
+
+        showDeleteUserToast.value = true;
+
+        setTimeout(() => {
+            showDeleteUserToast.value = false;
+        }, 2000);
+
+        await fetchTeams()
     }
 
     const teams = computed(() => teamsList.value || [])
@@ -372,17 +429,29 @@
         }
     }
 
-    function openEditTeam(user) {
-        selectedTeamData.value = { ...user }
-        showEditTeamModal.value = true
+    async function openEditTeam(team) {
+        try {
+            const res = await getTeam(team.id)
+
+            const fullTeam = res.data || res
+
+            selectedTeamData.value = {
+                ...team,
+                members: fullTeam.members || []
+            }
+
+            isEditTeamOpen.value = true
+
+        } catch (err) {
+            console.error("Failed to load team details:", err)
+        }
     }
 
     console.log("teamsList:", teamsList.value)
     console.log("teams:", teams.value)
     console.log("filteredTeams:", filteredTeams.value)
 
-    async function handleSaveTeam(updatedTeam) {
-        await updateTeam(updatedTeam.id, updatedTeam)
+    async function handleEditTeam() {
         await fetchTeams()
     }
 
@@ -417,6 +486,31 @@
 
     async function handleMemberSaved() {
         await fetchUsers()
+    }
+
+    async function handleAddMembers(memberIds) {
+        showAddMemberModal.value = false
+    }
+
+    async function bulkArchive() {
+        if (selectedUsers.value.length === 0) return;
+
+        if (!confirm(`Are you sure you want to delete ${selectedUsers.value.length} users?`)) return;
+
+        try {
+            await Promise.all(selectedUsers.value.map(id => archiveUser(id)));
+
+            showDeleteUserToast.value = true;
+            setTimeout(() => (showDeleteUserToast.value = false), 2000);
+
+            selectedUsers.value = [];
+            selectAll.value = false;
+
+            await fetchUsers();
+        } catch (err) {
+            console.error("Bulk Delete Error:", err);
+            alert("Failed to delete some users.");
+        }
     }
 </script>
 
@@ -1002,5 +1096,75 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
         transform: translate(-50%, -10px);
+    }
+
+    .delete-btn {
+        background: rgba(214, 6, 6, 0.2);
+        border: 1px solid rgba(214, 6, 6, 0.4);
+        border-radius: 10px;
+        padding: 8px 15px 8px 8px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        outline: none;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-right: 10px;
+    }
+
+    .delete-btn:hover {
+        background: rgba(214, 6, 6, 0.4);
+        color: white;
+        box-shadow: 0 0 15px rgba(214, 6, 6, 0.2);
+    }
+    
+    .search-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    .team-row-wrapper:hover :deep(.icon) {
+        opacity: 0;
+    }
+
+    .team-row-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .team-row-wrapper :deep(.row-item) { 
+        width: 100%; 
+    }
+
+    .team-actions-overlay {
+        position: absolute;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        padding: 5%;
+    }
+
+    .team-row-wrapper:hover .team-actions-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .action-icon {
+        cursor: pointer;
+        color: #ffffff;
+    }
+
+    .action-icon:hover {
+        color: #727272;
+    }
+
+    .action-icon.delete:hover {
+        color: #ef4444;
     }
 </style>

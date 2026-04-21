@@ -10,6 +10,10 @@ export async function archiveUser(id) {
     return await api.delete(`/Users/${id}`);
 }
 
+export async function archiveTeam(id) {
+    return await api.delete(`/Teams/${id}`);
+}
+
 export async function getTeams() {
     const res = await api.get('/Teams');
     
@@ -44,4 +48,19 @@ export async function updateUser(id, payload) {
 
 export async function unassignMember(teamId, memberId) {
     return await api.delete(`/Teams/${teamId}/members/${memberId}`);
+}
+
+export async function createTeamInvite(teamId) {
+    const res = await api.post(`/Teams/${teamId}/invite`)
+    return res.data
+}
+
+export async function acceptTeamInvite(token) {
+    const res = await api.post(`/Teams/accept-invite`, { token })
+    return res.data
+}
+
+export async function previewTeamInvite(token) {
+    const res = await api.get(`/Teams/invite/${token}`)
+    return res.data
 }

@@ -224,7 +224,9 @@ public class DashboardService
 
     public async Task<List<UserLiveStatusDto>> GetUsersLiveStatusAsync()
     {
-        var users = await _context.Users.ToListAsync();
+        var users = await _context.Users
+                        .Where(u => u.DeletedAt == null)
+                        .ToListAsync();
         var result = new List<UserLiveStatusDto>();
 
         foreach (var user in users)

@@ -12,7 +12,7 @@
             </transition>
 
             <div class="team-header">
-                <h3>Add New Team</h3>
+                <h3>Edit Team</h3>
                 <button class="icon-btn" @click="emit('close')"><X/></button>
             </div>
             
@@ -22,7 +22,12 @@
                         <label class="form-label">Team name</label>
                         <span v-if="errors.name" class="error-msg">*Required</span>
                     </div>
-                    <input type="text" v-model="teamName" placeholder="Team name" />
+                    <input 
+                        type="text" 
+                        v-model="form.teamName" 
+                        placeholder="Team name" 
+                        @input="errors.name = false" 
+                    />
                 </div>
 
                 <div class="input-group">
@@ -52,20 +57,22 @@
     <AssignMembersToTeam
         v-model="showAssignMembersToTeamModal"
         :users="allUsers"
-        :showInvite="false"
+        :initial-selected-ids="form.memberIds"
+        :teamId="form.id"
+        :showInvite="true"
         @save="handleAddMembers"
     />
 </template>
 
 <script setup>
-
-    import { ref, onMounted } from "vue";
+    import { ref, watch } from "vue";
     import { X, CheckCircle, UserPlus } from "lucide-vue-next";
-    import { createTeam } from "../services/people";
+    import { updateTeam } from "../services/people";
     import AssignMembersToTeam from "./AssignMembersToTeam.vue";
 
     const props = defineProps({
         isOpen: Boolean,
+        team: Object,
         isSidebarCollapsed: Boolean,
         allUsers: { type: Array, default: () => [] }
     });
@@ -73,38 +80,65 @@
     const emit = defineEmits(['close', 'setup-finished']);
 
     const showToast = ref(false);
-    const teamName = ref('');
+    const errors = ref({ name: false });
     const showAssignMembersToTeamModal = ref(false);
     const selectedMembers = ref([]);
-    const errors = ref({ name: false });
+
+    const form = ref({
+        id: null,
+        teamName: '',
+        memberIds: []
+    })
+
+    watch(() => props.team, (newVal) => {
+        if (newVal) {
+            let rawIds = newVal.memberIds || [];
+            if (newVal.members && rawIds.length === 0) {
+                rawIds = newVal.members.map(m => m.id || m.userId);
+            }
+
+            const normalizedIds = rawIds.map(id => Number(id));
+
+            form.value = {
+                id: newVal.id || null,
+                teamName: newVal.name || newVal.teamName || '',
+                memberIds: normalizedIds
+            }
+
+            selectedMembers.value = props.allUsers.filter(u => 
+                normalizedIds.includes(Number(u.id))
+            );
+        }
+    }, { immediate: true });
 
     function handleAddMembers(memberIds) {
         const normalizedIds = memberIds.map(id => Number(id));
+        
+        form.value.memberIds = normalizedIds;
 
-        const newMembers = props.allUsers.filter(u => 
+        selectedMembers.value = props.allUsers.filter(u => 
             normalizedIds.includes(Number(u.id))
         );
 
-        selectedMembers.value = newMembers;
+        showAssignMembersToTeamModal.value = false;
     }
 
     function removeMember(memberId) {
         selectedMembers.value = selectedMembers.value.filter(m => m.id !== memberId);
+        form.value.memberIds = selectedMembers.value.map(m => m.id);
     }
 
     async function handleSaveTeam() {
-        if (!teamName.value.trim()) {
+        if (!form.value.teamName.trim()) {
             errors.value.name = true;
             return;
         }
 
         try {
-            const payload = {
-                teamName: teamName.value,
-                memberIds: selectedMembers.value.map(m => m.id)
-            };
-
-            await createTeam(payload);
+            await updateTeam(form.value.id, {
+                teamName: form.value.teamName,
+                memberIds: form.value.memberIds
+            });
 
             showToast.value = true;
             
@@ -112,14 +146,11 @@
                 showToast.value = false;
                 emit('setup-finished');
                 emit('close');
-                teamName.value = '';
-                selectedMembers.value = [];
             }, 2000);
 
         } catch (err) {
             console.error("Save Error:", err);
-            const errorMsg = err.response?.data || "Failed to save team";
-            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+            alert("Failed to save team.");
         }
     }
 </script>
@@ -345,6 +376,22 @@
         color: #ff6b6b;
     }
 
+    .slide-calendar-enter-active,
+    .slide-calendar-leave-active {
+        transition: transform 0.3s ease;
+    }
+
+    .slide-calendar-enter-from,
+    .slide-calendar-leave-to {
+        transform: translateX(100%);
+    }
+
+    .unit-label {
+        font-size: 0.8rem;
+        color: white;;
+        margin-right: 8px;
+    }
+
     .success-toast {
         position: absolute;
         top: 55px;
@@ -369,15 +416,5 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
         transform: translate(-50%, -10px);
-    }
-
-    .slide-calendar-enter-active,
-    .slide-calendar-leave-active {
-        transition: transform 0.3s ease;
-    }
-
-    .slide-calendar-enter-from,
-    .slide-calendar-leave-to {
-        transform: translateX(100%);
     }
 </style>

@@ -12,7 +12,7 @@
             <div class="clockInOut-content">
                 <div class="user-profile">
                     <div class="avatar-profile">
-                        <img :src="avatar" class="avatar" />
+                        <img :src="userAvatar || defaultAvatar" class="avatar" />
                     </div>
                     <div class="user-info">
                         <span class="user-name">{{ userName }}</span>
@@ -105,6 +105,11 @@
         userRole: {
             type: String,
             default: "user"
+        },
+
+        userAvatar: {
+            type: String,
+            default: avatar
         }
     });
 

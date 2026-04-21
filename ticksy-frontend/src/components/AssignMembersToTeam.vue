@@ -12,8 +12,29 @@
             <button class="close-btn" @click="$emit('update:modelValue', false)">✕</button>
         </div>
 
+        <div class="section" v-if="showInvite">
+            <p class="section-title">Invite by Link</p>
+            <p class="desc">
+                We recommend letting members create their profile so they can log from their devices.
+                Send them this invite link to get started!
+            </p>
+
+            <div class="link-box">
+                <input type="text" :value="generatedLink" readonly />
+                <button class="copy-btn" @click="copyLink">
+                    <Copy size="14" class="icon-transparent" />
+                    Copy Link
+                </button>
+            </div>
+
+            <div class="generate-link" @click="generateLink">
+                Generate new link
+                <RefreshCw size="14" class="icon-transparent" />
+            </div>
+        </div>
+
         <div class="section">
-        <p class="section-title">Add Members</p>
+        <p class="section-title">Manually Add Members</p>
         <div class="modal-search-wrapper">
             <Search v-model="searchQuery" />
         </div>
@@ -25,13 +46,17 @@
         <span class="header-with-icon"><Phone size="14" /> Contact</span>
         </div>
 
-        <div class="row people" v-for="user in filteredUsers" :key="user.email">
-                <span>
-                    <input type="checkbox" :value="user.id" v-model="selectedUsers" />
-                </span>
-                <span>{{ user.firstName }}</span>
-                <span>{{ user.email }}</span>
-                <span>{{user.phone}}</span>
+                <div class="row people" v-for="user in filteredUsers" :key="user.id"> 
+                    <span>
+                        <input 
+                            type="checkbox" 
+                            :value="Number(user.id)" 
+                            v-model="selectedUsers" 
+                        />
+                    </span>
+                    <span>{{ user.name }}</span>
+                    <span>{{ user.email }}</span>
+                    <span>{{ user.contact }}</span>
                 </div>
             </div>
         </div>
@@ -46,56 +71,73 @@
 <script setup>
     import { ref, computed, watch } from 'vue'
     import Search from './Search.vue'
-    import { User, Mail, Phone } from 'lucide-vue-next'
-    import { Copy } from 'lucide-vue-next'
-    import { RefreshCw } from 'lucide-vue-next'
+    import { User, Mail, Phone, Copy, RefreshCw } from 'lucide-vue-next'
     import DimmedBg from './DimmedBg.vue'
-    import { assignMembers } from '../services/schedule'
+    import { createTeamInvite } from '../services/people'
 
     const props = defineProps({
         modelValue: Boolean,
         users: { type: Array, default: () => [] },
-        inviteLink: { type: String, default: 'ticksy.com/join/sample' },
-        scheduleId: [String, Number]
+        initialSelectedIds: { type: Array, default: () => [] },
+        teamId: [String, Number],
+        showInvite: { type: Boolean, default: true }
     })
 
     const emit = defineEmits(['update:modelValue', 'save'])
 
     const searchQuery = ref('')
     const selectedUsers = ref([])
+    const generatedLink = ref('Loading link...')
+
+    watch(() => props.modelValue, async (isOpen) => {
+        if (isOpen) {
+            selectedUsers.value = props.initialSelectedIds.map(id => Number(id));
+
+            if (props.teamId && props.showInvite) {
+                await fetchInviteLink();
+            }
+        }
+    }, { immediate: true });
 
     const filteredUsers = computed(() => {
         if (!props.users) return [] 
         if (!searchQuery.value) return props.users
         
         const query = searchQuery.value.toLowerCase()
-        
         return props.users.filter(u => {
-            const fullName = `${u.firstName} ${u.lastName}`.toLowerCase()
-            return fullName.includes(query) || u.email.toLowerCase().includes(query)
+            const name = (u.name || '').toLowerCase()
+            const email = (u.email || '').toLowerCase()
+            return name.includes(query) || email.includes(query)
         })
     })
 
-    function copyLink() {
-    navigator.clipboard.writeText(props.inviteLink)
-    }
-
-    function generateNewLink() {
-
-        alert('New invite link generated!')
-    }
-
     async function saveMembers() {
-        try {
-            await assignMembers(props.scheduleId, selectedUsers.value);
+        emit('save', [...selectedUsers.value]); 
+        emit('update:modelValue', false);
+    }
 
-            emit('save', selectedUsers.value);
-            emit('update:modelValue', false);
-
-        } catch (err) {
-            console.error("Assign members failed:", err);
-            alert("Failed to assign members");
+    async function fetchInviteLink() {
+        if (!props.teamId) {
+            generatedLink.value = "No team selected";
+            return;
         }
+
+        try {
+            const data = await createTeamInvite(props.teamId);
+            generatedLink.value = data.link;
+        } catch (err) {
+            console.error("Failed to generate link:", err);
+            generatedLink.value = "Error generating link";
+        }
+    }
+
+    async function generateLink() {
+        generatedLink.value = 'Generating...';
+        await fetchInviteLink();
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(generatedLink.value);
     }
 
     const selectAll = ref(false)
@@ -112,9 +154,6 @@
         selectAll.value = !selectAll.value
     }
 
-    function generateLink() {
-        alert('New link generated!');
-    }
 </script>
 
 <style scoped>
@@ -125,7 +164,7 @@
     height: 100vh;
     background: #001527;
     box-shadow: -5px 0 20px rgba(0,0,0,0.5);
-    z-index: 999;
+    z-index: 2000;
     display: flex;
     flex-direction: column;
     padding: 20px;
