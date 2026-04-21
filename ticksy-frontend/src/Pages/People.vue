@@ -189,31 +189,31 @@
         </div>
     </div>
 
-   <EditMemberPanel
-  v-model="showEditModal"
-  :user="selectedUserData"
-  :avatar="sampleIMG"
-  @save="handleSaveEdit"
-/>
+    <EditMemberPanel
+    v-model="showEditModal"
+    :user="selectedUserData"
+    :avatar="sampleIMG"
+    @save="handleSaveEdit"
+    />
 
-        <AddMemberPanel
-            v-model="showAddMemberModal"
-            :users="users"
-            @save="handleAddMembers"
-        />
+    <AddMemberPanel
+        v-model="showAddMemberModal"
+        :users="users"
+        @save="handleAddMembers"
+    />
 
-       <EditTeamsPanel
-            v-model="showEditTeamModal"
-            :team="selectedTeamData"
-            :avatar="sampleIMG"
-            @save="handleSaveTeam"
-        />
+    <EditTeamsPanel
+        v-model="showEditTeamModal"
+        :team="selectedTeamData"
+        :avatar="sampleIMG"
+        @save="handleSaveTeam"
+    />
 
-        <AddTeamPanel
-            v-model="showAddTeamModal"
-            :avatar="sampleIMG"
-            @save="handleAddTeam"
-        />
+    <AddTeamPanel
+        v-model="showAddTeamModal"
+        :avatar="sampleIMG"
+        @save="handleAddTeam"
+    />
    
 </template>   
 
@@ -459,7 +459,6 @@ async function handleSaveEdit(updatedUser) {
     console.error('Failed to update user:', err)
   }
 }
-
 
 </script>
 

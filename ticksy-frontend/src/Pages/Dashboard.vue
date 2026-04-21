@@ -35,7 +35,6 @@
                                     <span>2</span>
                                     <span>0</span>
                                    
-                                  
                                 </div>
 
                                 <div class="bars-wrapper">
@@ -61,13 +60,16 @@
                     </div>
 
                     <div class="bottom-grid">
-                        <TrackedHours :viewMode="activeTab" />
+                        <TrackedHours 
+                            :viewMode="activeTab"
+                            :data="trackedHours"
+                        />
 
                         <div class="card who">
                         <div class="who-header">
                             <h3>Who's In/Out</h3>
                             <p class="count">
-                                {{ peopleByStatus[activeStatusTab].length }} members
+                                {{ peopleByStatus[activeStatusTab]?.length || 0 }} members
                             </p>
                         </div>
 
@@ -82,17 +84,16 @@
                                 </button>
                             </div>
 
-                            <div class="users">
-                                <div 
-                                    class="user" 
-                                    v-for="p in peopleByStatus[activeStatusTab]" 
-                                    :key="p.name"
-                                >
-                                    <img :src="p.avatar || sampleImg" class="avatar-small" />
-                                    <div>
-                                        <p>{{ p.name }}</p>
-                                        <small>Last in {{ p.time }}</small>
-                                    </div>
+                            <div class="user" v-for="p in peopleByStatus[activeStatusTab]" :key="p.name">
+                                <img
+                                    :src="p.avatar"
+                                    class="avatar-small"
+                                    @error="e => e.target.src = sampleImg"
+                                />
+
+                                <div class="user-info">
+                                    <p class="name" :title="p.name">{{ p.name }}</p>
+                                    <small class="time">{{ p.label }} {{ p.time }}</small>
                                 </div>
                             </div>
                         </div>
@@ -105,69 +106,129 @@
 
 <script setup>
     import Header from '../components/Header.vue';
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import welcomeImg from "/welcome-img.png";
     import WelcomeCard from '../components/WelcomeCard.vue';
     import HolidayCard from '../components/HolidayCard.vue';
     import TrackedHours from '../components/TrackedHours.vue';
     import Sidebar from '../components/Sidebar.vue';
     import sampleImg from '../assets/sample_img.jpg'
+    import dashboardService from '../services/dashboard.js';
+    import { formatFullDateTime } from '../services/formatting.js'
 
     const activeTab = ref('Week')
-
-    const holidays = [
-        { month: 'MAY', day: '25', name: 'Memorial Day' },
-        { month: 'JUN', day: '19', name: 'Juneteenth' },
-        { month: 'JUL', day: '03', name: 'Memorial Independence Day' }
-    ]
-
-    const absencesData = [
-        { month: 'Mar', present: 1, absent: 1 },
-        { month: 'Apr', present: 3, absent: 2 },
-        { month: 'May', present: 7, absent: 0 },
-        { month: 'Jun', present: 2, absent: 0 },
-        { month: 'Jul', present: 0, absent: 0 },
-        { month: 'Aug', present: 0, absent: 0 }
-    ]
-
+    const holidays = ref([])
+    const absencesData = ref([])
+    const trackedHours = ref(null)
     const activeStatusTab = ref('In')
-
-    const peopleByStatus = {
-        In: [
-            {
-                name: 'Kristen Quiambao Domingo',
-                time: '11/13/2025, 2:00 PM',
-                avatar: sampleImg
-            },
-
-            {
-                name: 'Lei Anysson Marquez',
-                time: '11/13/2025, 2:00 PM',
-                avatar: sampleImg
-            }
-        ],
-        Break: [
-            {
-                name: 'Daphne Manalansan',
-                time: '11/13/2025, 2:00 PM',
-                avatar: sampleImg
-            }
-        ],
-        Out: [
-            {
-                name: 'Kiana Martin',
-                time: '11/13/2025, 2:00 PM',
-                avatar: sampleImg
-            }
-        ]
-    }
-
+    const peopleByStatus = ref({ In: [], Break: [], Out: [] })
     const isOpen = ref(true)
+
+    const token = localStorage.getItem('token')
+    const start = '2026-04-01'
+    const end = '2026-04-30'
+
     function toggleSidebar() {
         isOpen.value = !isOpen.value
     }
-</script>
 
+    const formatDateTime = (date, time) => {
+        if (!date || !time) return '--'
+        const iso = `${date}T${time}`
+        return formatFullDateTime(iso)
+    }
+    
+    const loadDashboard = async () => {
+        try {
+            const type = activeTab.value === 'Day' ? 'daily' : 
+                         activeTab.value === 'Week' ? 'weekly' : 'monthly'
+
+            let defaultCalendarId = 2 
+            try {
+                const calendarsRes = await dashboardService.getCalendars(token)
+                const defaultCalendar = calendarsRes.data.find(cal => cal.isDefault === true)
+                if (defaultCalendar) {
+                    defaultCalendarId = defaultCalendar.id
+                    console.log('Using default calendar ID:', defaultCalendarId)
+                } else {
+                    console.warn('No default calendar found, using fallback ID:', defaultCalendarId)
+                }
+            } catch (calErr) {
+                console.error('Failed to fetch calendars, using fallback ID:', defaultCalendarId, calErr)
+            }
+
+            const [absencesRes, liveRes, hoursRes, holidaysRes] = await Promise.all([
+                dashboardService.getMostAbsences(start, end, token),
+                dashboardService.getLiveStatus(token),
+                dashboardService.getTrackedHours(type, start, end, token),
+                dashboardService.getHolidays(defaultCalendarId, new Date().getFullYear(), token).catch(err => {
+                    console.warn('Failed to fetch holidays:', err)
+                    return { data: [] }
+                })
+            ])
+
+            try {
+                const resHolidays = holidaysRes.data
+                const listHolidays = Array.isArray(resHolidays) ? resHolidays : (resHolidays.data || [])
+                
+                if (listHolidays && listHolidays.length > 0) {
+                    holidays.value = listHolidays.map(h => {
+                        const dateStr = h.date || h.Date
+                        const date = new Date(dateStr)
+                        return {
+                            month: !isNaN(date) ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase() : 'N/A',
+                            day: !isNaN(date) ? String(date.getDate()).padStart(2, '0') : '--',
+                            name: h.name || h.Name || 'Holiday'
+                        }
+                    })
+                } else {
+                    console.log('No holidays returned from API')
+                    holidays.value = []
+                }
+            } catch (holidayErr) {
+                console.error('Error processing holidays:', holidayErr)
+                holidays.value = []
+            }
+
+
+            if (absencesRes && absencesRes.data) {
+                absencesData.value = absencesRes.data.map(x => ({
+                    month: x.fullName ? x.fullName.split(' ')[0] : 'User',
+                    present: 0,
+                    absent: x.absenceCount || 0
+                }))
+            }
+
+            if (hoursRes && hoursRes.data) {
+                trackedHours.value = hoursRes.data
+            }
+
+            const grouped = { In: [], Break: [], Out: [] }
+            if (liveRes && liveRes.data) {
+                liveRes.data.forEach(u => {
+                    const key = u.status === 'On Break' ? 'Break' : u.status === 'In' ? 'In' : 'Out'
+                    const label = key === 'In' ? 'Last in' : key === 'Break' ? 'Last break' : 'Last out'
+
+                    grouped[key].push({
+                        name: u.fullName,
+                        time: formatDateTime(u.lastActionDate, u.lastActionTime),
+                        label,
+                        avatar: u.avatarUrl || '/default.png'
+                    })
+                })
+            }
+            peopleByStatus.value = grouped
+
+        } catch (err) {
+            console.error('Dashboard error details:', err)
+        }
+    }
+
+    onMounted(() => {
+        loadDashboard()
+    })
+</script>
+ 
 <style scoped>
     .dashboard {
         height: 100vh;
@@ -189,6 +250,7 @@
         gap: 20px;
         border-bottom: 1px solid rgba(255,255,255,0.15);
         margin-bottom: 20px;
+        
     }
 
     .tabs button {
@@ -199,6 +261,7 @@
         padding-bottom: 8px;
         cursor: pointer;
         position: relative;
+        outline: none;
     }
 
     .tabs button.active {
@@ -251,10 +314,6 @@
         padding-top: 4%; 
     }
 
-    .chart-container {
-    padding-bottom: 20px;
-}
-
     .bars::before {
         content: "";
         position: absolute;
@@ -268,51 +327,52 @@
             
         );
     }
-.bars-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
 
-.bars {
-    position: relative;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    height: 140px;
-    padding: 0 10px;
-}
-
-.months {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 10px 0;
-}
-
-.months span {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    text-align: center;
-    width: 18px;
-}
-
-    .stack {
-        width: 18px;
-        height: 140px; 
+    .bars-wrapper {
         display: flex;
-        flex-direction: column-reverse;
-        justify-content: flex-start;
+        flex-direction: column;
+        flex: 1;
     }
 
-    .green { background: #22c55e; }
-    .red { background: #ef4444; }
+    .bars {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        height: 140px;
+        padding: 0 10px;
+    }
 
-    .month {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    margin-top: 6px;   /* 🔥 add spacing down */
-    display: block;
-}
+    .months {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 10px 0;
+    }
+
+    .months span {
+        font-size: 11px;
+        color: rgba(255,255,255,0.6);
+        text-align: center;
+        width: 18px;
+    }
+
+        .stack {
+            width: 18px;
+            height: 140px; 
+            display: flex;
+            flex-direction: column-reverse;
+            justify-content: flex-start;
+        }
+
+        .green { background: #22c55e; }
+        .red { background: #ef4444; }
+
+        .month {
+        font-size: 11px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 6px;
+        display: block;
+    }
 
     .users {
         display: flex;
@@ -396,4 +456,6 @@
         font-size: 12px;
         color: rgba(255,255,255,0.6);
     }
+
+    
 </style>
