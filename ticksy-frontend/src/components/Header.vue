@@ -34,6 +34,7 @@
       :userName="currentUser?.name"
       :userRole="currentUser?.role"
       :lastInStatus="lastOut"
+      :userAvatar="currentUser?.avatar"
       :isOpen="isPanelOpen"
       :recordedTime="currentTimeForPanel"
       :initialTab="activePanelTab"
@@ -58,7 +59,16 @@
         showTimer: { type: Boolean, default: false }
     });
 
-    const currentUser = ref({ name: "IDA Admin", role: "admin" });
+    const currentUser = ref(null);
+
+    onMounted(() => {
+        const storedUser = localStorage.getItem("user");
+
+        if (storedUser) {
+            currentUser.value = JSON.parse(storedUser);
+        }
+    });   
+    
     const isClockedIn = ref(false);
     const isOnBreak = ref(false);
     const isPanelOpen = ref(false);

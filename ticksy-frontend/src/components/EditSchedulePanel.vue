@@ -248,7 +248,6 @@
             setTimeout(() => {
             showToast.value = false;
             emit('setup-finished', result); 
-            // Close the panel
             emit('close');
             }, 2000);
 

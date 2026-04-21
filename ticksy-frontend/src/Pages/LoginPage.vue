@@ -57,15 +57,15 @@
 </template>
 
 <script setup>
-	import { ref, nextTick } from "vue"
+	import { ref, nextTick, onMounted } from "vue"
 	import { Mail, Lock, Eye, EyeOff } from "lucide-vue-next"
 	import logo from "../assets/ticksy_logo.png"
-	import { useRouter } from 'vue-router'
+	import { useRoute, useRouter } from 'vue-router'
 	import { loginUser } from "../services/auth"
 	import Toast from "../components/Toast.vue"
 	import { CheckCircle, XCircle } from "lucide-vue-next"
+	import { acceptTeamInvite } from "../services/people"
 
-	const router = useRouter()
 	const email = ref("")
 	const password = ref("")
 	const showPassword = ref(false)
@@ -74,9 +74,47 @@
 	const toastIcon = ref(null)
 	const emit = defineEmits(['finished']);
 
+	const route = useRoute()
+	const router = useRouter()
+
+	async function handleLogin() {
+		try {
+			await loginUser(email.value, password.value)
+
+			showToast("Login successful!", "success", CheckCircle)
+
+			const inviteToken =
+				route.query.invite ||
+				localStorage.getItem("pendingInvite")
+
+			if (inviteToken) {
+				try {
+					await acceptTeamInvite(inviteToken)
+					localStorage.removeItem("pendingInvite")
+				} catch (err) {
+					console.error("Invite failed:", err)
+				}
+			}
+
+			setTimeout(() => {
+				router.push("/dashboard")
+			}, 800)
+
+		} catch (err) {
+			showToast("Login failed", "error", XCircle)
+		}
+	}
+
 	function togglePassword() {
 		showPassword.value = !showPassword.value
 	}
+
+	onMounted(() => {
+		const invite = route.query.invite
+		if (invite) {
+			localStorage.setItem("pendingInvite", invite)
+		}
+	})
 
 	function showToast(message, type = 'success', icon = null) {
 		toastType.value = type
@@ -85,26 +123,6 @@
 		nextTick(() => {
 			toastMessage.value = message
 		})
-	}
-
-	async function handleLogin() {
-		try {
-			const data = await loginUser(email.value, password.value)
-			showToast("Login successful!", "success", CheckCircle)
-
-			setTimeout(() => {
-				router.push("/dashboard")
-			}, 1000)
-
-		} catch (err) {
-			console.error(err.response?.data || err.message)
-
-			const msg = typeof err.response?.data === "string"
-				? err.response.data
-				: err.response?.data?.message || "Invalid email or password"
-
-			showToast(msg, "error", XCircle)
-		}
 	}
 </script>
 

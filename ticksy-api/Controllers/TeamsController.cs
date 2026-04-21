@@ -97,6 +97,7 @@ public class TeamsController : ControllerBase
 
         var teams = await _context.Teams
             .Where(t => t.DeletedAt == null && t.TeamMembers.Any(tm => tm.UserId == userId))
+            .OrderBy(t => t.Id)
             .Select(t => new TeamListDto
             {
                 Id = t.Id,
@@ -199,7 +200,7 @@ public class TeamsController : ControllerBase
         _context.Add(invite);
         await _context.SaveChangesAsync();
 
-        var link = $"https://ticksy-frontend.com/join/{token}";
+        var link = $"http://localhost:5173/join/{token}";
 
         return Ok(new { link });
     }
@@ -227,6 +228,26 @@ public class TeamsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok("Joined team!");
+    }
+
+    [HttpGet("invite/{token}")]
+    public async Task<IActionResult> PreviewInvite(string token)
+    {
+        var invite = await _context.TeamInvites
+            .FirstOrDefaultAsync(i => i.Token == token);
+
+        if (invite == null || invite.ExpiresAt < DateTime.UtcNow)
+            return BadRequest("Invalid or expired invite.");
+
+        var team = await _context.Teams
+            .FirstOrDefaultAsync(t => t.Id == invite.TeamId);
+
+        if (team == null)
+            return NotFound("Team not found.");
+
+        return Ok(new {
+            teamName = team.TeamName
+        });
     }
 
     [Authorize]
@@ -302,19 +323,50 @@ public class TeamsController : ControllerBase
         if (!isLeader)
             return Forbid("Only team leaders can perform this action.");
 
-        var team = await _context.Teams.FindAsync(id);
-        if (team == null) return NotFound();
+        var team = await _context.Teams
+            .Include(t => t.TeamMembers)
+            .FirstOrDefaultAsync(t => t.Id == id);
 
-        if (team.DeletedAt != null)
-            return BadRequest("Cannot update a deleted team.");
+        if (team == null) return NotFound();
+        if (team.DeletedAt != null) return BadRequest("Cannot update a deleted team.");
 
         if(!string.IsNullOrWhiteSpace(dto.TeamName)) team.TeamName = dto.TeamName;
-
         team.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        if (dto.MemberIds != null)
+        {
+            var currentMemberIds = team.TeamMembers.Select(tm => tm.UserId).ToList();
 
-        return Ok(new { message = "Team updated successfully."});
+            var membersToRemove = team.TeamMembers
+                .Where(tm => !dto.MemberIds.Contains(tm.UserId) && tm.UserId != userId)
+                .ToList();
+
+            var idsToAdd = dto.MemberIds
+                .Distinct()
+                .Where(id => !currentMemberIds.Contains(id) && id != userId)
+                .ToList();
+
+            if (membersToRemove.Any()) {
+                _context.TeamMembers.RemoveRange(membersToRemove);
+            }
+
+            foreach (var newId in idsToAdd)
+            {
+                if (await _context.Users.AnyAsync(u => u.Id == newId))
+                {
+                    _context.TeamMembers.Add(new TeamMember
+                    {
+                        TeamId = id,
+                        UserId = newId,
+                        TeamRole = TeamMember.TeamRoleEnum.Member,
+                        JoinedAt = DateTime.UtcNow
+                    });   
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Team updated successfully." });
     }
 
     [Authorize]

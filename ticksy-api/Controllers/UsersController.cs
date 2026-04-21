@@ -278,7 +278,7 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Password changed successfully." });
     }
 
-    [HttpPost("forgot-pass")] //PENDING TEST
+    [HttpPost("forgot-pass")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         
@@ -309,7 +309,7 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Reset link sent." });
     }
 
-    [HttpPut("reset-pass")] //PENDING TEST
+    [HttpPut("reset-pass")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
         
@@ -334,17 +334,25 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.TeamMemberships)
+            .Include(u => u.UserWorkSchedules)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
         if (user == null) return NotFound();
 
-        if (user.DeletedAt != null)
-            return BadRequest("User is already deleted.");
+        if (user.TeamMemberships.Any())
+            _context.TeamMembers.RemoveRange(user.TeamMemberships);
+
+        if (user.UserWorkSchedules.Any())
+            _context.UserWorkSchedules.RemoveRange(user.UserWorkSchedules);
 
         user.DeletedAt = DateTime.UtcNow;
+        user.Email = $"{user.Email}_del_{DateTime.UtcNow.Ticks}"; 
+        user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-
-        return Ok(new { message = "User deleted successfully."});
+        return Ok(new { message = "User archived and unassigned." });
     }
 
     private async Task AutoClockIn(int userId)
