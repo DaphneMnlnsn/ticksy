@@ -31,7 +31,7 @@
                     <span class="dot red"></span>
                     <div>
                     <p class="label">OVERTIME HOURS</p>
-                    <p class="value">---</p>
+                    <p class="value">{{ breakHours }}</p>
                     </div>
                 </div>
                 </div>
@@ -60,22 +60,36 @@
     }
 
     const props = defineProps({
-        viewMode: String
-    })
+    viewMode: String,
+    data: Object   // galing backend
+})
     const displayTitle = computed(() => {
         if (props.viewMode === 'Day') return "Today's Activity"
         if (props.viewMode === 'Week') return "Weekly Progress"
         return "Monthly Summary"
     })
     const Hours = computed(() => {
-        if (props.viewMode === 'Day') return "8.5 hrs"
-        if (props.viewMode === 'Week') return "42.0 hrs"
-        return "168.5 hrs"
+    if (!props.data) return '0 hrs'
+    return `${props.data.workHours?.toFixed(1) ?? 0} hrs`
     })
+
+    const breakHours = computed(() => {
+        if (!props.data) return '0 hrs'
+        return `${props.data.breakHours?.toFixed(1) ?? 0} hrs`
+    })
+
     const barStyle = computed(() => {
-    if (props.viewMode === 'Day') return { height: '40%', background: '#00DC28' }
-    if (props.viewMode === 'Week') return { height: '75%', background: '#00DC28' }
-    return { height: '90%', background: '#00DC28' }
+        if (!props.data) return { height: '5%', background: '#00DC28' }
+    
+    const max =
+        props.viewMode === 'Day' ? 10 :
+        props.viewMode === 'Week' ? 50 : 200
+
+    const percent = Math.min((props.data.workHours / max) * 100, 100)
+        return {
+            height: percent + '%',
+            background: '#00DC28'
+        }
     })
     const yAxisLabels = computed(() => {
     if (props.viewMode === 'Day') return ['10h', '8h', '6h', '4h', '2h', '0s']
@@ -94,9 +108,11 @@
         color: #E6EDF3;
     }
 
+    
+
     .title-group {
         display: flex;
-        justify-content: space-between; /* Pushes content to opposite ends */
+        justify-content: space-between;
         align-items: center; 
         margin-bottom: 10px;
         width: 100%;
@@ -211,4 +227,5 @@
         font-size: 12px;
         opacity: 0.6;
     }
+    
 </style>
