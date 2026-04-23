@@ -47,7 +47,7 @@
                             </template>
                         </span>
 
-                        <span>{{ user.totalHours }}</span>
+                        <span>{{ user.total }}</span>
                     </div>
                 </div>
             </TransitionGroup>

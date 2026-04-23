@@ -6,6 +6,7 @@ import {
 } from "../services/attendanceService"
 
 export async function fetchAttendance(viewType, params, role, userId) {
+    console.log("VIEW TYPE:", viewType)
     const isAdmin = role?.toLowerCase() === "admin"
 
     let res
@@ -25,9 +26,16 @@ export async function fetchAttendance(viewType, params, role, userId) {
         }
     }
 
-    res = await getUserAttendance(userId)
+    if (viewType === "weekly")
+        res = await getWeeklyAttendance(params.start, params.end, userId)
+
+    else if (viewType === "daily")
+        res = await getDailyAttendance(params.date, userId)
+
+    else
+        res = await getMonthlyAttendance(params.date, userId)
 
     return {
-        data: Array.isArray(res.data) ? res.data : [res.data]
+        data: Array.isArray(res.data) ? res.data : []
     }
 }
