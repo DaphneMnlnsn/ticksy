@@ -127,6 +127,9 @@
     import { getPolicies, getPolicyDetails, deletePolicy, createPolicy, updatePolicy } from "../services/timeOff";
     import Search from "./Search.vue";
     import DimmedBg from "./DimmedBg.vue";
+    import Swal from "sweetalert2"; 
+
+    const toastMessage = ref('');
 
     const props = defineProps({
         isOpen: Boolean,
@@ -199,22 +202,51 @@
     };
 
     const handleDeletePolicy = async (id) => {
-        if (confirm("Are you sure you want to delete this policy? This action cannot be undone.")) {
+        const result = await Swal.fire({
+            title: 'Delete Policy',
+            text: 'Are you sure you want to delete this policy? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+        });
+
+        if (result.isConfirmed) {
             try {
                 await deletePolicy(id);
                 policies.value = policies.value.filter(p => p.id !== id);
                 activeMenu.value = null;
-                triggerToast();
+
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Policy has been deleted.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                triggerToast("Policy deleted successfully!");
             } catch (err) {
-                console.error("Delete failed:", err);
-                alert("Could not delete policy.");
+                console.error("Delete failed:", err.response || err);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Could not delete policy.',
+                    icon: 'error',
+                });
             }
         }
     };
 
-    const triggerToast = () => {
+    const triggerToast = (message) => {
+        toastMessage.value = message;
         showToast.value = true;
-        setTimeout(() => showToast.value = false, 3000);
+
+        setTimeout(() => {
+            showToast.value = false;
+        }, 2000);
     };
 
     const handleAddPolicy = () => {

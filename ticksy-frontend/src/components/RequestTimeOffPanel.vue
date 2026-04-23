@@ -45,10 +45,7 @@
                 <div class="date-section">
                     <div class="date-header">
                         <label class="form-label">Date</label>
-                        <div class="same-day-toggle">
-                            <input type="checkbox" id="sameDay" v-model="isSameDay" />
-                            <label for="sameDay">same day</label>
-                        </div>
+                        <span v-if="errors.dates" class="error-msg">*Required</span>
                     </div>
 
                     <div class="time-row">
@@ -68,6 +65,12 @@
                             </template>
                         </div>
                     </div>
+
+                    <div class="same-day-toggle">
+                        <input type="checkbox" id="sameDay" v-model="isSameDay" />
+                        <label for="sameDay">same day</label>
+                    </div>
+
                 </div>
             </div>
 
@@ -155,8 +158,11 @@
 
     async function saveSchedule() {
         errors.value.name = !startDate.value;
+
+        errors.value.dates = false;
+
         if (!startDate.value || (!isSameDay.value && !endDate.value)) {
-            alert("Please select dates.");
+            errors.value.dates = true;
             return;
         }
 
@@ -171,13 +177,17 @@
             await createRequest(payload);
 
             showToast.value = true;
+
             setTimeout(() => {
                 showToast.value = false;
                 emit('setup-finished');
                 emit('close');
+
                 startDate.value = '';
                 endDate.value = '';
                 note.value = '';
+                errors.value.dates = false;
+                errors.value.name = false;
             }, 2000);
 
         } catch (err) {
@@ -381,6 +391,13 @@
         margin-bottom: 0;
     }
 
+    .date-header{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
     .error-msg {
         color: rgb(255, 99, 99);
         font-size: 0.65rem;
@@ -522,6 +539,7 @@
         font-size: 0.85rem;
         color: var(--text-secondary);
         cursor: pointer;
+        margin-top: 5px;
     }
 
     .duration-input.large .time-box {
