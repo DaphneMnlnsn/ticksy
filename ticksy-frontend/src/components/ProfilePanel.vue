@@ -57,24 +57,6 @@
                         @close="showChangePassModal = false"
                     />
                 </div>
-                <div class="preferences">
-                    <label>Preferences</label>
-                    <div class="input-group">
-                        <form>
-                            <div class="form-label">Timezone</div>
-                            <select v-model="form.timezone" class="form-select" :disabled="!isEditing" >
-                                <option v-for="tz in timezones" :key="tz" :value="tz">
-                                    {{ tz }}
-                                </option>
-                            </select>
-
-                            <div class="radio-group">
-                                <input type="checkbox" v-model="autoClockIn" /> 
-                                <div class="form-label" >Clock in automatically upon login?</div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
             <div v-if="isEditing" class="save-footer">
                 <button class="cancel-btn" v-if="isEditing" @click="cancelEdit">

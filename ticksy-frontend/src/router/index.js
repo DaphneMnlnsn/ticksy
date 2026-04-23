@@ -10,6 +10,7 @@ import WorkSchedules from '../Pages/WorkSchedules.vue'
 import ResetPassword from '../Pages/ResetPassword.vue'
 import { isAuthenticated } from '../services/auth'
 import JoinTeamPage from '../Pages/JoinTeamPage.vue'
+import UserWorkSchedules from '../Pages/UserWorkSchedules.vue'
 
 const routes = [
     {
@@ -42,7 +43,12 @@ const routes = [
     {
         path: '/management/work-schedules', 
         component: WorkSchedules,
-        meta: { requiresAuth: true, roles: ['Admin', 'User'] }
+        meta: { requiresAuth: true, roles: ['Admin'] }
+    },
+    {
+        path: '/management/user-work-schedules', 
+        component: UserWorkSchedules,
+        meta: { requiresAuth: true, roles: ['User'] }
     },
     {
         path: '/join/:token',

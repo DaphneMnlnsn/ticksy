@@ -57,7 +57,7 @@ public class TimeOffPoliciesController : ControllerBase
         return Ok(policies);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetPolicy(int id)
     {

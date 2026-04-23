@@ -8,7 +8,7 @@
             <slot name="body"></slot>
         </div>
 
-        <div class="panel-footer">
+        <div class="panel-footer" v-if="!hideSubmit">
             <button @click="$emit('actionClick')" class="btn">
                 {{ buttonText }}
             </button>
@@ -22,6 +22,10 @@
         buttonText: {
             type: String,
             default: "Submit"
+        },
+        hideSubmit: {
+            type: Boolean,
+            default: false
         }
     })
 </script>
