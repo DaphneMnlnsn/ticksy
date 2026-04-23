@@ -6,7 +6,6 @@ import {
 } from "../services/attendanceService"
 
 export async function fetchAttendance(viewType, params, role, userId) {
-    console.log("VIEW TYPE:", viewType)
     const isAdmin = role?.toLowerCase() === "admin"
 
     let res

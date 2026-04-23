@@ -57,7 +57,7 @@
                         <Calendar/>
                     </div>
 
-                    <div v-if="showDatePicker" class="date-picker-wrapper" :style="pickerStyle">
+                    <div v-show="showDatePicker" class="date-picker-wrapper" :style="pickerStyle">
                         <!-- WEEKLY -->
                         <VueDatePicker
                             v-if="selectedTimesheet === 'weekly' && showDatePicker"
@@ -114,7 +114,6 @@
             <WeeklyTimesheet
                 v-if="selectedTimesheet === 'weekly'"
                 :users="tableData"
-                :search="search"
                 :loading="loading"
                 :hasData="hasData"
                 :defaultAvatar="defaultAvatar"
@@ -124,7 +123,6 @@
             <DailyTimesheet
                 v-if="selectedTimesheet === 'daily'"
                 :users="tableData"
-                :search="search"
                 :loading="loading"
                 :hasData="hasData"
                 :defaultAvatar="defaultAvatar"
@@ -134,7 +132,6 @@
             <MonthlyTimesheet
                 v-if="selectedTimesheet === 'monthly'"
                 :users="tableData"
-                :search="search"
                 :loading="loading"
                 :hasData="hasData"
                 :defaultAvatar="defaultAvatar"
@@ -312,20 +309,16 @@
     }
 
     function toggleDatePicker() {
-        showDatePicker.value = !showDatePicker.value
-
-        if (showDatePicker.value) {
-            nextTick(() => {
-                const rect = calendarBtn.value.getBoundingClientRect()
-
-                pickerStyle.value = {
-                    position: 'absolute',
-                    top: `${rect.bottom + 5}px`,
-                    left: `${rect.left}px`,
-                    zIndex: 999
-                }
-            })
+        if (!showDatePicker.value) {
+            const rect = calendarBtn.value.getBoundingClientRect();
+            pickerStyle.value = {
+                position: 'absolute',
+                top: `${rect.bottom + window.scrollY + 5}px`,
+                left: `${rect.left + window.scrollX}px`,
+                zIndex: 999
+            };
         }
+        showDatePicker.value = !showDatePicker.value;
     }
 
     function toggleLegend() {
