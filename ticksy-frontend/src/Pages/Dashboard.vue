@@ -28,25 +28,28 @@
 
                             <div class="chart">
                                 <div class="y-axis">
-                                    <span>10</span>
-                                    <span>8</span>
-                                    <span>6</span>
-                                    <span>4</span>
-                                    <span>2</span>
-                                    <span>0</span>
-                                   
+                                    <span v-for="val in yAxisValues" :key="val">
+                                        {{ val }}
+                                    </span>
                                 </div>
 
                                 <div class="bars-wrapper">
                                 <div class="bars">
                                     <div v-for="item in absencesData" :key="item.month" class="bar-group">
-                                        <div class="stack">
-                                            <div class="green" :style="{ height: item.present * 10 + '%' }"></div>
-                                            <div class="red" :style="{ height: item.absent * 10 + '%' }"></div>
+                                       <div class="stack">
+                                    <div class="bar-wrapper">
+                                        <div 
+                                            class="red bar"
+                                            :style="{ height: (item.absent / axisMax) * 100 + '%' }"
+                                        >
+                                            <span class="tooltip">
+                                                {{ item.absent }} absences
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-
+                                    </div>
+                                </div>
                                     <div class="months">
                                         <span v-for="item in absencesData" :key="item.month">
                                             {{ item.month }}
@@ -84,16 +87,22 @@
                                 </button>
                             </div>
 
-                            <div class="user" v-for="p in peopleByStatus[activeStatusTab]" :key="p.name">
-                                <img
-                                    :src="p.avatar"
-                                    class="avatar-small"
-                                    @error="e => e.target.src = sampleImg"
-                                />
+                            <div class="who-list">
+                                <div 
+                                    class="user" 
+                                    v-for="p in peopleByStatus[activeStatusTab]" 
+                                    :key="p.name"
+                                >
+                                    <img
+                                        :src="p.avatar"
+                                        class="avatar-small"
+                                        @error="e => e.target.src = sampleImg"
+                                    />
 
-                                <div class="user-info">
-                                    <p class="name" :title="p.name">{{ p.name }}</p>
-                                    <small class="time">{{ p.label }} {{ p.time }}</small>
+                                    <div class="user-info">
+                                        <p class="name" :title="p.name">{{ p.name }}</p>
+                                        <small class="time">{{ p.label }} {{ p.time }}</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -106,7 +115,7 @@
 
 <script setup>
     import Header from '../components/Header.vue';
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import welcomeImg from "/welcome-img.png";
     import WelcomeCard from '../components/WelcomeCard.vue';
     import HolidayCard from '../components/HolidayCard.vue';
@@ -127,6 +136,11 @@
     const token = localStorage.getItem('token')
     const start = '2026-04-01'
     const end = '2026-04-30'
+
+    const maxAbsence = computed(() => {
+    const values = absencesData.value.map(x => x.absent || 0)
+    return Math.max(...values, 1) // para iwas divide by 0
+})
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -167,29 +181,38 @@
                 })
             ])
 
-            try {
-                const resHolidays = holidaysRes.data
-                const listHolidays = Array.isArray(resHolidays) ? resHolidays : (resHolidays.data || [])
-                
-                if (listHolidays && listHolidays.length > 0) {
-                    holidays.value = listHolidays.map(h => {
-                        const dateStr = h.date || h.Date
-                        const date = new Date(dateStr)
-                        return {
-                            month: !isNaN(date) ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase() : 'N/A',
-                            day: !isNaN(date) ? String(date.getDate()).padStart(2, '0') : '--',
-                            name: h.name || h.Name || 'Holiday'
-                        }
-                    })
-                } else {
-                    console.log('No holidays returned from API')
-                    holidays.value = []
-                }
-            } catch (holidayErr) {
-                console.error('Error processing holidays:', holidayErr)
-                holidays.value = []
-            }
+          try {
+    const resHolidays = holidaysRes.data
+    const listHolidays = Array.isArray(resHolidays) ? resHolidays : (resHolidays.data || [])
 
+    const today = new Date()
+
+    const upcoming = listHolidays
+        .map(h => {
+            const dateStr = h.date || h.Date
+            const date = new Date(dateStr)
+
+            return {
+                rawDate: date,
+                month: !isNaN(date)
+                    ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase()
+                    : 'N/A',
+                day: !isNaN(date)
+                    ? String(date.getDate()).padStart(2, '0')
+                    : '--',
+                name: h.name || h.Name || 'Holiday'
+            }
+        })
+        .filter(h => h.rawDate >= today) // 👉 future holidays lang
+        .sort((a, b) => a.rawDate - b.rawDate) // 👉 nearest first
+
+    // 👉 ONLY 1 UPCOMING HOLIDAY
+    holidays.value = upcoming.slice(0, 1)
+
+} catch (holidayErr) {
+    console.error('Error processing holidays:', holidayErr)
+    holidays.value = []
+}
 
             if (absencesRes && absencesRes.data) {
                 absencesData.value = absencesRes.data.map(x => ({
@@ -227,6 +250,29 @@
     onMounted(() => {
         loadDashboard()
     })
+
+    const yAxisValues = computed(() => {
+    const max = maxAbsence.value
+
+    const steps = 5
+    const stepSize = Math.ceil(max / steps)
+
+    const values = []
+    for (let i = steps; i >= 0; i--) {
+        values.push(i * stepSize)
+    }
+
+    return values
+    })
+
+    const axisMax = computed(() => {
+        const max = maxAbsence.value
+        const steps = 5
+        const stepSize = Math.ceil(max / steps)
+        return stepSize * steps
+    })
+
+    
 </script>
  
 <style scoped>
@@ -457,5 +503,72 @@
         color: rgba(255,255,255,0.6);
     }
 
+    .who {
+        display: flex;
+        flex-direction: column;
+        height: 350px;
+    }
+
+    .who-list {
+        overflow-y: auto;
+        max-height: 260px;
+        padding-right: 5px;
+    }
+
+    .who-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .who-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 4px;
+    }
+
+    .bottom-grid > * {
+        height: 330px;
+    }
+
+    .bar:hover {
+    opacity: 0.85;
+}
+
+.tooltip {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
     
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+
+    white-space: nowrap;
+    
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.2s ease;
+    pointer-events: none;
+}
+
+.bar:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.bar-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.bar {
+    position: relative;
+    width: 100%;
+    transition: 0.2s ease;
+    cursor: pointer;
+}
+
 </style>
