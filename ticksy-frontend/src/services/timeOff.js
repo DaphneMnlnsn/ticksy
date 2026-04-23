@@ -24,7 +24,15 @@ export async function getRequests() {
 
 export async function getMyRequests() {
     const res = await api.get(`/Requests/me`);
-    return res.data; 
+    if (!res.data) return [];
+
+    return res.data.map(item => ({
+        id: item.id,
+        type: item.leaveType,
+        reason: item.reason,
+        r_date: item.startDate + " - " + item.endDate,
+        status: item.status
+    }));
 }
 
 export async function approveRequest(id) {

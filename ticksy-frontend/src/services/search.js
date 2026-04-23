@@ -5,9 +5,10 @@ export function useSearch(listRef, keys = []) {
 
     const filtered = computed(() => {
         return listRef.value.filter(item =>
-            keys.some(key =>
-                item[key].toLowerCase().includes(search.value.toLowerCase())
-            )
+            keys.some(key => {
+                const field = item[key];
+                return String(field || '').toLowerCase().includes(search.value.toLowerCase());
+            })
         )
     })
 

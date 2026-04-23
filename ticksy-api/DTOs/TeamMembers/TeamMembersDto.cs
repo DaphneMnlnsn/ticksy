@@ -6,4 +6,5 @@ public class TeamMemberDto
     public DateTime JoinedAt { get; set; }
 
     public string Email { get; set; } = null!;
+    public string? AvatarUrl { get; set; }
 }

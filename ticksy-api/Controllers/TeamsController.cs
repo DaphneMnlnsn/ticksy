@@ -145,6 +145,7 @@ public class TeamsController : ControllerBase
                 t.User.MiddleName,
                 t.User.LastName,
                 t.User.Email,
+                t.User.AvatarUrl,
                 Role = t.TeamRole.ToString(),
                 t.JoinedAt
             })
@@ -164,6 +165,7 @@ public class TeamsController : ControllerBase
                     tm.MiddleName,
                     tm.LastName
                 }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                AvatarUrl = tm.AvatarUrl,
                 Email = tm.Email,
                 Role = tm.Role,
                 JoinedAt = tm.JoinedAt

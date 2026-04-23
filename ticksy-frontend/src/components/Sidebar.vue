@@ -105,9 +105,10 @@
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Admin','User'] },
         { name: 'Timesheets', path: '/timesheets', icon: ClipboardClock, roles: ['Admin','User'] },
         { name: 'Reports and Analytics', path: '/reports-and-analytics', icon: FileChartLine, roles: ['Admin'] },
+        { name: 'Work Schedules', icon: SquareChartGantt, path: '/management/user-work-schedules', roles: ['User'] },
         { name: 'Management', roles: ['Admin'], children: [
             { name: 'People', icon: Users, path: '/management/people', roles: ['Admin'] },
-            { name: 'Work Schedules', icon: SquareChartGantt, path: '/management/work-schedules', roles: ['Admin','User'] }
+            { name: 'Work Schedules', icon: SquareChartGantt, path: '/management/work-schedules', roles: ['Admin'] }
         ]}
     ]
 
