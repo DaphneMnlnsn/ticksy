@@ -193,8 +193,8 @@
                                         <Search v-model="requestSearch" />
                                     </div>
 
-                                    <button class="create-btn" @click="handleShowPolicies">
-                                        <span class="show-policy-bubble">Show Time Off Policies/Types</span>
+                                    <button class="policy-btn" @click="handleShowPolicies">
+                                        <span class="bubble-policies">Show Time Off Policies/Types</span>
                                     </button>
 
                                     <button class="create-btn" @click="handleAddRequest">
@@ -1285,6 +1285,18 @@
         opacity: 0.8;
     }
 
+    .policy-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        gap: 10px;
+        background: none;
+        outline: none;
+        border: none;
+        cursor: pointer;
+    }
+
     .year-bubble {
         font-size: 11px;
         color: #F0F0F0;
@@ -1295,14 +1307,18 @@
         margin-left: 10px;
     }
 
-    .show-policy-bubble {
-        font-size: 13px;
-        color: #F0F0F0;
-        border-radius: 10px;
-        background-color:#003867;
-        padding: 5px 15px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        margin-right: -200%;
+    .bubble-policies {
+        background: #083A73;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 999px;
+        display: inline-block;
+        margin-right: -240%;
+    }
+
+    .bubble-policies:hover {
+        opacity: 1px;
+        transform: translateY(-1px);
     }
 
     .search-row {

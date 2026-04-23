@@ -1,8 +1,8 @@
 <template>
     <transition name="fade">
         <DimmedBg
-            v-if="modelValue"
-            @click="$emit('update:modelValue', false)"
+            :show="modelValue"
+            @close="$emit('update:modelValue', false)"
         />
     </transition>
 
@@ -37,8 +37,8 @@
         </div>
 
         <div class="modal-footer">
-        <button class="cancel" @click="$emit('update:modelValue', false)">Cancel</button>
-        <button class="save" @click="saveMembers">Save</button>
+            <button class="cancel" @click="$emit('update:modelValue', false)">Cancel</button>
+            <button class="save" @click="saveMembers">Save</button>
         </div>
     </div>
 </template>
@@ -226,10 +226,15 @@
     }
 
     .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 25px;
+        padding: 16px 24px;
+        display: flex;
+        gap: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        justify-content: flex-end;
+        background: #001527; 
+        margin: 10px 0;   
+        z-index: 10; 
+        margin-top: 180px;
     }
 
     .cancel, .save {
