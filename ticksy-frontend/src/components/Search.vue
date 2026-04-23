@@ -4,15 +4,14 @@
 
         <input
             type="text"
-            v-model="internalValue"
-            @input="emit('update:modelValue', internalValue)"
+            :value="modelValue"
+            @input="emit('update:modelValue', $event.target.value)"
             placeholder="Search..."
         />
     </div>
 </template>
 
 <script setup>
-    import { ref, watch } from 'vue'
     import { Search } from 'lucide-vue-next'
 
     const props = defineProps({
@@ -20,17 +19,6 @@
     })
 
     const emit = defineEmits(['update:modelValue'])
-
-    const internalValue = ref(props.modelValue || "")
-
-    watch(() => props.modelValue, (val) => {
-        internalValue.value = val
-    })
-
-    function emitSearch() {
-        emit('update:modelValue', internalValue.value)
-    }
-
 </script>
 
 <style scoped>

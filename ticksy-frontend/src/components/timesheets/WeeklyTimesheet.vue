@@ -20,6 +20,15 @@
             <span>Try selecting another week</span>
         </div>
 
+        <div 
+            v-else-if="isSearchActive && !hasResults" 
+            class="empty-state"
+        >
+            <Search class="empty-icon" />
+            <p>No results found for "{{ keyword }}"</p>
+            <span>Try a different name</span>
+        </div>
+
         <div class="rows-wrapper">
             <TransitionGroup name="row-fade" tag="div">
                 <div class="row" v-for="(user, i) in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
@@ -46,7 +55,7 @@
 <script setup>
     import { ref, computed } from 'vue'
     import SearchBar from '../../components/Search.vue'
-    import { Calendar } from 'lucide-vue-next';
+    import { Calendar, Search } from 'lucide-vue-next';
 
     const props = defineProps({
         users: Array,
@@ -56,16 +65,18 @@
     })
 
     const search = ref('')
+    const keyword = computed(() => search.value.trim())
+    const isSearchActive = computed(() => keyword.value.length > 0)
+    const hasResults = computed(() => filteredUsers.value.length > 0)
 
     const filteredUsers = computed(() => {
-        if (!props.users) return []
+        const k = keyword.value.toLowerCase()
 
-        const query = (search.value || '').toLowerCase()
+        if (!k) return props.users
 
-        return props.users.filter(u => {
-            const name = (u.name || '').toLowerCase()
-            return name.includes(query)
-        })
+        return (props.users || []).filter(user =>
+            (user.name || '').toLowerCase().includes(k)
+        )
     })
 </script>
 
