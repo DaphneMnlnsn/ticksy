@@ -25,7 +25,9 @@
                 <div class="row" v-for="(user, i) in filteredUsers" :key="user.userId" :style="{ '--i': i }" >
                     <div class="user">
                         <img :src="user.avatar || defaultAvatar" class="avatar" />
-                        <span>{{ user.name }}</span>
+                        <span>
+                            {{ user.name }}
+                        </span>
                     </div>
 
                     <div class="days">
@@ -58,9 +60,12 @@
     const filteredUsers = computed(() => {
         if (!props.users) return []
 
-        return props.users.filter(u =>
-            u.name.toLowerCase().includes(search.value.toLowerCase())
-        )
+        const query = (search.value || '').toLowerCase()
+
+        return props.users.filter(u => {
+            const name = (u.name || '').toLowerCase()
+            return name.includes(query)
+        })
     })
 </script>
 

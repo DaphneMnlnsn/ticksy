@@ -330,17 +330,30 @@ public class AttendanceController : ControllerBase
         return Ok(attendances);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("weekly")]
-    public async Task<IActionResult> GetWeeklyAttendance(DateTime start, DateTime end)
+    public async Task<IActionResult> GetWeeklyAttendance(DateTime start, DateTime end, int? userId = null)
     {
+        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+
+        if (!isAdmin)
+        {
+            userId = requesterId; 
+        }
         var startDate = DateOnly.FromDateTime(start);
         var endDate = DateOnly.FromDateTime(end);
 
-        var data = await _context.Attendances
+        var query = _context.Attendances
             .Include(a => a.User)
-            .Where(a => a.Date >= startDate && a.Date <= endDate)
-            .ToListAsync();
+            .Where(a => a.Date >= startDate && a.Date <= endDate);
+
+        if (userId != null)
+        {
+            query = query.Where(a => a.UserId == userId);
+        }
+
+        var data = await query.ToListAsync();
 
         var result = data
             .GroupBy(a => new
@@ -366,12 +379,10 @@ public class AttendanceController : ControllerBase
 
                     int index = day == DayOfWeek.Sunday ? 6 : (int)day - 1;
 
-                    int hours = a.TotalWorkMinutes / 60;
+                    if (a.TotalWorkMinutes > 0)
+                        days[index] = FormatMinutes(a.TotalWorkMinutes);
 
-                    if (hours > 0)
-                        days[index] = $"{hours}h";
-
-                    total += hours;
+                    total += a.TotalWorkMinutes;
                 }
 
                 return new
@@ -380,7 +391,7 @@ public class AttendanceController : ControllerBase
                     name = group.Key.FullName,
                     avatar = group.Key.AvatarUrl,
                     days,
-                    total
+                    total = FormatMinutes(total)
                 };
             })
             .ToList();
@@ -388,16 +399,29 @@ public class AttendanceController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("daily")]
-    public async Task<IActionResult> GetDailyAttendance(DateTime date)
+    public async Task<IActionResult> GetDailyAttendance(DateTime date, int? userId = null)
     {
+        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+
+        if (!isAdmin)
+        {
+            userId = requesterId; 
+        }
         var selectedDate = DateOnly.FromDateTime(date);
 
-        var data = await _context.Attendances
+        var query = _context.Attendances
             .Include(a => a.User)
-            .Where(a => a.Date == selectedDate)
-            .ToListAsync();
+            .Where(a => a.Date == selectedDate);
+
+        if (userId != null)
+        {
+            query = query.Where(a => a.UserId == userId);
+        }
+
+        var data = await query.ToListAsync();
 
         var result = data
             .GroupBy(a => new
@@ -454,7 +478,7 @@ public class AttendanceController : ControllerBase
                         ).ToString("hh:mm tt")
                         : "--",
 
-                    totalHours = $"{totalMinutes / 60}h"
+                    total = FormatMinutes(totalMinutes)
                 };
             })
             .ToList();
@@ -462,21 +486,34 @@ public class AttendanceController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("monthly")]
-    public async Task<IActionResult> GetMonthlyAttendance(DateTime date)
+    public async Task<IActionResult> GetMonthlyAttendance(DateTime date, int? userId = null)
     {
+        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+
+        if (!isAdmin)
+        {
+            userId = requesterId; 
+        }
         var selectedDate = DateOnly.FromDateTime(date);
 
         var startOfMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
         var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-        var data = await _context.Attendances
+        var query = _context.Attendances
             .Include(a => a.User)
             .Where(a =>
                 a.Date.ToDateTime(TimeOnly.MinValue) >= startOfMonth.ToDateTime(TimeOnly.MinValue) &&
                 a.Date.ToDateTime(TimeOnly.MinValue) <= endOfMonth.ToDateTime(TimeOnly.MinValue)
-            )
-            .ToListAsync();
+            );
+
+        if (userId != null)
+        {
+            query = query.Where(a => a.UserId == userId);
+        }
+
+        var data = await query.ToListAsync();
 
         var userSchedules = await _context.UserWorkSchedules
             .Where(us =>
@@ -553,7 +590,7 @@ public class AttendanceController : ControllerBase
                     }
                     else if (dailyMinutes[i] > 0)
                     {
-                        days[i] = $"{dailyMinutes[i] / 60}h";
+                        days[i] = FormatMinutes(dailyMinutes[i]);
                     }
                     else
                     {
@@ -567,11 +604,19 @@ public class AttendanceController : ControllerBase
                     name = group.Key.FullName,
                     avatar = group.Key.AvatarUrl,
                     days,
-                    totalHours = $"{totalMinutes / 60}h"
+                    total = FormatMinutes(totalMinutes)
                 };
             })
             .ToList();
 
         return Ok(result);
+    }
+
+    private static string FormatMinutes(int totalMinutes)
+    {
+        var hours = totalMinutes / 60;
+        var minutes = totalMinutes % 60;
+
+        return $"{hours}h {minutes}m";
     }
 }

@@ -27,7 +27,7 @@
                     <div class="days daily">
                         <span>{{ user.firstIn }}</span>
                         <span>{{ user.lastOut }}</span>
-                        <span>{{ user.totalHours }}</span>
+                        <span>{{ user.total }}</span>
                     </div>
                 </div>
             </TransitionGroup>
