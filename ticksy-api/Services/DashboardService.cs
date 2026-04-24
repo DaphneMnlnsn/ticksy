@@ -222,11 +222,39 @@ public class DashboardService
             .ToList();
     }
 
-    public async Task<List<UserLiveStatusDto>> GetUsersLiveStatusAsync()
+    public async Task<List<UserLiveStatusDto>> GetUsersLiveStatusAsync(int currentUserId, bool isAdmin = false)
     {
-        var users = await _context.Users
-                        .Where(u => u.DeletedAt == null)
-                        .ToListAsync();
+        var userQuery = _context.Users
+            .Where(u => u.DeletedAt == null);
+
+        if (!isAdmin)
+        {
+            var teamIds = await _context.TeamMembers
+                .Where(tm => tm.UserId == currentUserId)
+                .Select(tm => tm.TeamId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!teamIds.Any())
+            {
+                return new List<UserLiveStatusDto>();
+            }
+
+            var teammateIds = await _context.TeamMembers
+                .Where(tm => teamIds.Contains(tm.TeamId) && tm.UserId != currentUserId)
+                .Select(tm => tm.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!teammateIds.Any())
+            {
+                return new List<UserLiveStatusDto>();
+            }
+
+            userQuery = userQuery.Where(u => teammateIds.Contains(u.Id));
+        }
+
+        var users = await userQuery.ToListAsync();
         var result = new List<UserLiveStatusDto>();
 
         foreach (var user in users)

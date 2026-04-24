@@ -61,14 +61,26 @@
                                     </template>
 
                                     <template #body>
-                                        <RowItem 
+                                        <div 
                                             v-for="item in filteredSchedules" 
                                             :key="item.id" 
-                                            :item="item"
-                                            :icon="item.icon"
-                                            :class="{ active: selectedSchedule?.id === item.id }"
-                                            @click="selectSchedule(item.id)" 
-                                        />
+                                            class="team-row-wrapper"
+                                        >
+                                            <RowItem 
+                                                :item="item"
+                                                :icon="item.icon"
+                                                :class="{ active: selectedSchedule?.id === item.id }"
+                                                @click="selectSchedule(item.id)" 
+                                            />
+
+                                            <div class="team-actions-overlay">
+                                                <Trash2 
+                                                    :size="16" 
+                                                    class="action-icon delete" 
+                                                    @click.stop="handleDeleteSchedule(item.id)" 
+                                                />
+                                            </div>
+                                        </div>
                                     </template>
                                 </SidePanel> 
                             </div>
@@ -454,7 +466,7 @@
     import { SquarePen, SquarePlus, FilePlus, ChevronsRight, DeleteIcon, Trash2, Pencil, Check, CheckCircle, Star, CircleCheck, CircleX } from 'lucide-vue-next'
     import { computed } from 'vue';
     import { useSearch } from '../services/search'
-    import { getScheduleById, getSchedules } from '../services/schedule'
+    import { deleteSchedule, getScheduleById, getSchedules } from '../services/schedule'
     import { approveRequest, createRequest, getRequests, rejectRequest } from '../services/timeOff'
     import { deleteCalendar, getCalendars, updateCalendar } from '../services/calendars'
     import { deleteHoliday, getHolidays } from '../services/holidays'
@@ -617,6 +629,19 @@
     }
     function handleAddHoliday() {
         isHolidayOpen.value = true;
+    }
+
+    async function handleDeleteSchedule(scheduleId) {
+        if (!confirm('Delete this schedule?')) return
+        await deleteSchedule(scheduleId)
+
+        showDeleteToast.value = true;
+
+        setTimeout(() => {
+            showDeleteToast.value = false;
+        }, 2000);
+
+        await fetchTeams()
     }
 
     const schedules = ref<{ id: number, name: string, label?: string, icon: any }[]>([]);
@@ -1357,7 +1382,7 @@
         padding: 6px 12px;
         border-radius: 999px;
         display: inline-block;
-        margin-right: -240%;
+        margin-right: -200%;
     }
 
     .bubble-policies:hover {
@@ -1723,4 +1748,44 @@
         transition: transform 0.1s ease, opacity 0.1s ease;
         opacity: 0.98;
     }
+
+    .team-row-wrapper:hover :deep(.icon) {
+        opacity: 0;
+    }
+
+    .team-row-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .team-row-wrapper :deep(.row-item) { 
+        width: 100%; 
+    }
+
+    .team-actions-overlay {
+        position: absolute;
+        right: 6px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        padding: 5%;
+    }
+
+    .team-row-wrapper:hover .team-actions-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .action-icon {
+        cursor: pointer;
+        color: #ffffff;
+    }
+
+    .action-icon.delete:hover {
+        color: #ef4444;
+    }
+
 </style>

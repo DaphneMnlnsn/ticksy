@@ -17,13 +17,13 @@
                             {{ tab }}
                         </button>
                     </div>
-
+a
                 <div class="cards" :key="activeTab">
 
-                     <div class="top-grid" :key="activeTab">
+                     <div class="top-grid" :class="{ 'admin-grid': isAdmin, 'user-grid': !isAdmin }" :key="activeTab">
                         <WelcomeCard :viewMode="activeTab" :welcomeImg="welcomeImg"/>
 
-                        <div class="card absences">
+                        <div class="card absences" v-if="isAdmin">
                             <div class="absence-header">
                                 <h3>Most Absences</h3>
                             </div>
@@ -117,7 +117,7 @@
 
 <script setup>
     import Header from '../components/Header.vue';
-    import { ref, onMounted, computed } from 'vue'
+    import { ref, onMounted, computed, watch } from 'vue'
     import welcomeImg from "/welcome-img.png";
     import WelcomeCard from '../components/WelcomeCard.vue';
     import HolidayCard from '../components/HolidayCard.vue';
@@ -136,13 +136,39 @@
     const isOpen = ref(true)
 
     const token = localStorage.getItem('token')
-    const start = '2026-04-01'
-    const end = '2026-04-30'
+
+    const role = localStorage.getItem('role') || 'User'
+    const isAdmin = role.toLowerCase() === 'admin'
 
     const maxAbsence = computed(() => {
     const values = absencesData.value.map(x => x.absent || 0)
         return Math.max(...values, 1) 
     })
+
+    function getDateRange(tab) {
+        const now = new Date();
+        if (tab === 'Day') {
+            const today = now.toISOString().split('T')[0];
+            return { start: today, end: today };
+        } else if (tab === 'Week') {
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            return {
+                start: startOfWeek.toISOString().split('T')[0],
+                end: endOfWeek.toISOString().split('T')[0]
+            };
+        } else if (tab === 'Month') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            return {
+                start: startOfMonth.toISOString().split('T')[0],
+                end: endOfMonth.toISOString().split('T')[0]
+            };
+        }
+        return { start: now.toISOString().split('T')[0], end: now.toISOString().split('T')[0] }; // fallback to today
+    }
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -156,6 +182,7 @@
     
     const loadDashboard = async () => {
         try {
+            const { start, end } = getDateRange(activeTab.value)
             const type = activeTab.value === 'Day' ? 'daily' : 
                          activeTab.value === 'Week' ? 'weekly' : 'monthly'
 
@@ -173,15 +200,31 @@
                 console.error('Failed to fetch calendars, using fallback ID:', defaultCalendarId, calErr)
             }
 
-            const [absencesRes, liveRes, hoursRes, holidaysRes] = await Promise.all([
-                dashboardService.getMostAbsences(start, end, token),
+            let absencesRes = null
+            let liveRes = null
+            let hoursRes = null
+            let holidaysRes = null
+
+            const requests = [
                 dashboardService.getLiveStatus(token),
                 dashboardService.getTrackedHours(type, start, end, token),
                 dashboardService.getHolidays(defaultCalendarId, new Date().getFullYear(), token).catch(err => {
                     console.warn('Failed to fetch holidays:', err)
                     return { data: [] }
                 })
-            ])
+            ]
+
+            if (isAdmin) {
+                requests.unshift(dashboardService.getMostAbsences(start, end, token))
+            }
+
+            const responses = await Promise.all(requests)
+
+            if (isAdmin) {
+                [absencesRes, liveRes, hoursRes, holidaysRes] = responses
+            } else {
+                [liveRes, hoursRes, holidaysRes] = responses
+            }
 
         try {
             const resHolidays = holidaysRes.data
@@ -215,7 +258,7 @@
                 holidays.value = []
             }
 
-            if (absencesRes && absencesRes.data) {
+            if (isAdmin && absencesRes && absencesRes.data) {
                 absencesData.value = absencesRes.data
                 .map(x => {
                     const fullName = x.fullName || 'User'
@@ -241,7 +284,15 @@
             }
 
             if (hoursRes && hoursRes.data) {
-                trackedHours.value = hoursRes.data
+                if (Array.isArray(hoursRes.data)) {
+                    trackedHours.value = {
+                        workHours: hoursRes.data.reduce((sum, d) => sum + (d.workHours || 0), 0),
+                        breakHours: hoursRes.data.reduce((sum, d) => sum + (d.breakHours || 0), 0),
+                        overtimeHours: hoursRes.data.reduce((sum, d) => sum + (d.overtimeHours || 0), 0)
+                    }
+                } else {
+                    trackedHours.value = hoursRes.data
+                }
             }
 
             const grouped = { In: [], Break: [], Out: [] }
@@ -266,6 +317,10 @@
     }
 
     onMounted(() => {
+        loadDashboard()
+    })
+
+    watch(activeTab, () => {
         loadDashboard()
     })
 
@@ -344,7 +399,7 @@
     }
 
     .app.collapsed .main-content {
-        margin-left: var(--sidebar-collapsed-width); /*DO NOT CHANGE!*/
+        margin-left: var(--sidebar-collapsed-width);
     }
 
     .tabs {
@@ -400,6 +455,10 @@
         grid-template-columns: 1.2fr 1fr 1fr;
         gap: 20px;
         margin-bottom: 20px;
+    }
+
+    .top-grid.user-grid {
+        grid-template-columns: 1.2fr 1fr;
     }
 
     .top-grid {

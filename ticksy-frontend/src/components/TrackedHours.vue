@@ -23,7 +23,7 @@
                     <span class="dot orange"></span>
                     <div>
                     <p class="label">BREAKS</p>
-                    <p class="value">---</p>
+                    <p class="value">{{ breakHours }}</p>
                     </div>
                 </div>
 
@@ -31,7 +31,7 @@
                     <span class="dot red"></span>
                     <div>
                     <p class="label">OVERTIME HOURS</p>
-                    <p class="value">{{ breakHours }}</p>
+                    <p class="value">{{ overtimeHours }}</p>
                     </div>
                 </div>
                 </div>
@@ -44,7 +44,15 @@
                         <span v-for="label in yAxisLabels" :key="label">{{ label }}</span>
                     </div>          
                 </div>
-                <div class="bar" :style="barStyle"></div>
+                <div class="bars-wrapper">
+                    <div class="bars">
+                        <div class="stack">
+                            <div class="bar red" :style="{ height: overtimePercent + '%' }"></div>
+                            <div class="bar orange" :style="{ height: breakPercent + '%' }"></div>
+                            <div class="bar green" :style="{ height: workPercent + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -78,6 +86,11 @@
         return `${props.data.breakHours?.toFixed(1) ?? 0} hrs`
     })
 
+    const overtimeHours = computed(() => {
+        if (!props.data) return '0 hrs'
+        return `${props.data.overtimeHours?.toFixed(1) ?? 0} hrs`
+    })
+
     const barStyle = computed(() => {
         if (!props.data) return { height: '5%', background: '#00DC28' }
     
@@ -90,6 +103,24 @@
             height: percent + '%',
             background: '#00DC28'
         }
+    })
+
+    const workPercent = computed(() => {
+        if (!props.data || !props.data.workHours) return 0
+        const max = props.viewMode === 'Day' ? 10 : props.viewMode === 'Week' ? 50 : 200
+        return Math.min((props.data.workHours / max) * 100, 100)
+    })
+
+    const breakPercent = computed(() => {
+        if (!props.data || !props.data.breakHours) return 0
+        const max = props.viewMode === 'Day' ? 10 : props.viewMode === 'Week' ? 50 : 200
+        return Math.min((props.data.breakHours / max) * 100, 100)
+    })
+
+    const overtimePercent = computed(() => {
+        if (!props.data || !props.data.overtimeHours) return 0
+        const max = props.viewMode === 'Day' ? 10 : props.viewMode === 'Week' ? 50 : 200
+        return Math.min((props.data.overtimeHours / max) * 100, 100)
     })
     const yAxisLabels = computed(() => {
     if (props.viewMode === 'Day') return ['10h', '8h', '6h', '4h', '2h', '0s']
@@ -172,9 +203,9 @@
         border-radius: 50%;
     }
 
-    .green { background: #00d12f; }
-    .orange { background: #ff8c00; }
-    .red { background: #ff3b30; }
+    .green { background: #22c55e; }
+    .orange { background: #f97316; }
+    .red { background: #ef4444; }
 
     .label {
         font-size: 12px;
@@ -190,42 +221,75 @@
     .graph {
         flex: 1;
         position: relative;
-        margin-left: 50px;
+        display: flex;
+        align-items: stretch;
+        height: 155px;
+        gap: 12px;
     }
 
     .grid {
-        position: absolute;
-        width: 100%;
-        height: 100%;
+        display: flex;
+        align-items: stretch;
     }
 
     .line {
+        position: absolute;
+        width: 100%;
         height: 1px;
-        background: rgba(255,255,255,0.2);
-        margin: 25px 0;
+        background: rgba(255,255,255,0.08);
+    }
+
+    .line:nth-child(1) { top: 0; }
+    .line:nth-child(2) { top: 20%; }
+    .line:nth-child(3) { top: 40%; }
+    .line:nth-child(4) { top: 60%; }
+    .line:nth-child(5) { top: 80%; }
+    .line:nth-child(6) { top: 100%; }
+
+    .bars-wrapper {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .bars {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        height: 140px;
+        padding: 0 10px;
+    }
+
+    .stack {
+        width: 50px;
+        height: 140px; 
+        display: flex;
+        flex-direction: column-reverse;
+        justify-content: flex-start;
     }
 
     .bar {
-        position: absolute;
-        bottom: 8px;
-        left: 200px;
-        width: 60%;
-        height: 75%;
-        background: #00d12f;
-        border-radius: 4px;
-        transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+        width: 100%;
+        transition: 0.2s ease;
+        cursor: pointer;
     }
 
+    .bar:hover {
+        opacity: 0.85;
+    }
+
+    .green { background: #22c55e; }
+    .orange { background: #f97316; }
+    .red { background: #ef4444; }
+
     .y-axis {
-        position: absolute;
-        left: -65px;
-        top: 15px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        height: 90%;
-        font-size: 12px;
-        opacity: 0.6;
+        height: 140px; 
+        font-size: 11px;
+        color: rgba(255,255,255,0.4);
     }
     
 </style>

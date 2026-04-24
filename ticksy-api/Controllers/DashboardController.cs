@@ -75,7 +75,10 @@ public class DashboardController : ControllerBase
     [HttpGet("live-status")]
     public async Task<ActionResult<List<UserLiveStatusDto>>> GetLiveStatus()
     {
-        var statusList = await _dashboardService.GetUsersLiveStatusAsync();
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+
+        var statusList = await _dashboardService.GetUsersLiveStatusAsync(currentUserId, isAdmin);
         return Ok(statusList);
     }
 }

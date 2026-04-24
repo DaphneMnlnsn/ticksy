@@ -25,7 +25,6 @@ export default {
     })
   },
 
-// ✅ ADD MO LANG ITO
   getCalendars(token) {
     return axios.get(`${API_CALENDARS}`, {
       headers: { Authorization: `Bearer ${token}` }
