@@ -9,8 +9,6 @@
                     :showTimer="true"
                     lastOut="Last out an hour ago"
                 />
-
-                <div class="cards">
                     <div class="tabs">
                         <button v-for="tab in ['Day','Week','Month']"
                             :key="tab"
@@ -20,12 +18,16 @@
                         </button>
                     </div>
 
-                    <div class="top-grid">
+                <div class="cards" :key="activeTab">
+
+                     <div class="top-grid" :key="activeTab">
                         <WelcomeCard :viewMode="activeTab" :welcomeImg="welcomeImg"/>
 
                         <div class="card absences">
-                            <h3>Most Absences</h3>
-
+                            <div class="absence-header">
+                                <h3>Most Absences</h3>
+                            </div>
+                            
                             <div class="chart">
                                 <div class="y-axis">
                                     <span v-for="val in yAxisValues" :key="val">
@@ -52,7 +54,7 @@
                                 </div>
                                     <div class="months">
                                         <span v-for="item in absencesData" :key="item.month">
-                                            {{ item.month }}
+                                            {{ item.name }}
                                         </span>
                                     </div>
                                 </div>
@@ -62,7 +64,7 @@
                         <HolidayCard :holidays="holidays" />
                     </div>
 
-                    <div class="bottom-grid">
+                    <div class="bottom-grid" :key="activeTab">
                         <TrackedHours 
                             :viewMode="activeTab"
                             :data="trackedHours"
@@ -75,7 +77,7 @@
                                 {{ peopleByStatus[activeStatusTab]?.length || 0 }} members
                             </p>
                         </div>
-
+ 
                             <div class="who-tabs">
                                 <button 
                                     v-for="tab in ['In','Break','Out']"
@@ -139,8 +141,8 @@
 
     const maxAbsence = computed(() => {
     const values = absencesData.value.map(x => x.absent || 0)
-    return Math.max(...values, 1) // para iwas divide by 0
-})
+        return Math.max(...values, 1) 
+    })
 
     function toggleSidebar() {
         isOpen.value = !isOpen.value
@@ -181,45 +183,61 @@
                 })
             ])
 
-          try {
-    const resHolidays = holidaysRes.data
-    const listHolidays = Array.isArray(resHolidays) ? resHolidays : (resHolidays.data || [])
+        try {
+            const resHolidays = holidaysRes.data
+            const listHolidays = Array.isArray(resHolidays) ? resHolidays : (resHolidays.data || [])
 
-    const today = new Date()
+            const today = new Date()
 
-    const upcoming = listHolidays
-        .map(h => {
-            const dateStr = h.date || h.Date
-            const date = new Date(dateStr)
+            const upcoming = listHolidays
+                .map(h => {
+                    const dateStr = h.date || h.Date
+                    const date = new Date(dateStr)
 
-            return {
-                rawDate: date,
-                month: !isNaN(date)
-                    ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase()
-                    : 'N/A',
-                day: !isNaN(date)
-                    ? String(date.getDate()).padStart(2, '0')
-                    : '--',
-                name: h.name || h.Name || 'Holiday'
+                    return {
+                        rawDate: date,
+                        month: !isNaN(date)
+                            ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase()
+                            : 'N/A',
+                        day: !isNaN(date)
+                            ? String(date.getDate()).padStart(2, '0')
+                            : '--',
+                        name: h.name || h.Name || 'Holiday'
+                    }
+                })
+                .filter(h => h.rawDate >= today)
+                .sort((a, b) => a.rawDate - b.rawDate) 
+
+            holidays.value = upcoming.slice(0, 2)
+
+            } catch (holidayErr) {
+                console.error('Error processing holidays:', holidayErr)
+                holidays.value = []
             }
-        })
-        .filter(h => h.rawDate >= today) // 👉 future holidays lang
-        .sort((a, b) => a.rawDate - b.rawDate) // 👉 nearest first
-
-    // 👉 ONLY 1 UPCOMING HOLIDAY
-    holidays.value = upcoming.slice(0, 1)
-
-} catch (holidayErr) {
-    console.error('Error processing holidays:', holidayErr)
-    holidays.value = []
-}
 
             if (absencesRes && absencesRes.data) {
-                absencesData.value = absencesRes.data.map(x => ({
-                    month: x.fullName ? x.fullName.split(' ')[0] : 'User',
-                    present: 0,
-                    absent: x.absenceCount || 0
-                }))
+                absencesData.value = absencesRes.data
+                .map(x => {
+                    const fullName = x.fullName || 'User'
+
+                    const parts = fullName.trim().split(' ')
+
+                    const firstName = parts[0] || ''
+                    const lastName = parts.length > 1 ? parts[parts.length - 1] : ''
+
+                    const displayName = lastName
+                        ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
+                        : firstName
+
+                    return {
+                        name: displayName,
+                        fullName,
+                        absent: x.absenceCount || 0
+                    }
+                })
+                .sort((a, b) => b.absent - a.absent)
+                .slice(0, 5)
+            
             }
 
             if (hoursRes && hoursRes.data) {
@@ -271,7 +289,6 @@
         const stepSize = Math.ceil(max / steps)
         return stepSize * steps
     })
-
     
 </script>
  
@@ -283,45 +300,99 @@
         overflow-y: auto;
     }
 
-    .app { display: flex; }
+    .app { 
+        display: flex;
+        width: 100%;
+        flex: 1;
+        min-height: 100vh;
+        overflow: hidden;
+        align-items: stretch;
+    }
+
+    .app.collapsed .main-content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
 
     .main-content {
         margin-left: var(--sidebar-width);
-        padding: 20px 25px 60px;
-        width: 100%;
+        flex: 1;
+        padding: 1rem;
+        height: 100vh;         
+        overflow-y: auto;     
+        min-height: 0;   
+        transition: margin-left 0.5s ease;   
+    }
+
+     .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+        border: 2px solid transparent; 
+        background-clip: content-box; 
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25); 
+    }
+
+
+    .main-content::-webkit-scrollbar-track {
+        background: transparent; 
+    }
+
+    .app.collapsed .main-content {
+        margin-left: var(--sidebar-collapsed-width); /*DO NOT CHANGE!*/
     }
 
     .tabs {
-        display: flex;
-        gap: 20px;
-        border-bottom: 1px solid rgba(255,255,255,0.15);
-        margin-bottom: 20px;
-        
+          display: flex;
+        gap: 10px;
+        padding: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2); 
+        margin-bottom: 15px;    
     }
 
     .tabs button {
         background: none;
         border: none;
-        color: rgba(255,255,255,0.6);
-        font-size: 15px;
-        padding-bottom: 8px;
-        cursor: pointer;
-        position: relative;
         outline: none;
+        color: #ffff;
+        position: relative;
+        font-size: 16px;
+        margin-top: 15px;
+        margin-left: 12px;
     }
 
     .tabs button.active {
-        color: #4da3ff;
+        color: #88b6ff;
+        font-weight: 600;
+        transition: color 0.3s ease;
     }
 
-    .tabs button.active::after {
+    .tabs button::after {
         content: "";
         position: absolute;
         bottom: -1px;
         left: 0;
-        width: 100%;
-        height: 2px;
-        background: #4da3ff;
+        width: 0;
+        height: 3.1px;
+        border-radius: 3px;
+        background: rgb(117, 136, 154, 50%);
+        transition: width 0.3s ease-in-out;
+    }
+
+    .tabs button.active::after {
+        width: 100%; 
+        background: #88b6ff; 
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
+
+    .tabs button:hover:not(.active) {
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
     }
 
     .top-grid {
@@ -331,22 +402,62 @@
         margin-bottom: 20px;
     }
 
+    .top-grid {
+        animation: fadeInUp 0.35s ease;
+    }
+
     .bottom-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 20px;
     }
 
+    .absence-header {
+        margin-top: -10px;
+    }
+
     .card {
         background: #001527;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 15px;
         backdrop-filter: blur(10px);
     }
 
+    .cards {
+        animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .top-grid,
+    .bottom-grid {
+        animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .top-grid > *,
+    .bottom-grid > * {
+        animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .top-grid > .card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
     .chart {
         display: flex;
-        height: 160px;
+        align-items: stretch;
+        height: 155px;
         gap: 12px;
     }
 
@@ -357,7 +468,7 @@
         height: 140px; 
         font-size: 11px;
         color: rgba(255,255,255,0.4);
-        padding-top: 4%; 
+        
     }
 
     .bars::before {
@@ -369,7 +480,7 @@
             rgba(255,255,255,0.08),
             rgba(255,255,255,0.08) 1px,
             transparent 1px,
-            transparent 30px
+            transparent calc(140px / 5)
             
         );
     }
@@ -396,27 +507,31 @@
     }
 
     .months span {
-        font-size: 11px;
+        font-size: 8px;
         color: rgba(255,255,255,0.6);
         text-align: center;
         width: 18px;
     }
 
-        .stack {
-            width: 18px;
-            height: 140px; 
-            display: flex;
-            flex-direction: column-reverse;
-            justify-content: flex-start;
-        }
+    .stack {
+        width: 20px;
+        height: 140px; 
+        display: flex;
+        flex-direction: column-reverse;
+        justify-content: flex-start;
+    }
 
-        .green { background: #22c55e; }
-        .red { background: #ef4444; }
+    .green { background: #22c55e; }
+    .red { background: #ef4444; }
 
-        .month {
-        font-size: 11px;
-        color: rgba(255,255,255,0.6);
-        margin-top: 6px;
+    .month {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 10px;
+        text-align: center;
+        line-height: 1.2;
+        white-space: normal;
+        width: 100%;
         display: block;
     }
 
@@ -530,45 +645,45 @@
 
     .bar:hover {
     opacity: 0.85;
-}
+    }
 
-.tooltip {
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    
-    background: rgba(0,0,0,0.8);
-    color: #fff;
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    .tooltip {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
 
-    white-space: nowrap;
-    
-    opacity: 0;
-    visibility: hidden;
-    transition: 0.2s ease;
-    pointer-events: none;
-}
+        white-space: nowrap;
+        
+        opacity: 0;
+        visibility: hidden;
+        transition: 0.2s ease;
+        pointer-events: none;
+    }
 
-.bar:hover .tooltip {
-    opacity: 1;
-    visibility: visible;
-}
+    .bar:hover .tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
 
-.bar-wrapper {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: flex-end;
-}
+    .bar-wrapper {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+    }
 
-.bar {
-    position: relative;
-    width: 100%;
-    transition: 0.2s ease;
-    cursor: pointer;
-}
+    .bar {
+        position: relative;
+        width: 100%;
+        transition: 0.2s ease;
+        cursor: pointer;
+    }
 
 </style>
