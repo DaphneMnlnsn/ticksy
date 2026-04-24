@@ -169,6 +169,7 @@
     import { buildExportPayload } from '../services/exportBuilder'
     import { formatCSV } from '../services/exportFormatter'
     import { useExportService } from '../services/exportService.js'
+    import { formatRange } from '../services/formatting.js'
     import Swal from 'sweetalert2'
 
     const calendarBtn = ref(null)
@@ -382,7 +383,7 @@
     function exportPDFHandler() {
         const payload = getExportPayload()
 
-        const pdfPayload = transformPayloadForPDF(payload)
+        const pdfPayload = payload
 
         exportPDF(
             `timesheet-${selectedTimesheet.value}`,
@@ -397,11 +398,9 @@
         return buildExportPayload({
             title: 'WEEKLY TIMESHEET REPORT',
             subtitle: 'Employee Attendance Summary',
-            dateRange: {
-                label: formattedRange.value,
-                start: startDate.value,
-                end: endDate.value
-            },
+            dateRange: formatRange(
+                `${startDate.value.toISOString()} - ${endDate.value.toISOString()}`
+            ),
 
             headers: ['Name','Mon','Tue','Wed','Thu','Fri','Sat','Sun','Total Hours'],
 
@@ -436,7 +435,7 @@
                 'Name': user.name,
                 'First In': user.firstIn || '-',
                 'Last Out': user.lastOut || '-',
-                'Total Hours': user.totalHours || 0
+                'Total Hours': user.total || 0
             }))
         })
     }
@@ -447,6 +446,21 @@
         const month = monthDate.getMonth()
 
         const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+        function parseHours(val) {
+            if (typeof val === 'number') return val
+            if (typeof val === 'string') {
+                const match = val.match(/(\d+)h\s*(\d+)m/)
+                if (match) {
+                    return parseInt(match[1]) + parseInt(match[2]) / 60
+                }
+                const hMatch = val.match(/(\d+)h/)
+                if (hMatch) return parseInt(hMatch[1])
+                const mMatch = val.match(/(\d+)m/)
+                if (mMatch) return parseInt(mMatch[1]) / 60
+            }
+            return 0
+        }
 
         const rows = tableData.value.map(user => {
             const days = user.days || []
@@ -460,10 +474,10 @@
             for (let i = 0; i < daysInMonth; i++) {
                 const val = days[i]
 
-                if (val && val !== '—' && val !== 'REST') {
+                if (val && val !== '0h' && val !== '0' && val !== 'REST' && val !== 'LEAVE' && val !== '—') {
                     present++
-                    weekTotals[Math.floor(i / 7)] += Number(val) || 0
-                } else if (!val || val === '—') {
+                    weekTotals[Math.floor(i / 7)] += parseHours(val)
+                } else if (val === '0h' || val === '0' || !val || val === '—') {
                     absent++
                 }
 
@@ -473,14 +487,15 @@
             return {
                 'Name': user.name,
                 'Month': monthDate.toLocaleString('default', { month: 'long', year: 'numeric' }),
-                'Total Hours': user.totalHours || 0,
+                'Total Hours': user.total || 0,
                 'Days Present': present,
                 'Days Absent': absent,
-                'Late Count': late,
+                'Late Count': user.lateCount ?? late,
                 'Week 1 Hours': weekTotals[0],
                 'Week 2 Hours': weekTotals[1],
                 'Week 3 Hours': weekTotals[2],
-                'Week 4 Hours': weekTotals[3]
+                'Week 4 Hours': weekTotals[3],
+                days: user.days
             }
         })
 
@@ -507,24 +522,6 @@
 
             rows
         })
-    }
-
-    function transformPayloadForPDF(payload) {
-        const headers = payload.table.headers
-
-        const rows = payload.table.rows.map(row => {
-            if (Array.isArray(row)) return row
-
-            return headers.map(h => row[h] ?? '')
-        })
-
-        return {
-            ...payload,
-            table: {
-                ...payload.table,
-                rows
-            }
-        }
     }
 
     async function loadData() {

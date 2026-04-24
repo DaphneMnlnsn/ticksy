@@ -44,12 +44,17 @@
                             @mousemove="moveTooltip"
                             @mouseleave="hideTooltip"
                         >   
-                            <template v-if="isHoliday(index + 1)">
-                                <Calendar class="holiday-icon" />
+
+                            <template v-if="user.days?.[index] === 'LEAVE'">
+                                <Briefcase class="leave-icon" />
                             </template>
 
-                            <template v-if="user.days?.[index] === 'REST'">
+                            <template v-else-if="user.days?.[index] === 'REST'">
                                 <TreePalm class="rest-icon" />
+                            </template>
+
+                            <template v-else-if="isHoliday(index + 1)">
+                                <Calendar class="holiday-icon" />
                             </template>
 
                             <template v-else-if="user.days?.[index] === '0h'">
@@ -78,7 +83,7 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue'
     import SearchBar from '../../components/Search.vue'
-    import { Calendar, TreePalm, Search } from 'lucide-vue-next'
+    import { Calendar, TreePalm, Search, Briefcase } from 'lucide-vue-next'
     import Loading from '../Loading.vue'
     import { getCalendars } from '../../services/calendars'
     import { getHolidays } from '../../services/holidays'
@@ -149,9 +154,8 @@
         const day = index + 1
         const key = getKey(props.selectedMonth, day)
 
+        if (value === 'LEAVE') return 'leave-day'
         if (holidayMap.value[key]) return 'holiday'
-
-        if (!value) return 'no-record'
         if (value === 'REST') return 'rest-day'
         if (value === '0h') return 'zero-day'
 
@@ -198,6 +202,7 @@
     function getTooltip(value) {
         if (!value) return 'No record'
 
+        if (value === 'LEAVE') return 'Approved Leave'
         if (value === 'REST') return 'Rest Day'
         if (value === '0h') return '0 hours (No work)'
 
