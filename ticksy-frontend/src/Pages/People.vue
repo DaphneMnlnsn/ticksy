@@ -93,7 +93,7 @@
                                 </span>
 
                                 <div class="user">
-                                    <img :src="sampleIMG" class="avatar" />
+                                    <img :src="user.avatarUrl" :alt="user.avatarUrl" class="avatar" />
                                     <span>{{ user.name }}</span>
                                 </div>
 
@@ -176,7 +176,7 @@
                                     :key="user.email"
                                 >
                                     <div class="user">
-                                        <img :src="sampleIMG" class="avatar" />
+                                        <img :src="user.avatarUrl" :alt="user.avatarUrl" class="avatar" />
                                         <span>{{ user.name }}</span>
                                     </div>
 
@@ -303,7 +303,7 @@
                 team: u.teamName || 'No Team',
                 schedule: u.scheduleName || 'No Schedule',
                 lastActive: formatFullDateTime(u.lastActive),
-                avatar: u.avatarUrl || sampleIMG,
+                avatarUrl: u.avatarUrl || sampleIMG,
                 raw: u
             }))
         } catch (err) {
@@ -342,6 +342,7 @@
                 selectedTeamMembers.value = membersList.map(m => ({
                     id: m.id || m.userId,
                     name: m.fullName,
+                    avatarUrl: m.avatarUrl || sampleIMG,
                     email: m.email,
                     joinedAt: formatFullDateTime(m.joinedAt)
                 }));
