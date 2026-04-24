@@ -274,9 +274,9 @@ public class SchedulesController : ControllerBase
                 {
                     us.FirstName,
                     us.MiddleName,
-                    us.LastName,
-                    us.AvatarUrl
-                }.Where(x => !string.IsNullOrWhiteSpace(x)))
+                    us.LastName
+                }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                AvatarUrl = us.AvatarUrl
             }).ToList()
         };
 

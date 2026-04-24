@@ -1,6 +1,7 @@
 public class AttendanceReportRowDto
 {
     public string EmployeeName { get; set; } = null!;
+    public string? AvatarUrl { get; set; }
     public DateOnly Date { get; set; }
 
     public string ClockIn { get; set; } = null!;

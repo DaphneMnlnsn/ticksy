@@ -58,7 +58,8 @@ public class ReportService
             a.Notes,
             a.User.FirstName,
             a.User.MiddleName,
-            a.User.LastName
+            a.User.LastName,
+            a.User.AvatarUrl
         })
         .ToListAsync();
 
@@ -70,7 +71,6 @@ public class ReportService
                 a.MiddleName,
                 a.LastName
             }.Where(x => !string.IsNullOrWhiteSpace(x))),
-
             Date = a.Date,
             ClockIn = a.TimeIn.ToString("HH:mm"),
             ClockOut = a.TimeOut.HasValue ? a.TimeOut.Value.ToString("HH:mm") : "-",
@@ -81,7 +81,8 @@ public class ReportService
                 : 0, 2),
 
             Status = a.Status.ToString(),
-            Notes = a.Notes
+            Notes = a.Notes,
+            AvatarUrl = a.AvatarUrl
         }).ToList();
 
         return result;

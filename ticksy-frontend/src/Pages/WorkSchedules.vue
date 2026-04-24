@@ -166,8 +166,11 @@
                                             <div class="avatar-group">
                                                 <img v-for="assignment in selectedSchedule?.userWorkSchedules" 
                                                     :key="assignment.userId"
-                                                    :src="assignment.profilePicture || sampleIMG" 
-                                                    :title="assignment.fullName"
+                                                    :src="assignment.avatarUrl"
+                                                    :alt="assignment.fullName"
+                                                    @mouseenter="showTeamTooltip($event, assignment)"
+                                                    @mousemove="moveTeamTooltip"
+                                                    @mouseleave="hideTeamTooltip"
                                                     class="avatar"
                                                 />
                                                 
@@ -370,6 +373,18 @@
         </div>
     </div>
 
+    <div
+        v-if="teamTooltip.show"
+        class="tooltip"
+        :style="{
+            left: teamTooltip.x + 'px',
+            top: teamTooltip.y + 'px',
+            transform: 'translate(-50%, -100%)'
+        }"
+    >
+        {{ teamTooltip.text }}
+    </div>
+
     <SchedulePanel
         :isOpen="isScheduleOpen"
         :isSidebarCollapsed="!isOpen"
@@ -474,6 +489,13 @@
     const selectAllRequests = ref(false)
     const users = ref([])
 
+    const teamTooltip = ref({
+        show: false,
+        text: '',
+        x: 0,
+        y: 0
+    });
+
     async function handleAssignMember() {
         try {
             if (!selectedSchedule.value) {
@@ -512,6 +534,28 @@
             selectedRequests.value = []; 
         }
     };
+
+    function showTeamTooltip(event, member) {
+        teamTooltip.value.show = true;
+        updateTeamTooltipPosition(event);
+        teamTooltip.value.text = member.role === 'Leader'
+            ? `${member.fullName} (Leader)`
+            : member.fullName;
+    }
+
+    function moveTeamTooltip(event) {
+        updateTeamTooltipPosition(event);
+    }
+
+    function updateTeamTooltipPosition(event) {
+        const offset = 10;
+        teamTooltip.value.x = event.clientX;
+        teamTooltip.value.y = event.clientY - offset;
+    }
+
+    function hideTeamTooltip() {
+        teamTooltip.value.show = false;
+    }
 
     const displayWeeklyHours = computed(() => {
         const input = selectedSchedule.value?.weeklyDuration || "00:00:00";
@@ -1662,5 +1706,21 @@
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tooltip {
+        pointer-events: none;
+        position: fixed;
+        background: rgba(0, 21, 39, 0.95);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        white-space: nowrap;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        transition: transform 0.1s ease, opacity 0.1s ease;
+        opacity: 0.98;
     }
 </style>

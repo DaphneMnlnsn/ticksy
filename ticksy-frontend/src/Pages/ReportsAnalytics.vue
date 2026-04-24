@@ -79,7 +79,7 @@
                                 <tr v-for="(report, index) in sortedAndFilteredReports" :key="index">
                                     <td>
                                         <div class="user-group">
-                                            <img :src="report.avatar || sampleIMG" alt="profile" class="avatar" /> 
+                                            <img :src="report.avatarUrl || sampleIMG" alt="profile" class="avatar" /> 
                                             <span>{{ report.employeeName }}</span>
                                         </div>
                                     </td>
