@@ -1382,7 +1382,7 @@
         padding: 6px 12px;
         border-radius: 999px;
         display: inline-block;
-        margin-right: -200%;
+        margin-right: -150%;
     }
 
     .bubble-policies:hover {

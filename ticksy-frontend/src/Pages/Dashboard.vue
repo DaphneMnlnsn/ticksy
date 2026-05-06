@@ -17,7 +17,7 @@
                             {{ tab }}
                         </button>
                     </div>
-a
+
                 <div class="cards" :key="activeTab">
 
                      <div class="top-grid" :class="{ 'admin-grid': isAdmin, 'user-grid': !isAdmin }" :key="activeTab">
