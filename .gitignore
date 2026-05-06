@@ -7,6 +7,8 @@ dist/
 .env.development.local
 .env.production.local
 
+ticksy-api/appsettings.json
+
 # ASP.NET
 bin/
 obj/

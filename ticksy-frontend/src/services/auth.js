@@ -1,0 +1,62 @@
+import api from "./api";
+import { getUserProfile } from "./userService";
+import { jwtDecode } from "jwt-decode";
+
+export async function loginUser(email, password) {
+    const res = await api.post("/Users/login", { email, password });
+
+    const { token, userId, role } = res.data;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("role", role);
+
+    try {
+        const profileRes = await getUserProfile(userId);
+        const data = profileRes.data;
+
+        const user = {
+            firstName: data.firstName || '',
+            middleName: data.middleName || '',
+            lastName: data.lastName || '',
+            name: [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' '),
+            email: data.email || '',
+            role: data.role || role,       
+            avatar: data.avatarUrl || '',
+            phone: data.phone || '',
+            timezone: data.timeZone || ''
+        };
+
+        localStorage.setItem("user", JSON.stringify(user));
+
+        return { token, userId, role, user };
+    } catch (err) {
+        console.error("Failed to fetch user profile:", err);
+        return { token, userId, role }; 
+    }
+}
+
+export function isAuthenticated() {
+    const token = localStorage.getItem('token');
+
+    if (!token) return false;
+
+    try {
+        const decoded = jwtDecode(token);
+        const now = Date.now() / 1000;
+
+        // token expired
+        if (decoded.exp < now) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            localStorage.removeItem('user');
+            localStorage.removeItem('userId');
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.error("Invalid token:", err);
+        return false;
+    }
+}

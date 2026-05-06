@@ -1,0 +1,253 @@
+<template>
+    <div class="page-wrapper">
+        <div class="page-bg"></div>
+
+        <div class="root">
+        <div class="header-section">
+            <img :src="logo" alt="Logo" class="logo" />
+            <h1>Reset Password</h1>
+            <h5>Enter your new password.</h5>
+        </div>
+
+        <div class="login-container">
+            <form @submit.prevent="handleReset">
+
+            <div class="input-group">
+                <input
+                type="password"
+                v-model="newPassword"
+                placeholder="New Password"
+                required
+                />
+            </div>
+
+            <div class="input-group">
+                <input
+                type="password"
+                v-model="confirmPassword"
+                placeholder="Confirm Password"
+                required
+                />
+            </div>
+
+            <button type="submit" :disabled="isLoading">
+                {{ isLoading ? "Updating..." : "Reset Password" }}
+            </button>
+
+            <div class="links">
+                <router-link to="/login">Back to Login</router-link>
+            </div>
+            </form>
+        </div>
+        </div>
+
+        <Toast
+        :message="toastMessage"
+        :type="toastType"
+        :icon="toastIcon"
+        @finished="toastMessage = ''"
+        />
+    </div>
+</template>
+
+<script setup>
+    import { ref } from "vue"
+    import { useRouter, useRoute } from "vue-router"
+    import logo from "../assets/ticksy_logo.png"
+    import Toast from "../components/Toast.vue"
+    import { CheckCircle, XCircle } from "lucide-vue-next"
+    import { resetPassword } from "../services/userService" 
+
+    const router = useRouter()
+    const route = useRoute()
+    const token = route.query.token || ""
+
+    const newPassword = ref("")
+    const confirmPassword = ref("")
+    const isLoading = ref(false)
+
+    const toastMessage = ref("")
+    const toastType = ref("success")
+    const toastIcon = ref(null)
+
+    async function handleReset() {
+        if (newPassword.value !== confirmPassword.value) {
+            toastMessage.value = ""
+            setTimeout(() => {
+                toastMessage.value = "Passwords do not match."
+                toastType.value = "error"
+                toastIcon.value = XCircle
+            }, 10)
+            return
+        }
+
+        isLoading.value = true
+
+        try {
+            await resetPassword({
+                passwordResetToken: token,
+                newPassword: newPassword.value
+            })
+
+            toastMessage.value = ""
+            setTimeout(() => {
+                toastMessage.value = "Password reset successful!"
+                toastType.value = "success"
+                toastIcon.value = CheckCircle
+            }, 10)
+
+            setTimeout(() => {
+                router.push("/login")
+            }, 2000)
+        } catch (error) {
+            console.error(error)
+            toastMessage.value = ""
+            setTimeout(() => {
+                toastMessage.value = "Failed to reset password."
+                toastType.value = "error"
+                toastIcon.value = XCircle
+            }, 10)
+        } finally {
+            isLoading.value = false
+        }
+    }
+</script>
+
+<style scoped>
+    .page-wrapper {
+        width: 100vw;
+        min-width: 500px;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .page-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("../assets/login_background.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: -1;
+    }
+
+    .root {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        z-index: 1;
+        width: 700px;       
+        max-width: 90%; 
+        padding: 40px;
+        border-radius: 15px;
+    }
+
+    .header-section {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #fff;
+    }
+
+    .logo {
+        display: block;
+        margin: 0 auto 30px auto;
+        width: 200px;
+        height: auto;
+    }
+
+    .header-section h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .header-section h5 {
+        font-size: 1rem;
+        margin: 2px 0;
+        font-weight: lighter;
+    }
+
+    .login-container, form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center; 
+    }
+
+    .input-group {
+        width: 100%;
+        max-width: 500px;
+        display: flex;
+        align-items: center;
+        background-color: #C3CCD5;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        box-sizing: border-box;
+    }
+
+    .input-group input {
+        border: none;
+        outline: none;
+        flex: 1;
+        background: transparent;
+        font-size: 1rem;
+        margin-left: 10px;
+        margin-right: 10px; 
+        color: black;
+        min-width: 0;
+    }
+
+    .icon {
+        width: 18px;
+        height: 20px;
+        color: #1f2937;
+        flex-shrink: 0;
+    }
+
+    .links {
+        margin-top: 15px;
+        text-align: center;
+    }
+
+    .links a {
+        color: #fff;
+        font-size: 0.9rem;
+        text-decoration: underline;
+    }
+
+    button {
+        width: 300px;
+        display: block;
+        margin: 25px auto 0 auto;
+        padding: 12px;
+        background: #0C365C;
+        border: none;
+        border-radius: 12px;
+        color: #fff;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    button:hover {
+        opacity: 0.8;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+        -webkit-text-fill-color: black !important;
+        font-size: 1rem !important; 
+        font-family: inherit !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+</style>
