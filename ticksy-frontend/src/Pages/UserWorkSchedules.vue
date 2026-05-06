@@ -118,9 +118,6 @@
                                     <div class="search-box">
                                         <Search v-model="requestSearch" />
                                     </div>
-                                    <button class="create-btn" @click="handleShowPolicies">
-                                        <span class="show-policy-bubble">Show Time Off Policies/Types</span>
-                                    </button>
 
                                     <button class="create-btn" @click="handleAddRequest">
                                         <FilePlus class="create-icon"/>
